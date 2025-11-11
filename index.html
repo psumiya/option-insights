@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Options View</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- D3.js CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-background text-text-primary font-sans">
+    <!-- Header -->
+    <header class="bg-surface border-b border-border px-6 py-4">
+        <div class="max-w-[1920px] mx-auto">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-semibold">Options Trading Journal</h1>
+                <div class="flex gap-4">
+                    <button id="upload-btn" class="btn-primary" aria-label="Upload CSV file">
+                        Upload CSV
+                    </button>
+                    <button id="reload-btn" class="btn-secondary" aria-label="Reload data">
+                        Reload Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- File Upload Zone (Hidden by default) -->
+    <div id="upload-zone" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-surface border border-border rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 class="text-xl font-semibold mb-4">Upload Trade Data</h2>
+            <div id="drop-zone" class="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer">
+                <p class="text-text-secondary mb-2">Drag and drop CSV file here</p>
+                <p class="text-sm text-text-secondary mb-4">or</p>
+                <input type="file" id="file-input" accept=".csv" class="hidden" aria-label="Select CSV file">
+                <button id="browse-btn" class="btn-secondary">Browse Files</button>
+            </div>
+            <button id="close-upload-btn" class="btn-secondary w-full mt-4">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-surface border border-border rounded-lg p-8">
+            <div class="spinner"></div>
+            <p class="text-center mt-4">Processing CSV...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2" role="alert" aria-live="polite"></div>
+
+    <!-- Main Content -->
+    <main class="max-w-[1920px] mx-auto px-6 py-6">
+        <!-- Filters Section -->
+        <section class="bg-surface border border-border rounded-lg p-4 mb-6" role="region" aria-label="Filters">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex items-center gap-2">
+                    <label for="date-range-filter" class="text-sm text-text-secondary">Date Range:</label>
+                    <select id="date-range-filter" class="filter-select" aria-label="Select date range">
+                        <option value="last7days">Last 7 Days</option>
+                        <option value="last30days">Last 30 Days</option>
+                        <option value="last12months" selected>Last 12 Months</option>
+                        <option value="ytd">Year to Date</option>
+                        <option value="alltime">All Time</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="position-status-filter" class="text-sm text-text-secondary">Position Status:</label>
+                    <select id="position-status-filter" class="filter-select" aria-label="Select position status">
+                        <option value="closed" selected>Closed Positions</option>
+                        <option value="open">Open Positions</option>
+                        <option value="all">All Positions</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="bg-surface border border-border rounded-lg p-12 text-center">
+            <h2 class="text-xl font-semibold mb-2">No Trade Data Available</h2>
+            <p class="text-text-secondary mb-6">Upload a CSV file to get started with your trading analytics</p>
+            <button id="empty-state-upload-btn" class="btn-primary">Upload CSV</button>
+        </div>
+
+        <!-- Dashboard Container (Hidden until data loaded) -->
+        <div id="dashboard" class="hidden">
+            <!-- P/L Trend Chart (Full Width) -->
+            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
+                <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
+                <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
+            </section>
+
+            <!-- Win Rate and P/L by Strategy (2 Column Grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Rate by Strategy">
+                    <h2 class="text-lg font-semibold mb-4">Win Rate by Strategy</h2>
+                    <div id="win-rate-chart" class="chart-container" aria-label="Bar chart showing win rate by strategy"></div>
+                </section>
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Strategy">
+                    <h2 class="text-lg font-semibold mb-4">P/L by Strategy</h2>
+                    <div id="pl-breakdown-chart" class="chart-container" aria-label="Bar chart showing profit and loss by strategy"></div>
+                </section>
+            </div>
+
+            <!-- P/L by Symbol and Buy vs Sell (2 Column Grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Symbol">
+                    <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
+                    <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
+                </section>
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Strategy Performance">
+                    <h2 class="text-lg font-semibold mb-4">Buy vs Sell by Strategy</h2>
+                    <div id="strategy-performance-chart" class="chart-container" aria-label="Bar chart showing buy versus sell performance by strategy"></div>
+                </section>
+            </div>
+
+            <!-- P/L by Symbol & Strategy Table (Full Width) -->
+            <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Symbol and Strategy">
+                <h2 class="text-lg font-semibold mb-4">P/L by Symbol & Strategy</h2>
+                <div class="overflow-x-auto">
+                    <table id="symbol-strategy-table" class="data-table" role="table">
+                        <thead>
+                            <tr>
+                                <th role="columnheader" tabindex="0" class="sortable">Symbol</th>
+                                <th role="columnheader" tabindex="0" class="sortable">Strategy</th>
+                                <th role="columnheader" tabindex="0" class="sortable">Trades</th>
+                                <th role="columnheader" tabindex="0" class="sortable">P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Application Scripts -->
+    <script src="js/main.js" type="module"></script>
+</body>
+</html>

@@ -6,12 +6,18 @@ This implementation plan breaks down the feature into discrete, actionable codin
 
 ## Tasks
 
-- [ ] 1. Set up project structure and core HTML/CSS foundation
+- [x] 1. Set up project structure and core HTML/CSS foundation
   - Create directory structure: `css/`, `js/`, `js/visualizations/`, `assets/`
   - Create `index.html` with semantic HTML structure and CDN links for D3.js and Tailwind CSS
   - Create `css/styles.css` with trading terminal color palette, typography, and base styles
   - Implement responsive grid layout with header, filters section, and visualization containers
-  - _Requirements: 11.1, 11.4, 11.6_
+  - Implement file upload UI with drag-and-drop zone, loading spinner, and toast notifications
+  - Implement filter controls (date range and position status dropdowns)
+  - Implement empty state display
+  - Implement dashboard layout with all visualization containers
+  - Implement data table structure for Symbol & Strategy combinations
+  - Add ARIA labels and semantic HTML for accessibility
+  - _Requirements: 11.1, 11.4, 11.6, 1.1, 12.5, 8.1, 8.2, 9.1, 9.2, 12.4_
 
 - [ ] 2. Implement CSV Parser component
   - [ ] 2.1 Create `js/csv-parser.js` with CSVParser class
@@ -20,13 +26,6 @@ This implementation plan breaks down the feature into discrete, actionable codin
     - Implement `validate()` method to check required fields
     - Return detailed error messages with row numbers for validation failures
     - _Requirements: 1.1, 1.2, 1.3_
-  
-  - [ ] 2.2 Create file upload UI component in `index.html`
-    - Add file input button and drag-and-drop zone
-    - Add loading spinner element (hidden by default)
-    - Add error/success toast notification container
-    - Style upload area with trading terminal aesthetic
-    - _Requirements: 1.1, 12.5_
 
 - [ ] 3. Implement Analytics Engine component
   - [ ] 3.1 Create `js/analytics-engine.js` with AnalyticsEngine class
@@ -125,10 +124,8 @@ This implementation plan breaks down the feature into discrete, actionable codin
     - Add empty state display when no data is available
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 11. Implement filter UI components
-  - Create filter controls in `index.html`: date range dropdown and position status dropdown
-  - Style dropdowns with trading terminal aesthetic
-  - Wire up filter controls to DashboardController
+- [ ] 11. Wire up filter UI to DashboardController
+  - Connect filter controls to DashboardController event handlers
   - Implement immediate update on selection (no "Apply" button)
   - Add visual indication of active filters
   - _Requirements: 8.1, 8.2, 8.3, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
@@ -142,29 +139,23 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Add reload data button functionality
   - _Requirements: 1.5, 3.1, 3.2, 4.2, 8.4, 9.2_
 
-- [ ] 13. Implement responsive layout and mobile optimizations
-  - Add media queries for tablet (768px-1023px) and laptop (1024px-1919px) breakpoints
-  - Implement single-column stacking for tablet view
-  - Adjust chart heights for smaller screens
-  - Test and fix any layout issues on different screen sizes
-  - Verify all visualizations are visible on initial load without scrolling (desktop)
-  - _Requirements: 11.1, 11.2, 11.3, 11.6_
-
-- [ ] 14. Implement Symbol & Strategy combination table
-  - Create data table component in `index.html` for P/L by Symbol and Strategy combination
-  - Implement sortable columns (click header to sort)
-  - Style table with trading terminal aesthetic (monospace numbers, alternating rows)
+- [ ] 13. Implement table sorting functionality
+  - Implement JavaScript logic for sortable table columns
+  - Add sort indicators (arrows) to table headers
   - Populate table with data from Analytics Engine
-  - Add responsive behavior (horizontal scroll on small screens)
   - _Requirements: 7.3, 7.4_
 
-- [ ] 15. Add accessibility features
-  - Add ARIA labels to all interactive elements (buttons, dropdowns, charts)
-  - Add semantic HTML roles where appropriate
-  - Implement visible focus indicators for keyboard navigation
-  - Add alt text or ARIA descriptions for visualizations
+- [ ] 14. Test and refine responsive behavior
+  - Test layout on different screen sizes (desktop, laptop, tablet)
+  - Verify all visualizations are visible on initial load without scrolling (desktop)
+  - Test and fix any layout issues
+  - _Requirements: 11.1, 11.2, 11.3, 11.6_
+
+- [ ] 15. Test and refine accessibility features
   - Test keyboard navigation (Tab order, Enter/Space for activation)
-  - Verify color contrast meets WCAG 2.1 AA standards (4.5:1 for text)
+  - Verify focus indicators are visible
+  - Test with screen reader if available
+  - Verify color contrast meets WCAG 2.1 AA standards
   - _Requirements: 11.1, 11.4_
 
 - [ ] 16. Implement error handling edge cases
@@ -179,38 +170,14 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Create `sample-trades.csv` with realistic test data (20-30 trades)
   - Include various scenarios: open/closed positions, wins/losses, multiple strategies, multiple symbols
   - Create `README.md` with project overview, usage instructions, and CSV format specification
-  - Add inline code comments for complex logic
   - _Requirements: 1.1, 1.2_
 
-- [ ] 18. Set up local development environment
-  - Create `.gitignore` file (exclude `node_modules/`, `.DS_Store`, etc.)
-  - Add instructions in README for running local server (`python3 -m http.server 8000` or `npx serve`)
-  - Test application in local development environment
-  - Verify all features work correctly
-  - _Requirements: All_
-
-- [ ] 19. Set up CloudFormation infrastructure for deployment
-  - [ ] 19.1 Create CloudFormation template for S3 bucket and CloudFront distribution
-    - Create `infrastructure/cloudformation-template.yaml`
-    - Define S3 bucket with static website hosting enabled
-    - Define CloudFront distribution with S3 origin
-    - Add parameters for environment (dev/test/prod)
-    - Add outputs for bucket name and CloudFront URL
-    - _Requirements: N/A (Infrastructure)_
-  
-  - [ ] 19.2 Create deployment scripts
-    - Create `scripts/deploy.sh` for deploying to S3 and invalidating CloudFront cache
-    - Add environment-specific configuration (dev/test/prod)
-    - Add instructions in README for deployment process
-    - _Requirements: N/A (Infrastructure)_
-
-- [ ]* 20. Manual testing and bug fixes
+- [ ]* 18. End-to-end testing and bug fixes
   - Test CSV upload with valid and invalid files
   - Test all date range filters
   - Test all position status filters
   - Test reload data functionality
   - Test browser refresh (verify persistence)
-  - Test responsive layout on different screen sizes
   - Test localStorage quota exceeded scenario
   - Fix any bugs discovered during testing
   - _Requirements: All_

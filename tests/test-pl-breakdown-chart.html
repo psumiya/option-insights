@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P/L Breakdown Chart Test</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #0a0e27;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e5e7eb;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #e5e7eb;
+      margin-bottom: 10px;
+    }
+    
+    .chart-container {
+      background-color: #141b2d;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      height: 400px;
+    }
+    
+    .controls {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #141b2d;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+    }
+    
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background-color: #2563eb;
+    }
+    
+    .info {
+      color: #9ca3af;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>P/L Breakdown Chart Test</h1>
+    <p class="info">Testing horizontal bar chart with flexible grouping by Symbol, Strategy, Type, and Account</p>
+    
+    <div class="controls">
+      <button onclick="testSymbolBreakdown()">Test Symbol Breakdown</button>
+      <button onclick="testStrategyBreakdown()">Test Strategy Breakdown</button>
+      <button onclick="testTypeBreakdown()">Test Type Breakdown</button>
+      <button onclick="testAccountBreakdown()">Test Account Breakdown</button>
+      <button onclick="testMultiDimensional()">Test Multi-Dimensional</button>
+      <button onclick="testEmptyState()">Test Empty State</button>
+    </div>
+    
+    <div id="chart1" class="chart-container"></div>
+  </div>
+
+  <script src="../js/visualizations/pl-breakdown-chart.js"></script>
+  <script>
+    let chart;
+
+    // Sample data for Symbol breakdown
+    const symbolData = [
+      { dimensions: { Symbol: 'AAPL' }, pl: 1250.50, tradeCount: 15 },
+      { dimensions: { Symbol: 'TSLA' }, pl: -450.25, tradeCount: 8 },
+      { dimensions: { Symbol: 'NVDA' }, pl: 2100.75, tradeCount: 12 },
+      { dimensions: { Symbol: 'SPY' }, pl: 850.00, tradeCount: 20 },
+      { dimensions: { Symbol: 'QQQ' }, pl: -200.50, tradeCount: 6 },
+      { dimensions: { Symbol: 'MSFT' }, pl: 1500.25, tradeCount: 10 },
+      { dimensions: { Symbol: 'AMZN' }, pl: 650.00, tradeCount: 7 }
+    ];
+
+    // Sample data for Strategy breakdown
+    const strategyData = [
+      { dimensions: { Strategy: 'Iron Condor' }, pl: 2500.50, tradeCount: 25 },
+      { dimensions: { Strategy: 'Credit Spread' }, pl: 1200.75, tradeCount: 18 },
+      { dimensions: { Strategy: 'Long Call' }, pl: -800.25, tradeCount: 12 },
+      { dimensions: { Strategy: 'Long Put' }, pl: -350.00, tradeCount: 8 },
+      { dimensions: { Strategy: 'Covered Call' }, pl: 1800.00, tradeCount: 15 }
+    ];
+
+    // Sample data for Type breakdown
+    const typeData = [
+      { dimensions: { Type: 'Call' }, pl: 3200.50, tradeCount: 45 },
+      { dimensions: { Type: 'Put' }, pl: 1800.25, tradeCount: 33 }
+    ];
+
+    // Sample data for Account breakdown
+    const accountData = [
+      { dimensions: { Account: 'Robinhood' }, pl: 2500.75, tradeCount: 40 },
+      { dimensions: { Account: 'Tastytrade' }, pl: 1800.50, tradeCount: 28 },
+      { dimensions: { Account: 'TD Ameritrade' }, pl: -500.25, tradeCount: 10 }
+    ];
+
+    // Sample data for multi-dimensional breakdown
+    const multiDimensionalData = [
+      { dimensions: { Symbol: 'AAPL', Strategy: 'Iron Condor' }, pl: 1500.50, tradeCount: 8 },
+      { dimensions: { Symbol: 'TSLA', Strategy: 'Credit Spread' }, pl: -450.25, tradeCount: 5 },
+      { dimensions: { Symbol: 'NVDA', Strategy: 'Long Call' }, pl: 2100.75, tradeCount: 6 },
+      { dimensions: { Symbol: 'SPY', Strategy: 'Iron Condor' }, pl: 850.00, tradeCount: 12 },
+      { dimensions: { Symbol: 'AAPL', Strategy: 'Covered Call' }, pl: 1200.00, tradeCount: 7 }
+    ];
+
+    function testSymbolBreakdown() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', symbolData, { dimension: 'Symbol' });
+    }
+
+    function testStrategyBreakdown() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', strategyData, { dimension: 'Strategy' });
+    }
+
+    function testTypeBreakdown() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', typeData, { dimension: 'Type' });
+    }
+
+    function testAccountBreakdown() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', accountData, { dimension: 'Account' });
+    }
+
+    function testMultiDimensional() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', multiDimensionalData, { dimension: 'Symbol & Strategy' });
+    }
+
+    function testEmptyState() {
+      if (chart) chart.destroy();
+      chart = new PLBreakdownChart('chart1', [], { dimension: 'Symbol' });
+    }
+
+    // Initialize with Symbol breakdown
+    testSymbolBreakdown();
+  </script>
+</body>
+</html>

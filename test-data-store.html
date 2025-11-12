@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataStore Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #0a0e27;
+            color: #e5e7eb;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #10b98144;
+            border: 1px solid #10b981;
+        }
+        .fail {
+            background: #ef444444;
+            border: 1px solid #ef4444;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>DataStore Component Test</h1>
+    <button onclick="runTests()">Run Tests</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <div id="results"></div>
+
+    <script src="js/data-store.js"></script>
+    <script>
+        function log(message, pass = true) {
+            const div = document.createElement('div');
+            div.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            div.textContent = `${pass ? '✓' : '✗'} ${message}`;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('results').innerHTML = '';
+            log('localStorage cleared');
+        }
+
+        function runTests() {
+            document.getElementById('results').innerHTML = '';
+            
+            // Clear localStorage before each test run
+            localStorage.clear();
+            
+            try {
+                // Test 1: Create DataStore instance
+                const dataStore = new DataStore();
+                log('DataStore instance created');
+
+                // Test 2: Check localStorage availability
+                const isAvailable = dataStore.isLocalStorageAvailable();
+                log(`localStorage available: ${isAvailable}`, isAvailable);
+
+                // Test 3: Load trades (should be empty initially)
+                const initialTrades = dataStore.loadTrades();
+                log(`Initial trades loaded: ${initialTrades.length} trades`, initialTrades.length === 0);
+
+                // Test 4: Save trades
+                const testTrades = [
+                    {
+                        Symbol: 'AAPL',
+                        Type: 'Call',
+                        Strategy: 'Long Call',
+                        Strike: 150,
+                        Expiry: new Date('2024-12-20'),
+                        Volume: 1,
+                        Entry: new Date('2024-11-01'),
+                        Delta: 0.5,
+                        Exit: new Date('2024-11-10'),
+                        Debit: 100,
+                        Credit: 150,
+                        Account: 'Robinhood',
+                        ProfitLoss: 50,
+                        Result: 'Win'
+                    },
+                    {
+                        Symbol: 'TSLA',
+                        Type: 'Put',
+                        Strategy: 'Credit Spread',
+                        Strike: 200,
+                        Expiry: new Date('2024-12-15'),
+                        Volume: 2,
+                        Entry: new Date('2024-10-15'),
+                        Delta: -0.3,
+                        Exit: null,
+                        Debit: 50,
+                        Credit: 100,
+                        Account: 'Tastytrade',
+                        ProfitLoss: 50,
+                        Result: 'Open'
+                    }
+                ];
+
+                dataStore.saveTrades(testTrades);
+                log('Trades saved to localStorage');
+
+                // Test 5: Load trades back
+                const loadedTrades = dataStore.loadTrades();
+                log(`Trades loaded: ${loadedTrades.length} trades`, loadedTrades.length === 2);
+
+                // Test 6: Verify date objects are restored
+                const firstTrade = loadedTrades[0];
+                const datesRestored = firstTrade.Entry instanceof Date && 
+                                     firstTrade.Exit instanceof Date && 
+                                     firstTrade.Expiry instanceof Date;
+                log('Date objects restored correctly', datesRestored);
+
+                // Test 7: Get default filters
+                const defaultFilters = dataStore.getFilters();
+                log(`Default filters loaded: ${defaultFilters.dateRange.type}`, 
+                    defaultFilters.dateRange.type === 'last12months');
+
+                // Test 8: Set filters
+                const newFilters = {
+                    dateRange: {
+                        type: 'last30days',
+                        startDate: new Date('2024-10-01'),
+                        endDate: new Date('2024-11-01')
+                    },
+                    positionStatus: 'open'
+                };
+                dataStore.setFilters(newFilters);
+                log('Filters saved');
+
+                // Test 9: Load filters back
+                const loadedFilters = dataStore.getFilters();
+                log(`Filters loaded: ${loadedFilters.dateRange.type}`, 
+                    loadedFilters.dateRange.type === 'last30days');
+
+                // Test 10: Event emitter - tradesChanged
+                let eventFired = false;
+                const unsubscribe = dataStore.on('tradesChanged', (data) => {
+                    eventFired = true;
+                });
+                dataStore.saveTrades([testTrades[0]]);
+                log('tradesChanged event fired', eventFired);
+                unsubscribe();
+
+                // Test 11: Event emitter - tradesCleared
+                let clearEventFired = false;
+                dataStore.on('tradesCleared', () => {
+                    clearEventFired = true;
+                });
+                dataStore.clearTrades();
+                log('tradesCleared event fired', clearEventFired);
+
+                // Test 12: Verify trades cleared
+                const clearedTrades = dataStore.loadTrades();
+                log('Trades cleared successfully', clearedTrades.length === 0);
+
+                // Test 13: Error handling - quota exceeded simulation
+                try {
+                    // Create a very large dataset to potentially trigger quota error
+                    const largeTrades = Array(10000).fill(testTrades[0]);
+                    dataStore.saveTrades(largeTrades);
+                    log('Large dataset saved (or quota not reached)');
+                } catch (error) {
+                    log(`Quota exceeded error handled: ${error.message}`, 
+                        error.message.includes('quota exceeded'));
+                }
+
+                log('All tests completed!', true);
+
+            } catch (error) {
+                log(`Test failed with error: ${error.message}`, false);
+                console.error(error);
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>

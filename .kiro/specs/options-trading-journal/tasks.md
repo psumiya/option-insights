@@ -57,7 +57,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Add JSDoc comments explaining extension points
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 6. Implement P/L Trend visualization
+- [x] 6. Implement P/L Trend visualization
   - Create `js/visualizations/pl-trend-chart.js` with PLTrendChart class
   - Implement constructor with D3.js setup (SVG, margins, scales, axes)
   - Implement line chart rendering with monthly P/L data

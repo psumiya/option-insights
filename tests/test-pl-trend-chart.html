@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P/L Trend Chart Test</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .chart-wrapper {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--color-text-primary);
+        }
+        #test-chart {
+            height: 400px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls button {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>P/L Trend Chart Test</h1>
+        
+        <div class="controls">
+            <button class="btn-primary" onclick="loadPositiveData()">Load Positive Trend</button>
+            <button class="btn-primary" onclick="loadNegativeData()">Load Negative Trend</button>
+            <button class="btn-primary" onclick="loadMixedData()">Load Mixed Trend</button>
+            <button class="btn-secondary" onclick="clearData()">Clear Data</button>
+        </div>
+
+        <div class="chart-wrapper">
+            <div class="chart-title">Monthly P/L Trend</div>
+            <div id="test-chart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Chart Component -->
+    <script src="../js/visualizations/pl-trend-chart.js"></script>
+
+    <script>
+        let chart;
+
+        // Initialize chart on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            chart = new PLTrendChart('test-chart');
+            loadMixedData();
+        });
+
+        // Sample data generators
+        function loadPositiveData() {
+            const data = [
+                { month: '2024-01', monthLabel: 'Jan 2024', pl: 150.50, cumulativePL: 150.50 },
+                { month: '2024-02', monthLabel: 'Feb 2024', pl: 220.75, cumulativePL: 371.25 },
+                { month: '2024-03', monthLabel: 'Mar 2024', pl: 180.00, cumulativePL: 551.25 },
+                { month: '2024-04', monthLabel: 'Apr 2024', pl: 310.25, cumulativePL: 861.50 },
+                { month: '2024-05', monthLabel: 'May 2024', pl: 275.80, cumulativePL: 1137.30 },
+                { month: '2024-06', monthLabel: 'Jun 2024', pl: 195.40, cumulativePL: 1332.70 }
+            ];
+            chart.update(data);
+        }
+
+        function loadNegativeData() {
+            const data = [
+                { month: '2024-01', monthLabel: 'Jan 2024', pl: -150.50, cumulativePL: -150.50 },
+                { month: '2024-02', monthLabel: 'Feb 2024', pl: -220.75, cumulativePL: -371.25 },
+                { month: '2024-03', monthLabel: 'Mar 2024', pl: -180.00, cumulativePL: -551.25 },
+                { month: '2024-04', monthLabel: 'Apr 2024', pl: -310.25, cumulativePL: -861.50 },
+                { month: '2024-05', monthLabel: 'May 2024', pl: -275.80, cumulativePL: -1137.30 },
+                { month: '2024-06', monthLabel: 'Jun 2024', pl: -195.40, cumulativePL: -1332.70 }
+            ];
+            chart.update(data);
+        }
+
+        function loadMixedData() {
+            const data = [
+                { month: '2024-01', monthLabel: 'Jan 2024', pl: 250.50, cumulativePL: 250.50 },
+                { month: '2024-02', monthLabel: 'Feb 2024', pl: -180.75, cumulativePL: 69.75 },
+                { month: '2024-03', monthLabel: 'Mar 2024', pl: 420.00, cumulativePL: 489.75 },
+                { month: '2024-04', monthLabel: 'Apr 2024', pl: -310.25, cumulativePL: 179.50 },
+                { month: '2024-05', monthLabel: 'May 2024', pl: 575.80, cumulativePL: 755.30 },
+                { month: '2024-06', monthLabel: 'Jun 2024', pl: -125.40, cumulativePL: 629.90 },
+                { month: '2024-07', monthLabel: 'Jul 2024', pl: 340.60, cumulativePL: 970.50 },
+                { month: '2024-08', monthLabel: 'Aug 2024', pl: -220.30, cumulativePL: 750.20 },
+                { month: '2024-09', monthLabel: 'Sep 2024', pl: 185.75, cumulativePL: 935.95 },
+                { month: '2024-10', monthLabel: 'Oct 2024', pl: 410.50, cumulativePL: 1346.45 },
+                { month: '2024-11', monthLabel: 'Nov 2024', pl: -95.20, cumulativePL: 1251.25 }
+            ];
+            chart.update(data);
+        }
+
+        function clearData() {
+            chart.update([]);
+        }
+    </script>
+</body>
+</html>

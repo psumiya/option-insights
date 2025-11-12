@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Win Rate Chart Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #0a0e27;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e5e7eb;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    #chart-container {
+      width: 100%;
+      height: 500px;
+      background-color: #141b2d;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .test-info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #141b2d;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+    }
+
+    .test-info h2 {
+      font-size: 16px;
+      margin-top: 0;
+      color: #3b82f6;
+    }
+
+    .test-info pre {
+      background-color: #0a0e27;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Win Rate Chart Component Test</h1>
+  
+  <div id="chart-container"></div>
+
+  <div class="test-info">
+    <h2>Test Data</h2>
+    <pre id="test-data"></pre>
+  </div>
+
+  <!-- D3.js -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <!-- Win Rate Chart Component -->
+  <script src="../js/visualizations/win-rate-chart.js"></script>
+
+  <script>
+    // Sample test data matching the StrategyWinRate structure
+    const testData = [
+      {
+        strategy: 'Iron Condor',
+        totalTrades: 25,
+        wins: 18,
+        losses: 7,
+        winRate: 72.0,
+        totalWinAmount: 4500.00,
+        totalLossAmount: -1200.00,
+        netPL: 3300.00
+      },
+      {
+        strategy: 'Credit Spread',
+        totalTrades: 30,
+        wins: 20,
+        losses: 10,
+        winRate: 66.67,
+        totalWinAmount: 3800.00,
+        totalLossAmount: -1500.00,
+        netPL: 2300.00
+      },
+      {
+        strategy: 'Long Call',
+        totalTrades: 15,
+        wins: 6,
+        losses: 9,
+        winRate: 40.0,
+        totalWinAmount: 2200.00,
+        totalLossAmount: -1800.00,
+        netPL: 400.00
+      },
+      {
+        strategy: 'Covered Call',
+        totalTrades: 20,
+        wins: 16,
+        losses: 4,
+        winRate: 80.0,
+        totalWinAmount: 3200.00,
+        totalLossAmount: -600.00,
+        netPL: 2600.00
+      },
+      {
+        strategy: 'Put Spread',
+        totalTrades: 18,
+        wins: 10,
+        losses: 8,
+        winRate: 55.56,
+        totalWinAmount: 2500.00,
+        totalLossAmount: -1400.00,
+        netPL: 1100.00
+      }
+    ];
+
+    // Display test data
+    document.getElementById('test-data').textContent = JSON.stringify(testData, null, 2);
+
+    // Create chart
+    console.log('Creating Win Rate Chart...');
+    const chart = new WinRateChart('chart-container', testData);
+    console.log('Chart created successfully!');
+
+    // Test resize after a delay
+    setTimeout(() => {
+      console.log('Testing resize...');
+      window.dispatchEvent(new Event('resize'));
+    }, 2000);
+  </script>
+</body>
+</html>

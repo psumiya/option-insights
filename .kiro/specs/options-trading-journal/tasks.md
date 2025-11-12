@@ -86,7 +86,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Implement `update()` and `resize()` methods
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 9. Implement Strategy Performance visualization
+- [x] 9. Implement Strategy Performance visualization
   - Create `js/visualizations/strategy-performance-chart.js` with StrategyPerformanceChart class
   - Implement grouped bar chart for buy vs sell by strategy
   - Add axis labels and legend
@@ -94,7 +94,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Implement `update()` and `resize()` methods
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 10. Implement Symbol P/L visualization
+- [x] 10. Implement Symbol P/L visualization
   - Create `js/visualizations/symbol-pl-chart.js` with SymbolPLChart class
   - Implement horizontal bar chart for P/L by symbol
   - Implement sorting by P/L in descending order

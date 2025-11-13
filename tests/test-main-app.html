@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Main Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a0e27;
+            color: #e5e7eb;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #10b981;
+            color: white;
+        }
+        .fail {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Main Application Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        const results = [];
+
+        function test(name, fn) {
+            try {
+                fn();
+                results.push({ name, pass: true });
+            } catch (error) {
+                results.push({ name, pass: false, error: error.message });
+            }
+        }
+
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+                div.textContent = `${result.pass ? '✓' : '✗'} ${result.name}`;
+                if (result.error) {
+                    div.textContent += ` - ${result.error}`;
+                }
+                container.appendChild(div);
+            });
+        }
+
+        // Run tests after a short delay to ensure scripts load
+        setTimeout(() => {
+            test('CSVParser class exists', () => {
+                if (typeof CSVParser === 'undefined') throw new Error('CSVParser not found');
+            });
+
+            test('StrategyDetector class exists', () => {
+                if (typeof StrategyDetector === 'undefined') throw new Error('StrategyDetector not found');
+            });
+
+            test('AnalyticsEngine class exists', () => {
+                if (typeof AnalyticsEngine === 'undefined') throw new Error('AnalyticsEngine not found');
+            });
+
+            test('DataStore class exists', () => {
+                if (typeof DataStore === 'undefined') throw new Error('DataStore not found');
+            });
+
+            test('DashboardController class exists', () => {
+                if (typeof DashboardController === 'undefined') throw new Error('DashboardController not found');
+            });
+
+            test('PLTrendChart class exists', () => {
+                if (typeof PLTrendChart === 'undefined') throw new Error('PLTrendChart not found');
+            });
+
+            test('WinRateChart class exists', () => {
+                if (typeof WinRateChart === 'undefined') throw new Error('WinRateChart not found');
+            });
+
+            test('PLBreakdownChart class exists', () => {
+                if (typeof PLBreakdownChart === 'undefined') throw new Error('PLBreakdownChart not found');
+            });
+
+            test('StrategyPerformanceChart class exists', () => {
+                if (typeof StrategyPerformanceChart === 'undefined') throw new Error('StrategyPerformanceChart not found');
+            });
+
+            test('SymbolPLChart class exists', () => {
+                if (typeof SymbolPLChart === 'undefined') throw new Error('SymbolPLChart not found');
+            });
+
+            test('Can instantiate DataStore', () => {
+                const store = new DataStore();
+                if (!store) throw new Error('Failed to create DataStore');
+            });
+
+            test('Can instantiate AnalyticsEngine', () => {
+                const engine = new AnalyticsEngine();
+                if (!engine) throw new Error('Failed to create AnalyticsEngine');
+            });
+
+            test('Can instantiate StrategyDetector', () => {
+                const detector = new StrategyDetector();
+                if (!detector) throw new Error('Failed to create StrategyDetector');
+            });
+
+            test('Can instantiate CSVParser', () => {
+                const parser = new CSVParser();
+                if (!parser) throw new Error('Failed to create CSVParser');
+            });
+
+            displayResults();
+        }, 100);
+    </script>
+
+    <!-- Load all application scripts in the same order as index.html -->
+    <script src="../js/csv-parser.js"></script>
+    <script src="../js/strategy-detector.js"></script>
+    <script src="../js/analytics-engine.js"></script>
+    <script src="../js/data-store.js"></script>
+    <script src="../js/visualizations/pl-trend-chart.js"></script>
+    <script src="../js/visualizations/win-rate-chart.js"></script>
+    <script src="../js/visualizations/pl-breakdown-chart.js"></script>
+    <script src="../js/visualizations/strategy-performance-chart.js"></script>
+    <script src="../js/visualizations/symbol-pl-chart.js"></script>
+    <script src="../js/dashboard-controller.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+Symbol,Type,Strategy,Strike,Expiry,Volume,Entry,Delta,Exit,Debit,Credit,Account
+AAPL,Call,Long Call,150,2024-12-20,1,2024-11-01,0.5,2024-11-15,5.00,8.50,Main
+TSLA,Put,,200,2024-12-15,2,2024-11-02,,-0.3,3.00,7.00,Main
+MSFT,Call,Covered Call,350,,1,2024-11-03,0.4,,2.50,4.00,IRA
+SPY,,,450,2024-12-31,1,2024-11-05,0.6,2024-11-20,10.00,15.00,Main
+NVDA,Call,Long Call,500,2024-12-20,1,2024-11-06,0.7,,8.00,12.00,Main
+AMZN,Put,Cash Secured Put,140,2024-12-18,1,2024-11-07,-0.4,2024-11-25,4.00,2.00,Main
+META,Call,Bull Call Spread,300,2024-12-22,1,2024-11-08,0.5,2024-11-28,6.00,10.00,IRA
+GOOGL,Put,Bear Put Spread,130,2024-12-25,1,2024-11-09,-0.3,,5.00,3.00,Main

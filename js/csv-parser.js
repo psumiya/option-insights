@@ -13,20 +13,25 @@ class ParseError extends Error {
 
 class CSVParser {
   constructor() {
-    // Required fields that must be present in every trade record
+    // Minimal required fields - only what's absolutely necessary
     this.requiredFields = [
       'Symbol',
-      'Type',
-      'Strategy',
-      'Strike',
-      'Expiry',
-      'Volume',
-      'Entry',
-      'Delta',
-      'Debit',
-      'Credit',
-      'Account'
+      'Entry'
     ];
+    
+    // Optional fields with defaults
+    this.optionalFields = {
+      'Type': 'Unknown',
+      'Strategy': 'Unknown',
+      'Strike': 0,
+      'Expiry': null,
+      'Volume': 1,
+      'Delta': 0,
+      'Exit': null,
+      'Debit': 0,
+      'Credit': 0,
+      'Account': 'Default'
+    };
   }
 
   /**
@@ -73,12 +78,57 @@ class CSVParser {
     // Parse header row
     const headers = this.parseCSVLine(lines[0]);
     
+    // Parse first data row for broker detection
+    let firstDataRow = null;
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line !== '') {
+        firstDataRow = this.parseCSVLine(line);
+        break;
+      }
+    }
+    
+    // Detect broker format
+    let brokerType = 'generic';
+    let adapter = null;
+    
+    if (typeof BrokerAdapter !== 'undefined') {
+      brokerType = BrokerAdapter.detectBroker(headers, firstDataRow);
+      console.log(`Detected broker format: ${brokerType}`);
+      adapter = BrokerAdapter.getAdapter(brokerType);
+    } else {
+      console.warn('BrokerAdapter not loaded, using generic parser');
+    }
+    
+    // If using broker-specific adapter, parse all rows first
+    if (brokerType !== 'generic') {
+      const rawRows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '') continue;
+        
+        const values = this.parseCSVLine(line);
+        const record = {};
+        headers.forEach((header, index) => {
+          record[header] = values[index] || '';
+        });
+        rawRows.push(record);
+      }
+      
+      // Convert using broker adapter
+      const convertedTrades = adapter.convert(rawRows);
+      console.log(`Converted ${convertedTrades.length} trades from ${brokerType} format`);
+      return convertedTrades;
+    }
+    
+    // Continue with generic parsing
+    
     if (headers.length === 0) {
       throw new ParseError('CSV header row is empty');
     }
 
     const records = [];
-    const errors = [];
+    const warnings = [];
 
     // Parse data rows
     for (let i = 1; i < lines.length; i++) {
@@ -98,33 +148,28 @@ class CSVParser {
           record[header] = values[index] || '';
         });
 
-        // Validate the record
-        const validation = this.validate(record, i + 1);
+        // Validate and normalize the record (lenient mode)
+        const normalized = this.normalizeRecord(record, i + 1);
         
-        if (!validation.isValid) {
-          errors.push({
-            row: i + 1,
-            errors: validation.errors
-          });
+        if (normalized) {
+          records.push(normalized);
         } else {
-          records.push(this.normalizeRecord(record));
+          warnings.push(`Row ${i + 1}: Skipped due to missing critical data`);
         }
       } catch (error) {
-        errors.push({
-          row: i + 1,
-          errors: [`Parse error: ${error.message}`]
-        });
+        // Log warning but continue processing
+        warnings.push(`Row ${i + 1}: ${error.message}`);
+        console.warn(`Skipping row ${i + 1}:`, error.message);
       }
     }
 
-    // If there are validation errors, throw with details
-    if (errors.length > 0) {
-      const errorMessage = this.formatValidationErrors(errors);
-      throw new ParseError(errorMessage);
+    if (records.length === 0) {
+      throw new ParseError('No valid trade records found in CSV. Please ensure the file has Symbol and Entry columns.');
     }
 
-    if (records.length === 0) {
-      throw new ParseError('No valid trade records found in CSV');
+    // Log warnings if any
+    if (warnings.length > 0) {
+      console.warn(`CSV Import Warnings (${warnings.length} rows had issues):`, warnings);
     }
 
     return records;
@@ -169,78 +214,106 @@ class CSVParser {
   }
 
   /**
-   * Validate a single trade record
-   * @param {Object} record - Raw CSV row object
-   * @param {number} rowNumber - Row number for error reporting
-   * @returns {Object} - Validation result with isValid flag and errors array
+   * Parse a numeric value safely
+   * @param {*} value - Value to parse
+   * @param {number} defaultValue - Default if parsing fails
+   * @returns {number} - Parsed number or default
+   * @private
    */
-  validate(record, rowNumber) {
-    const errors = [];
-
-    // Check for required fields
-    this.requiredFields.forEach(field => {
-      if (!record.hasOwnProperty(field) || record[field] === '') {
-        errors.push(`Missing required field: ${field}`);
-      }
-    });
-
-    // Validate numeric fields
-    const numericFields = ['Strike', 'Volume', 'Delta', 'Debit', 'Credit'];
-    numericFields.forEach(field => {
-      if (record[field] !== '' && record[field] !== undefined) {
-        const value = parseFloat(record[field]);
-        if (isNaN(value)) {
-          errors.push(`Invalid numeric value for ${field}: ${record[field]}`);
-        }
-      }
-    });
-
-    // Validate date fields
-    const dateFields = ['Expiry', 'Entry'];
-    dateFields.forEach(field => {
-      if (record[field] !== '' && record[field] !== undefined) {
-        const date = new Date(record[field]);
-        if (isNaN(date.getTime())) {
-          errors.push(`Invalid date format for ${field}: ${record[field]}`);
-        }
-      }
-    });
-
-    // Validate Exit date if present (optional field)
-    if (record.Exit && record.Exit !== '') {
-      const date = new Date(record.Exit);
-      if (isNaN(date.getTime())) {
-        errors.push(`Invalid date format for Exit: ${record.Exit}`);
-      }
+  _parseNumber(value, defaultValue = 0) {
+    if (value === '' || value === null || value === undefined) {
+      return defaultValue;
     }
-
-    return {
-      isValid: errors.length === 0,
-      errors: errors,
-      rowNumber: rowNumber
-    };
+    
+    // Remove currency symbols, commas, and extra whitespace
+    let cleaned = String(value).replace(/[$,\s\t]/g, '');
+    
+    // Handle parentheses as negative (accounting format)
+    if (cleaned.includes('(') || cleaned.includes(')')) {
+      cleaned = '-' + cleaned.replace(/[()]/g, '');
+    }
+    
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? defaultValue : parsed;
   }
 
   /**
-   * Normalize record data types
-   * @param {Object} record - Raw record object
-   * @returns {Object} - Normalized record with proper data types
+   * Parse a date value safely
+   * @param {*} value - Value to parse
+   * @returns {Date|null} - Parsed date or null
+   * @private
    */
-  normalizeRecord(record) {
-    return {
-      Symbol: record.Symbol,
-      Type: record.Type,
-      Strategy: record.Strategy,
-      Strike: parseFloat(record.Strike),
-      Expiry: new Date(record.Expiry),
-      Volume: parseFloat(record.Volume),
-      Entry: new Date(record.Entry),
-      Delta: parseFloat(record.Delta),
-      Exit: record.Exit && record.Exit !== '' ? new Date(record.Exit) : null,
-      Debit: parseFloat(record.Debit),
-      Credit: parseFloat(record.Credit),
-      Account: record.Account
+  _parseDate(value) {
+    if (!value || value === '') {
+      return null;
+    }
+    
+    let dateStr = String(value).trim();
+    
+    // Handle MM/DD format (missing year) - assume current or next year
+    if (/^\d{1,2}\/\d{1,2}$/.test(dateStr)) {
+      const currentYear = new Date().getFullYear();
+      const [month, day] = dateStr.split('/');
+      
+      // Try current year first
+      let date = new Date(`${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      
+      // If date is in the past, try next year
+      if (date < new Date()) {
+        date = new Date(`${currentYear + 1}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      }
+      
+      return isNaN(date.getTime()) ? null : date;
+    }
+    
+    // Handle MM/DD/YY format
+    if (/^\d{1,2}\/\d{1,2}\/\d{2}$/.test(dateStr)) {
+      const [month, day, year] = dateStr.split('/');
+      const fullYear = parseInt(year) < 50 ? `20${year}` : `19${year}`;
+      dateStr = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  /**
+   * Normalize record data types with lenient validation
+   * @param {Object} record - Raw record object
+   * @param {number} rowNumber - Row number for logging
+   * @returns {Object|null} - Normalized record with proper data types, or null if critical fields missing
+   */
+  normalizeRecord(record, rowNumber) {
+    // Check for absolutely required fields
+    if (!record.Symbol || record.Symbol === '') {
+      console.warn(`Row ${rowNumber}: Missing Symbol, skipping`);
+      return null;
+    }
+
+    // Parse Entry date - required
+    const entryDate = this._parseDate(record.Entry);
+    if (!entryDate) {
+      console.warn(`Row ${rowNumber}: Invalid or missing Entry date, skipping`);
+      return null;
+    }
+
+    // Build normalized record with defaults for missing fields
+    const normalized = {
+      Symbol: record.Symbol.trim(),
+      Type: record.Type && record.Type !== '' ? record.Type.trim() : this.optionalFields.Type,
+      Strategy: record.Strategy && record.Strategy !== '' ? record.Strategy.trim() : this.optionalFields.Strategy,
+      Strike: this._parseNumber(record.Strike, this.optionalFields.Strike),
+      Expiry: this._parseDate(record.Expiry) || entryDate, // Default to entry date if missing
+      Volume: this._parseNumber(record.Volume, this.optionalFields.Volume),
+      Entry: entryDate,
+      Delta: this._parseNumber(record.Delta, this.optionalFields.Delta),
+      Exit: this._parseDate(record.Exit),
+      Debit: this._parseNumber(record.Debit, this.optionalFields.Debit),
+      Credit: this._parseNumber(record.Credit, this.optionalFields.Credit),
+      Account: record.Account && record.Account !== '' ? record.Account.trim() : this.optionalFields.Account
     };
+
+    return normalized;
   }
 
   /**

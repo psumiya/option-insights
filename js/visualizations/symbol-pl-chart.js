@@ -23,7 +23,7 @@ class SymbolPLChart {
     this.margin = { top: 20, right: 30, bottom: 50, left: 100 };
     this.options = {
       animationDuration: 750,
-      maxBars: 15, // Limit number of bars for readability
+      maxBars: 50, // Show more symbols (increased from 15)
       ...options
     };
 
@@ -105,12 +105,26 @@ class SymbolPLChart {
       return;
     }
 
+    // Transform data to expected format (handle both formats)
+    let transformedData = data.map(d => ({
+      symbol: d.symbol || d.dimensions?.Symbol || 'Unknown',
+      pl: d.pl || 0,
+      tradeCount: d.tradeCount || 0
+    }));
+
     // Sort data by P/L in descending order (Requirement 7.5)
-    this.data = [...data].sort((a, b) => b.pl - a.pl);
+    transformedData.sort((a, b) => b.pl - a.pl);
     
-    // Limit to max bars for readability
-    if (this.data.length > this.options.maxBars) {
-      this.data = this.data.slice(0, this.options.maxBars);
+    // If we have more than maxBars, show top winners AND top losers
+    if (transformedData.length > this.options.maxBars) {
+      const halfMax = Math.floor(this.options.maxBars / 2);
+      const topWinners = transformedData.slice(0, halfMax);
+      const topLosers = transformedData.slice(-halfMax);
+      this.data = [...topWinners, ...topLosers];
+      // Re-sort for display
+      this.data.sort((a, b) => b.pl - a.pl);
+    } else {
+      this.data = transformedData;
     }
 
     this._render();

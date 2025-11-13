@@ -20,7 +20,7 @@ class PLTrendChart {
     }
 
     // Chart configuration
-    this.margin = { top: 20, right: 30, bottom: 60, left: 70 };
+    this.margin = { top: 20, right: 30, bottom: 70, left: 80 };
     this.options = {
       showGrid: true,
       animationDuration: 750,
@@ -254,23 +254,23 @@ class PLTrendChart {
     // Remove existing labels
     this.chartGroup.selectAll('.axis-label').remove();
 
-    // Y-axis label
+    // Y-axis label (moved further left)
     this.chartGroup.append('text')
       .attr('class', 'axis-label')
       .attr('transform', 'rotate(-90)')
       .attr('x', -this.height / 2)
-      .attr('y', -50)
+      .attr('y', -60)
       .attr('text-anchor', 'middle')
       .attr('fill', '#e5e7eb')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Cumulative P/L');
 
-    // X-axis label
+    // X-axis label (moved further down)
     this.chartGroup.append('text')
       .attr('class', 'axis-label')
       .attr('x', this.width / 2)
-      .attr('y', this.height + 50)
+      .attr('y', this.height + 55)
       .attr('text-anchor', 'middle')
       .attr('fill', '#e5e7eb')
       .attr('font-size', '14px')

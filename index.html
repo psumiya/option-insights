@@ -19,7 +19,7 @@
     <header class="bg-surface border-b border-border px-6 py-4">
         <div class="max-w-[1920px] mx-auto">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-semibold">Options Trading Journal</h1>
+                <h1 class="text-2xl font-semibold">Options Trading Analytics</h1>
                 <div class="flex gap-4">
                     <button id="upload-btn" class="btn-primary" aria-label="Upload CSV file">
                         Upload CSV
@@ -67,17 +67,17 @@
                     <select id="date-range-filter" class="filter-select" aria-label="Select date range">
                         <option value="last7days">Last 7 Days</option>
                         <option value="last30days">Last 30 Days</option>
-                        <option value="last12months" selected>Last 12 Months</option>
+                        <option value="last12months">Last 12 Months</option>
                         <option value="ytd">Year to Date</option>
-                        <option value="alltime">All Time</option>
+                        <option value="alltime" selected>All Time</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-2">
                     <label for="position-status-filter" class="text-sm text-text-secondary">Position Status:</label>
                     <select id="position-status-filter" class="filter-select" aria-label="Select position status">
-                        <option value="closed" selected>Closed Positions</option>
+                        <option value="closed">Closed Positions</option>
                         <option value="open">Open Positions</option>
-                        <option value="all">All Positions</option>
+                        <option value="all" selected>All Positions</option>
                     </select>
                 </div>
             </div>
@@ -110,17 +110,11 @@
                 </section>
             </div>
 
-            <!-- P/L by Symbol and Buy vs Sell (2 Column Grid) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Symbol">
-                    <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
-                    <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
-                </section>
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Strategy Performance">
-                    <h2 class="text-lg font-semibold mb-4">Buy vs Sell by Strategy</h2>
-                    <div id="strategy-performance-chart" class="chart-container" aria-label="Bar chart showing buy versus sell performance by strategy"></div>
-                </section>
-            </div>
+            <!-- P/L by Symbol (Full Width) -->
+            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
+                <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
+                <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
+            </section>
 
             <!-- P/L by Symbol & Strategy Table (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Symbol and Strategy">
@@ -143,6 +137,23 @@
     </main>
 
     <!-- Application Scripts -->
-    <script src="js/main.js" type="module"></script>
+    <!-- Core Components -->
+    <script src="js/broker-adapters.js"></script>
+    <script src="js/csv-parser.js"></script>
+    <script src="js/strategy-detector.js"></script>
+    <script src="js/analytics-engine.js"></script>
+    <script src="js/data-store.js"></script>
+    
+    <!-- Visualization Components -->
+    <script src="js/visualizations/pl-trend-chart.js"></script>
+    <script src="js/visualizations/win-rate-chart.js"></script>
+    <script src="js/visualizations/pl-breakdown-chart.js"></script>
+    <script src="js/visualizations/symbol-pl-chart.js"></script>
+    
+    <!-- Dashboard Controller -->
+    <script src="js/dashboard-controller.js"></script>
+    
+    <!-- Main Application Entry Point -->
+    <script src="js/main.js"></script>
 </body>
 </html>

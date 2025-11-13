@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Broker Test</title>
+</head>
+<body>
+    <h1>Simple Broker Adapter Test</h1>
+    <div id="output"></div>
+
+    <script src="../js/broker-adapters.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg) {
+            console.log(msg);
+            output.innerHTML += `<p>${msg}</p>`;
+        }
+
+        // Test 1: Check if classes exist
+        log('Test 1: Checking if classes are loaded...');
+        log('BrokerAdapter: ' + (typeof BrokerAdapter !== 'undefined' ? 'OK' : 'MISSING'));
+        log('RobinhoodAdapter: ' + (typeof RobinhoodAdapter !== 'undefined' ? 'OK' : 'MISSING'));
+        log('TastyAdapter: ' + (typeof TastyAdapter !== 'undefined' ? 'OK' : 'MISSING'));
+        log('GenericAdapter: ' + (typeof GenericAdapter !== 'undefined' ? 'OK' : 'MISSING'));
+
+        // Test 2: Test broker detection
+        log('\nTest 2: Testing broker detection...');
+        
+        const robinhoodHeaders = ['Activity Date', 'Process Date', 'Settle Date', 'Instrument', 'Description', 'Trans Code', 'Quantity', 'Price', 'Amount'];
+        const robinhoodRow = ['4/8/2025', '4/8/2025', '4/9/2025', 'QQQ', 'QQQ 4/11/2025 Call $460.00', 'STC', '1', '$0.43', '$42.94'];
+        
+        const detected = BrokerAdapter.detectBroker(robinhoodHeaders, robinhoodRow);
+        log('Robinhood detection: ' + detected);
+
+        const tastyHeaders = ['Symbol', 'Status', 'MarketOrFill', 'Price', 'TIF', 'Time', 'TimeStampAtType', 'Order #', 'Description'];
+        const tastyRow = ['NVDA', 'Filled', '1.22 cr', '1.21 cr', 'Day', '11/07, 8:20a', 'Fill', '#419290510', '-1 Nov 21 10d 210 Call STO'];
+        
+        const detected2 = BrokerAdapter.detectBroker(tastyHeaders, tastyRow);
+        log('Tasty detection: ' + detected2);
+
+        // Test 3: Test adapter creation
+        log('\nTest 3: Testing adapter creation...');
+        try {
+            const rhAdapter = BrokerAdapter.getAdapter('robinhood');
+            log('Robinhood adapter created: ' + (rhAdapter ? 'OK' : 'FAILED'));
+            
+            const tastyAdapter = BrokerAdapter.getAdapter('tasty');
+            log('Tasty adapter created: ' + (tastyAdapter ? 'OK' : 'FAILED'));
+            
+            const genericAdapter = BrokerAdapter.getAdapter('generic');
+            log('Generic adapter created: ' + (genericAdapter ? 'OK' : 'FAILED'));
+        } catch (error) {
+            log('ERROR: ' + error.message);
+        }
+
+        log('\nAll tests complete!');
+    </script>
+</body>
+</html>

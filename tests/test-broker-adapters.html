@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Broker Adapters</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a0e27;
+            color: #e5e7eb;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #141b2d;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #10b981;
+            color: white;
+        }
+        .fail {
+            background: #ef4444;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #0a0e27;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Broker Adapter Tests</h1>
+    
+    <div class="test-section">
+        <h2>Test Files</h2>
+        <button onclick="testRobinhood()">Test Robinhood CSV</button>
+        <button onclick="testTasty()">Test Tasty CSV</button>
+        <button onclick="testGeneric()">Test Generic CSV</button>
+    </div>
+
+    <div id="test-results"></div>
+
+    <script src="../js/broker-adapters.js"></script>
+    <script src="../js/csv-parser.js"></script>
+
+    <script>
+        // Verify classes loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded');
+            console.log('BrokerAdapter available:', typeof BrokerAdapter !== 'undefined');
+            console.log('CSVParser available:', typeof CSVParser !== 'undefined');
+            console.log('RobinhoodAdapter available:', typeof RobinhoodAdapter !== 'undefined');
+            console.log('TastyAdapter available:', typeof TastyAdapter !== 'undefined');
+        });
+    </script>
+
+    <script></script>
+        function displayResult(title, success, data) {
+            const container = document.getElementById('test-results');
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'pass' : 'fail'}`;
+            resultDiv.textContent = `${success ? '✓' : '✗'} ${title}`;
+            
+            section.appendChild(resultDiv);
+            
+            if (data) {
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(data, null, 2);
+                section.appendChild(pre);
+            }
+            
+            container.appendChild(section);
+        }
+
+        async function testRobinhood() {
+            try {
+                console.log('Testing Robinhood...');
+                const response = await fetch('../Hood.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const text = await response.text();
+                console.log('Loaded CSV, length:', text.length);
+                
+                const parser = new CSVParser();
+                const trades = parser.parseCSVString(text);
+                console.log('Parsed trades:', trades);
+                
+                displayResult(
+                    `Robinhood: Parsed ${trades.length} trades`,
+                    trades.length > 0,
+                    trades.slice(0, 3) // Show first 3 trades
+                );
+            } catch (error) {
+                console.error('Robinhood test error:', error);
+                displayResult('Robinhood: Failed', false, { 
+                    error: error.message,
+                    stack: error.stack 
+                });
+            }
+        }
+
+        async function testTasty() {
+            try {
+                console.log('Testing Tasty...');
+                const response = await fetch('../Tasty.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const text = await response.text();
+                console.log('Loaded CSV, length:', text.length);
+                
+                const parser = new CSVParser();
+                const trades = parser.parseCSVString(text);
+                console.log('Parsed trades:', trades);
+                
+                displayResult(
+                    `Tasty: Parsed ${trades.length} trades`,
+                    trades.length > 0,
+                    trades.slice(0, 3) // Show first 3 trades
+                );
+            } catch (error) {
+                console.error('Tasty test error:', error);
+                displayResult('Tasty: Failed', false, { 
+                    error: error.message,
+                    stack: error.stack 
+                });
+            }
+        }
+
+        async function testGeneric() {
+            try {
+                console.log('Testing Generic...');
+                const response = await fetch('../sample-data-messy.csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const text = await response.text();
+                console.log('Loaded CSV, length:', text.length);
+                
+                const parser = new CSVParser();
+                const trades = parser.parseCSVString(text);
+                console.log('Parsed trades:', trades);
+                
+                displayResult(
+                    `Generic: Parsed ${trades.length} trades`,
+                    trades.length > 0,
+                    trades.slice(0, 3) // Show first 3 trades
+                );
+            } catch (error) {
+                console.error('Generic test error:', error);
+                displayResult('Generic: Failed', false, { 
+                    error: error.message,
+                    stack: error.stack 
+                });
+            }
+        }
+    </script>
+</body>
+</html>

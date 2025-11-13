@@ -113,11 +113,18 @@ class PLBreakdownChart {
     }
 
     // Sort data by P/L in descending order (Requirement 7.4)
-    this.data = [...data].sort((a, b) => b.pl - a.pl);
+    let sortedData = [...data].sort((a, b) => b.pl - a.pl);
     
-    // Limit to max bars for readability
-    if (this.data.length > this.options.maxBars) {
-      this.data = this.data.slice(0, this.options.maxBars);
+    // If we have more than maxBars, show top winners AND top losers
+    if (sortedData.length > this.options.maxBars) {
+      const halfMax = Math.floor(this.options.maxBars / 2);
+      const topWinners = sortedData.slice(0, halfMax);
+      const topLosers = sortedData.slice(-halfMax);
+      this.data = [...topWinners, ...topLosers];
+      // Re-sort for display
+      this.data.sort((a, b) => b.pl - a.pl);
+    } else {
+      this.data = sortedData;
     }
 
     this._render();

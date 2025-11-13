@@ -16,11 +16,11 @@ class DataStore {
     // Default filter state
     this.defaultFilters = {
       dateRange: {
-        type: 'last12months',
+        type: 'alltime',
         startDate: null,
         endDate: null
       },
-      positionStatus: 'closed'
+      positionStatus: 'all'  // Changed from 'closed' to 'all' to show all trades by default
     };
   }
 

@@ -39,7 +39,6 @@ class DashboardController {
       plTrend: new PLTrendChart('pl-trend-chart'),
       winRate: new WinRateChart('win-rate-chart'),
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
-      strategyPerformance: new StrategyPerformanceChart('strategy-performance-chart'),
       symbolPL: new SymbolPLChart('symbol-pl-chart')
     };
 
@@ -65,14 +64,21 @@ class DashboardController {
    * @param {File} file - CSV file from file input
    */
   async handleFileUpload(file) {
+    console.log('=== handleFileUpload START ===');
+    console.log('File:', file.name, file.size, 'bytes');
+    
     try {
       // Show loading spinner (Requirement 12.5)
       this.showLoading();
 
       // Parse CSV file (Requirement 1.1)
+      console.log('Parsing CSV...');
       const rawTrades = await this.csvParser.parse(file);
+      console.log('Parsed', rawTrades.length, 'raw trades');
+      console.log('Sample raw trade:', rawTrades[0]);
 
       // Enrich trades with computed fields
+      console.log('Enriching trades...');
       this.enrichedTrades = rawTrades.map(trade => {
         // Apply strategy detection
         const detectedStrategy = this.strategyDetector.detect(trade);
@@ -81,11 +87,16 @@ class DashboardController {
         // Enrich with analytics
         return this.analyticsEngine.enrichTrade(trade);
       });
+      console.log('Enriched', this.enrichedTrades.length, 'trades');
+      console.log('Sample enriched trade:', this.enrichedTrades[0]);
 
       // Save to data store
+      console.log('Saving to data store...');
       try {
         this.dataStore.saveTrades(this.enrichedTrades);
+        console.log('✓ Saved to localStorage');
       } catch (storageError) {
+        console.warn('✗ Failed to save to localStorage:', storageError);
         // Handle localStorage quota exceeded (Requirement 12.3)
         this.showToast(
           'Warning: Unable to save data to browser storage. Your trades will not persist after closing the browser.',
@@ -95,8 +106,11 @@ class DashboardController {
       }
 
       // Hide loading and show dashboard
+      console.log('Showing dashboard...');
       this.hideLoading();
       this.showDashboard();
+      
+      console.log('Calling refreshDashboard...');
       this.refreshDashboard();
 
       // Show success notification (Requirement 12.2)
@@ -104,10 +118,17 @@ class DashboardController {
         `Successfully loaded ${this.enrichedTrades.length} trade${this.enrichedTrades.length !== 1 ? 's' : ''}`,
         'success'
       );
+      
+      console.log('=== handleFileUpload END ===');
 
     } catch (error) {
       // Hide loading
       this.hideLoading();
+
+      // Log detailed error for debugging
+      console.error('=== handleFileUpload ERROR ===');
+      console.error('File upload error:', error);
+      console.error('Error stack:', error.stack);
 
       // Show error modal with details (Requirement 12.1)
       this.showErrorModal(error);
@@ -139,46 +160,107 @@ class DashboardController {
    * Applies filters and updates all chart components
    */
   refreshDashboard() {
+    console.log('=== refreshDashboard START ===');
+    console.log('Enriched trades:', this.enrichedTrades?.length);
+    
     if (!this.enrichedTrades || this.enrichedTrades.length === 0) {
+      console.warn('No enriched trades - showing empty state');
       this.showEmptyState();
       return;
     }
 
     // Get current filters
     const filters = this.dataStore.getFilters();
+    console.log('Filters:', filters);
 
     // Apply filters to trades
     let filteredTrades = this.enrichedTrades;
+    console.log('Before filtering:', filteredTrades.length);
     
     // Apply date range filter (Requirement 8.3)
     filteredTrades = this.analyticsEngine.filterByDateRange(
       filteredTrades,
       filters.dateRange.type
     );
+    console.log('After date filter:', filteredTrades.length);
 
     // Apply position status filter (Requirement 9.6)
     filteredTrades = this.analyticsEngine.filterByStatus(
       filteredTrades,
       filters.positionStatus
     );
+    console.log('After status filter:', filteredTrades.length);
+    
+    if (filteredTrades.length === 0) {
+      console.warn('No trades after filtering');
+      this.showEmptyState();
+      return;
+    }
+
+    // Log sample trade
+    if (filteredTrades.length > 0) {
+      console.log('Sample filtered trade:', filteredTrades[0]);
+    }
 
     // Calculate analytics data
+    console.log('Calculating analytics...');
     const monthlyPL = this.analyticsEngine.calculateMonthlyPL(filteredTrades);
+    console.log('Monthly P/L:', monthlyPL);
+    
     const winRateData = this.analyticsEngine.calculateWinRateByStrategy(filteredTrades);
+    console.log('Win rate data:', winRateData);
+    
     const plByStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Strategy']);
+    console.log('P/L by strategy:', plByStrategy);
+    
     const plBySymbol = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol']);
+    console.log('P/L by symbol:', plBySymbol);
+    
     const plByTypeStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Type', 'Strategy']);
+    console.log('P/L by type/strategy:', plByTypeStrategy);
+    
     const plBySymbolStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol', 'Strategy']);
+    console.log('P/L by symbol/strategy:', plBySymbolStrategy);
 
     // Update visualizations
-    this.visualizations.plTrend.update(monthlyPL);
-    this.visualizations.winRate.update(winRateData);
-    this.visualizations.plBreakdown.update(plByStrategy);
-    this.visualizations.symbolPL.update(plBySymbol);
-    this.visualizations.strategyPerformance.update(plByTypeStrategy);
+    console.log('Updating visualizations...');
+    try {
+      this.visualizations.plTrend.update(monthlyPL);
+      console.log('✓ P/L Trend updated');
+    } catch (e) {
+      console.error('✗ P/L Trend error:', e);
+    }
+    
+    try {
+      this.visualizations.winRate.update(winRateData);
+      console.log('✓ Win Rate updated');
+    } catch (e) {
+      console.error('✗ Win Rate error:', e);
+    }
+    
+    try {
+      this.visualizations.plBreakdown.update(plByStrategy);
+      console.log('✓ P/L Breakdown updated');
+    } catch (e) {
+      console.error('✗ P/L Breakdown error:', e);
+    }
+    
+    try {
+      this.visualizations.symbolPL.update(plBySymbol);
+      console.log('✓ Symbol P/L updated');
+    } catch (e) {
+      console.error('✗ Symbol P/L error:', e);
+    }
 
     // Update table
-    this.updateTable(plBySymbolStrategy);
+    try {
+      this.updateTable(plBySymbolStrategy);
+      console.log('✓ Table updated');
+    } catch (e) {
+      console.error('✗ Table error:', e);
+    }
+    
+    console.log('=== refreshDashboard END ===');
   }
 
   /**
@@ -204,6 +286,10 @@ class DashboardController {
       return;
     }
 
+    // Store original data for sorting (don't pre-sort here)
+    this.tableData = [...data];
+
+    // Render rows in original order (already sorted by analytics engine)
     data.forEach(item => {
       const row = document.createElement('tr');
       const plColor = item.pl >= 0 ? 'text-profit' : 'text-loss';

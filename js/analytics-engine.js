@@ -307,6 +307,40 @@ class AnalyticsEngine {
   }
 
   /**
+   * Calculate summary metrics
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Object} - Object with totalTrades, winRate, totalPL, averageWin
+   */
+  calculateSummaryMetrics(trades) {
+    // Filter to closed trades only
+    const closedTrades = trades.filter(trade => trade.Result === 'Win' || trade.Result === 'Loss');
+    
+    // Calculate total trades (Requirement 13.2)
+    const totalTrades = closedTrades.length;
+    
+    // Calculate wins and losses
+    const wins = closedTrades.filter(trade => trade.Result === 'Win');
+    const winCount = wins.length;
+    
+    // Calculate win rate (Requirement 13.3)
+    const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+    
+    // Calculate total P/L (Requirement 13.4)
+    const totalPL = closedTrades.reduce((sum, trade) => sum + trade.ProfitLoss, 0);
+    
+    // Calculate average win (Requirement 13.5)
+    const totalWinAmount = wins.reduce((sum, trade) => sum + trade.ProfitLoss, 0);
+    const averageWin = winCount > 0 ? totalWinAmount / winCount : 0;
+    
+    return {
+      totalTrades,
+      winRate,
+      totalPL,
+      averageWin
+    };
+  }
+
+  /**
    * Format month key to display label
    * @param {string} monthKey - Month in YYYY-MM format
    * @returns {string} - Formatted month label (e.g., "Jan 2024")

@@ -92,6 +92,11 @@
 
         <!-- Dashboard Container (Hidden until data loaded) -->
         <div id="dashboard" class="hidden">
+            <!-- Summary Metrics Panel (Full Width) -->
+            <section class="mb-6" role="region" aria-label="Summary Metrics">
+                <div id="summary-metrics-panel"></div>
+            </section>
+
             <!-- P/L Trend Chart (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
                 <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
@@ -145,6 +150,7 @@
     <script src="js/data-store.js"></script>
     
     <!-- Visualization Components -->
+    <script src="js/visualizations/summary-metrics-panel.js"></script>
     <script src="js/visualizations/pl-trend-chart.js"></script>
     <script src="js/visualizations/win-rate-chart.js"></script>
     <script src="js/visualizations/pl-breakdown-chart.js"></script>

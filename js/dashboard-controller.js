@@ -36,6 +36,7 @@ class DashboardController {
   initialize() {
     // Initialize visualization components
     this.visualizations = {
+      summaryMetrics: new SummaryMetricsPanel('summary-metrics-panel'),
       plTrend: new PLTrendChart('pl-trend-chart'),
       winRate: new WinRateChart('win-rate-chart'),
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
@@ -204,6 +205,9 @@ class DashboardController {
 
     // Calculate analytics data
     console.log('Calculating analytics...');
+    const summaryMetrics = this.analyticsEngine.calculateSummaryMetrics(filteredTrades);
+    console.log('Summary metrics:', summaryMetrics);
+    
     const monthlyPL = this.analyticsEngine.calculateMonthlyPL(filteredTrades);
     console.log('Monthly P/L:', monthlyPL);
     
@@ -224,6 +228,13 @@ class DashboardController {
 
     // Update visualizations
     console.log('Updating visualizations...');
+    try {
+      this.visualizations.summaryMetrics.update(summaryMetrics);
+      console.log('✓ Summary Metrics updated');
+    } catch (e) {
+      console.error('✗ Summary Metrics error:', e);
+    }
+    
     try {
       this.visualizations.plTrend.update(monthlyPL);
       console.log('✓ P/L Trend updated');

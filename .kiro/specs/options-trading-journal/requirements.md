@@ -168,3 +168,47 @@ The Options Trading Journal & Analytics system is a web-based application that e
 3. WHEN localStorage operations fail, THE Trading Journal System SHALL display an error message and continue operating with in-memory data only
 4. WHEN no trade data is available, THE Dashboard SHALL display a message prompting the user to upload a CSV file
 5. THE Trading Journal System SHALL display loading indicators during CSV processing operations that exceed 500 milliseconds
+
+### Requirement 13: Summary Metrics Dashboard
+
+**User Story:** As a retail options trader, I want to see key performance metrics at a glance at the top of my dashboard, so that I can quickly assess my overall trading performance without scrolling through detailed charts.
+
+#### Acceptance Criteria
+
+1. THE Dashboard SHALL display four summary metric panels in a 2x2 grid layout at the top of the dashboard
+2. THE Dashboard SHALL display Total Trades count showing the number of closed trades in the filtered dataset
+3. THE Dashboard SHALL display Win Rate as a percentage calculated by dividing winning trades by total closed trades
+4. THE Dashboard SHALL display Total P/L as the sum of all P/L values for closed trades in the filtered dataset
+5. THE Dashboard SHALL display Average Win calculated by dividing the sum of all winning trade P/L values by the count of winning trades
+6. WHEN the user applies date range or position status filters, THE Dashboard SHALL update all summary metrics to reflect the filtered data
+7. THE Dashboard SHALL format currency values in the summary panels with dollar sign and two decimal places
+8. THE Dashboard SHALL format percentage values in the summary panels with one decimal place and percentage symbol
+
+### Requirement 14: Win/Loss Distribution Visualization
+
+**User Story:** As a retail options trader, I want to see the distribution of my winning versus losing trades as a donut chart, so that I can quickly understand the proportion of successful trades in my portfolio.
+
+#### Acceptance Criteria
+
+1. THE Dashboard SHALL display a donut chart showing the distribution of winning trades versus losing trades
+2. THE Dashboard SHALL calculate the count of trades where Result equals "Win" for the winning segment
+3. THE Dashboard SHALL calculate the count of trades where Result equals "Loss" for the losing segment
+4. THE Visualization Engine SHALL render the donut chart with two segments colored distinctly for wins and losses
+5. THE Visualization Engine SHALL display the percentage value for each segment within or adjacent to the donut chart
+6. THE Visualization Engine SHALL display the absolute count of trades for each segment on hover
+7. WHEN the user applies filters, THE Dashboard SHALL update the win/loss distribution chart to reflect the filtered data
+8. WHEN calculating win/loss distribution, THE Dashboard SHALL exclude trades with Result equal to "Open"
+
+### Requirement 15: Top Performing Underlyings
+
+**User Story:** As a retail options trader, I want to see my top 5 most profitable underlying symbols based on total winning dollars, so that I can identify which stocks generate the most profit for my trading strategies.
+
+#### Acceptance Criteria
+
+1. THE Dashboard SHALL display a bar chart showing the top 5 underlying symbols by total winning dollars
+2. THE Dashboard SHALL calculate winning dollars for each Symbol by summing P/L values where Result equals "Win"
+3. THE Dashboard SHALL sort symbols by total winning dollars in descending order and select the top 5
+4. THE Visualization Engine SHALL render a horizontal bar chart with Symbol names on the y-axis and winning dollars on the x-axis
+5. THE Dashboard SHALL display the exact dollar amount at the end of each bar in the chart
+6. WHEN the user applies date range or position status filters, THE Dashboard SHALL recalculate the top 5 underlyings based on the filtered data
+7. WHEN fewer than 5 symbols have winning trades, THE Dashboard SHALL display all available symbols with winning trades

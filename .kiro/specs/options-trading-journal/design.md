@@ -182,6 +182,28 @@ class AnalyticsEngine {
    * @returns {PLBreakdown[]} - Grouped P/L data
    */
   calculatePLBreakdown(trades, dimensions)
+  
+  /**
+   * Calculate summary metrics
+   * @param {EnrichedTradeRecord[]} trades - Filtered trades
+   * @returns {SummaryMetrics} - Object with totalTrades, winRate, totalPL, averageWin
+   */
+  calculateSummaryMetrics(trades)
+  
+  /**
+   * Calculate win/loss distribution
+   * @param {EnrichedTradeRecord[]} trades - Filtered trades
+   * @returns {WinLossDistribution} - Object with wins count and losses count
+   */
+  calculateWinLossDistribution(trades)
+  
+  /**
+   * Calculate top underlyings by winning dollars
+   * @param {EnrichedTradeRecord[]} trades - Filtered trades
+   * @param {number} limit - Number of top symbols to return (default 5)
+   * @returns {TopUnderlying[]} - Array of symbols with winning dollar amounts
+   */
+  calculateTopUnderlyings(trades, limit = 5)
 }
 ```
 
@@ -310,11 +332,14 @@ class VisualizationComponent {
 
 **Specific Visualization Components**:
 
-1. **PLTrendChart**: Line chart for monthly P/L trend
-2. **WinRateChart**: Grouped bar chart for win rates by strategy
-3. **PLBreakdownChart**: Horizontal bar chart for P/L breakdowns
-4. **StrategyPerformanceChart**: Grouped bar chart for buy/sell by strategy
-5. **SymbolPLChart**: Horizontal bar chart for P/L by symbol
+1. **SummaryMetricsPanel**: Four metric cards displaying key statistics
+2. **PLTrendChart**: Line chart for monthly P/L trend
+3. **WinRateChart**: Grouped bar chart for win rates by strategy
+4. **PLBreakdownChart**: Horizontal bar chart for P/L breakdowns
+5. **StrategyPerformanceChart**: Grouped bar chart for buy/sell by strategy
+6. **SymbolPLChart**: Horizontal bar chart for P/L by symbol
+7. **WinLossDonutChart**: Donut chart showing win/loss distribution
+8. **TopUnderlyingsChart**: Horizontal bar chart for top 5 symbols by winning dollars
 
 **Implementation Notes**:
 - Use D3.js v7 with modern ES6 syntax
@@ -322,6 +347,110 @@ class VisualizationComponent {
 - Use D3 transitions for smooth updates
 - Follow D3 margin convention for consistent spacing
 - Use semantic color scales (green for profit, red for loss)
+
+### 7. Summary Metrics Panel Component
+
+**Responsibility**: Display key performance metrics in card format
+
+**Interface**:
+```javascript
+class SummaryMetricsPanel {
+  /**
+   * Create summary metrics panel
+   * @param {string} containerId - DOM element ID
+   * @param {SummaryMetrics} metrics - Metrics data
+   */
+  constructor(containerId, metrics)
+  
+  /**
+   * Update metrics with new data
+   * @param {SummaryMetrics} metrics - New metrics
+   */
+  update(metrics)
+}
+```
+
+**Implementation Notes**:
+- Render as a 2x2 grid of metric cards using Tailwind CSS
+- Format currency values with dollar sign and 2 decimal places
+- Format percentages with 1 decimal place and % symbol
+- Use color coding: green for positive P/L, red for negative
+- Display large, prominent numbers with smaller labels
+- Responsive: stack vertically on mobile, 2x2 grid on desktop
+
+### 8. Win/Loss Distribution Donut Chart Component
+
+**Responsibility**: Visualize win/loss ratio as a donut chart
+
+**Interface**:
+```javascript
+class WinLossDonutChart {
+  /**
+   * Create donut chart
+   * @param {string} containerId - DOM element ID
+   * @param {WinLossDistribution} data - Win/loss data
+   * @param {Object} options - Chart configuration
+   */
+  constructor(containerId, data, options)
+  
+  /**
+   * Update chart with new data
+   * @param {WinLossDistribution} data - New data
+   */
+  update(data)
+  
+  /**
+   * Resize chart
+   */
+  resize()
+}
+```
+
+**Implementation Notes**:
+- Use D3 arc generator for donut shape
+- Inner radius: 60% of outer radius for donut effect
+- Color scheme: green for wins, red for losses
+- Display percentage labels inside or adjacent to segments
+- Show count on hover tooltip
+- Center text showing total trades count
+- Smooth transitions when data updates
+
+### 9. Top Underlyings Chart Component
+
+**Responsibility**: Display top 5 symbols by winning dollars
+
+**Interface**:
+```javascript
+class TopUnderlyingsChart {
+  /**
+   * Create top underlyings chart
+   * @param {string} containerId - DOM element ID
+   * @param {TopUnderlying[]} data - Top symbols data
+   * @param {Object} options - Chart configuration
+   */
+  constructor(containerId, data, options)
+  
+  /**
+   * Update chart with new data
+   * @param {TopUnderlying[]} data - New data
+   */
+  update(data)
+  
+  /**
+   * Resize chart
+   */
+  resize()
+}
+```
+
+**Implementation Notes**:
+- Horizontal bar chart with symbols on y-axis
+- Sort by winning dollars descending (highest at top)
+- Display dollar amount at end of each bar
+- Use green color for bars (all values are positive wins)
+- Show win count on hover tooltip
+- Handle cases with fewer than 5 symbols gracefully
+- Responsive bar height based on container size
 
 ## Data Models
 
@@ -407,6 +536,38 @@ class VisualizationComponent {
 }
 ```
 
+### SummaryMetrics
+
+```javascript
+{
+  totalTrades: number,    // Count of closed trades
+  winRate: number,        // Percentage (0-100)
+  totalPL: number,        // Sum of all P/L
+  averageWin: number      // Average P/L of winning trades
+}
+```
+
+### WinLossDistribution
+
+```javascript
+{
+  wins: number,           // Count of winning trades
+  losses: number,         // Count of losing trades
+  winPercentage: number,  // Percentage of wins (0-100)
+  lossPercentage: number  // Percentage of losses (0-100)
+}
+```
+
+### TopUnderlying
+
+```javascript
+{
+  symbol: string,         // Ticker symbol
+  winningDollars: number, // Sum of P/L for winning trades
+  winCount: number        // Number of winning trades
+}
+```
+
 ## User Interface Design
 
 ### Layout Structure
@@ -420,15 +581,30 @@ The dashboard uses a single-page layout with all visualizations visible on load:
 ├─────────────────────────────────────────────────────────────┤
 │  Filters: [Last 12 Months ▼] [Closed Positions ▼]           │
 ├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ Total Trades │  │  Win Rate %  │  │  Total P/L   │       │
+│  │     250      │  │    68.5%     │  │  $12,450.00  │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+│  ┌──────────────┐                                           │
+│  │ Average Win  │                                           │
+│  │   $185.50    │                                           │
+│  └──────────────┘                                           │
+├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  P/L Trend (Line Chart)                             │    │
 │  │  [Large, prominent visualization]                   │    │
 │  └─────────────────────────────────────────────────────┘    │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────────────┐  ┌──────────────────────────┐     │
-│  │  Win Rate by         │  │  P/L by Strategy         │     │
-│  │  Strategy            │  │  (Bar Chart)             │     │
-│  │  (Grouped Bar)       │  │                          │     │
+│  │  P/L by Strategy     │  │  Win/Loss Distribution   │     │
+│  │  (Bar Chart)         │  │  (Donut Chart)           │     │
+│  │                      │  │                          │     │
+│  └──────────────────────┘  └──────────────────────────┘     │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────┐  ┌──────────────────────────┐     │
+│  │  Top 5 Underlyings   │  │  Win Rate by Strategy    │     │
+│  │  by Win $ (Bar)      │  │  (Grouped Bar)           │     │
+│  │                      │  │                          │     │
 │  └──────────────────────┘  └──────────────────────────┘     │
 ├─────────────────────────────────────────────────────────────┤
 │  ┌──────────────────────┐  ┌──────────────────────────┐     │
@@ -675,11 +851,14 @@ options-trading-journal/
 │   ├── data-store.js
 │   ├── dashboard-controller.js
 │   └── visualizations/
+│       ├── summary-metrics-panel.js (NEW)
 │       ├── pl-trend-chart.js
 │       ├── win-rate-chart.js
 │       ├── pl-breakdown-chart.js
 │       ├── strategy-performance-chart.js
-│       └── symbol-pl-chart.js
+│       ├── symbol-pl-chart.js
+│       ├── win-loss-donut-chart.js (NEW)
+│       └── top-underlyings-chart.js (NEW)
 └── assets/
     └── (any images or icons)
 ```

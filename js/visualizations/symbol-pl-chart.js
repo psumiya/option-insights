@@ -105,6 +105,11 @@ class SymbolPLChart {
       return;
     }
 
+    // Remove empty state if it exists
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+    }
+
     // Transform data to expected format (handle both formats)
     let transformedData = data.map(d => ({
       symbol: d.symbol || d.dimensions?.Symbol || 'Unknown',
@@ -276,7 +281,7 @@ class SymbolPLChart {
         // Color coding: green for positive, red for negative (Requirement 7.5)
         return d.pl >= 0 ? zeroX : this.xScale(d.pl);
       })
-      .attr('width', d => Math.abs(this.xScale(d.pl) - zeroX))
+      .attr('width', d => Math.max(0, Math.abs(this.xScale(d.pl) - zeroX)))
       .attr('height', this.yScale.bandwidth())
       .attr('fill', d => d.pl >= 0 ? '#10b981' : '#ef4444');
 
@@ -366,14 +371,38 @@ class SymbolPLChart {
    * @private
    */
   _showEmptyState() {
-    this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">
-        <div style="text-align: center;">
-          <div style="font-size: 16px; margin-bottom: 8px;">No symbol P/L data available</div>
-          <div style="font-size: 12px;">Upload trades to see P/L by symbol</div>
-        </div>
-      </div>
-    `;
+    // Clear chart groups but keep SVG structure
+    if (this.barsGroup) this.barsGroup.selectAll('*').remove();
+    if (this.xAxisGroup) this.xAxisGroup.selectAll('*').remove();
+    if (this.yAxisGroup) this.yAxisGroup.selectAll('*').remove();
+    
+    // Add empty state message
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+      this.chartGroup.selectAll('.axis-label').remove();
+      
+      const containerRect = this.container.getBoundingClientRect();
+      const width = containerRect.width - this.margin.left - this.margin.right;
+      const height = containerRect.height - this.margin.top - this.margin.bottom;
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '16px')
+        .text('No symbol P/L data available');
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 + 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '12px')
+        .text('Upload trades to see P/L by symbol');
+    }
   }
 
   /**

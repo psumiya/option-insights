@@ -113,6 +113,11 @@ class PLTrendChart {
       return;
     }
 
+    // Remove empty state text if it exists
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+    }
+
     this.data = data;
     this._render();
   }
@@ -429,14 +434,40 @@ class PLTrendChart {
    * @private
    */
   _showEmptyState() {
-    this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">
-        <div style="text-align: center;">
-          <div style="font-size: 16px; margin-bottom: 8px;">No P/L data available</div>
-          <div style="font-size: 12px;">Upload trades to see your P/L trend</div>
-        </div>
-      </div>
-    `;
+    // Clear chart groups but keep SVG structure
+    if (this.gridGroup) this.gridGroup.selectAll('*').remove();
+    if (this.lineGroup) this.lineGroup.selectAll('*').remove();
+    if (this.dotsGroup) this.dotsGroup.selectAll('*').remove();
+    if (this.xAxisGroup) this.xAxisGroup.selectAll('*').remove();
+    if (this.yAxisGroup) this.yAxisGroup.selectAll('*').remove();
+    
+    // Add empty state message to chart group
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+      this.chartGroup.selectAll('.axis-label').remove();
+      
+      const containerRect = this.container.getBoundingClientRect();
+      const width = containerRect.width - this.margin.left - this.margin.right;
+      const height = containerRect.height - this.margin.top - this.margin.bottom;
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '16px')
+        .text('No P/L data available');
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 + 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '12px')
+        .text('Upload trades to see your P/L trend');
+    }
   }
 
   /**

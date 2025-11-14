@@ -109,6 +109,11 @@ class StrategyPerformanceChart {
       return;
     }
 
+    // Remove empty state if it exists
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+    }
+
     this.data = data;
     this._render();
   }
@@ -130,9 +135,9 @@ class StrategyPerformanceChart {
       .padding(0.3);
 
     // Calculate max absolute value for y-axis (Requirements 6.1, 6.2)
-    const maxPL = Math.max(
-      ...this.data.map(d => Math.max(Math.abs(d.callPL || 0), Math.abs(d.putPL || 0)))
-    );
+    const maxPL = this.data.length > 0
+      ? Math.max(...this.data.map(d => Math.max(Math.abs(d.callPL || 0), Math.abs(d.putPL || 0))))
+      : 100; // Default to 100 if no data to avoid invalid scale
     const yMax = maxPL * 1.1; // Add 10% padding
 
     this.yScale
@@ -243,7 +248,7 @@ class StrategyPerformanceChart {
    * @private
    */
   _renderBars() {
-    const barWidth = this.xScale.bandwidth() / 2;
+    const barWidth = Math.max(0, this.xScale.bandwidth() / 2);
     const zeroY = this.yScale(0);
 
     // Prepare data for bars (Requirement 6.1, 6.2)
@@ -428,14 +433,39 @@ class StrategyPerformanceChart {
    * @private
    */
   _showEmptyState() {
-    this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">
-        <div style="text-align: center;">
-          <div style="font-size: 16px; margin-bottom: 8px;">No strategy performance data available</div>
-          <div style="font-size: 12px;">Upload trades to see buy vs sell performance</div>
-        </div>
-      </div>
-    `;
+    // Clear chart groups but keep SVG structure
+    if (this.barsGroup) this.barsGroup.selectAll('*').remove();
+    if (this.xAxisGroup) this.xAxisGroup.selectAll('*').remove();
+    if (this.yAxisGroup) this.yAxisGroup.selectAll('*').remove();
+    if (this.legendGroup) this.legendGroup.selectAll('*').remove();
+    
+    // Add empty state message
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+      this.chartGroup.selectAll('.axis-label').remove();
+      
+      const containerRect = this.container.getBoundingClientRect();
+      const width = containerRect.width - this.margin.left - this.margin.right;
+      const height = containerRect.height - this.margin.top - this.margin.bottom;
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '16px')
+        .text('No strategy performance data available');
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 + 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '12px')
+        .text('Upload trades to see buy vs sell performance');
+    }
   }
 
   /**

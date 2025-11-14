@@ -40,7 +40,9 @@ class DashboardController {
       plTrend: new PLTrendChart('pl-trend-chart'),
       winRate: new WinRateChart('win-rate-chart'),
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
-      symbolPL: new SymbolPLChart('symbol-pl-chart')
+      symbolPL: new SymbolPLChart('symbol-pl-chart'),
+      winLossDonut: new WinLossDonutChart('win-loss-donut-chart'),
+      topUnderlyings: new TopUnderlyingsChart('top-underlyings-chart')
     };
 
     // Load persisted trades from data store
@@ -192,16 +194,13 @@ class DashboardController {
     );
     console.log('After status filter:', filteredTrades.length);
     
-    if (filteredTrades.length === 0) {
-      console.warn('No trades after filtering');
-      this.showEmptyState();
-      return;
-    }
-
     // Log sample trade
     if (filteredTrades.length > 0) {
       console.log('Sample filtered trade:', filteredTrades[0]);
     }
+    
+    // Note: Don't show empty state if we have enriched trades but filters result in no matches
+    // Instead, let the visualizations show their own empty states
 
     // Calculate analytics data
     console.log('Calculating analytics...');
@@ -225,6 +224,12 @@ class DashboardController {
     
     const plBySymbolStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol', 'Strategy']);
     console.log('P/L by symbol/strategy:', plBySymbolStrategy);
+    
+    const winLossDistribution = this.analyticsEngine.calculateWinLossDistribution(filteredTrades);
+    console.log('Win/Loss distribution:', winLossDistribution);
+    
+    const topUnderlyings = this.analyticsEngine.calculateTopUnderlyings(filteredTrades, 5);
+    console.log('Top underlyings:', topUnderlyings);
 
     // Update visualizations
     console.log('Updating visualizations...');
@@ -261,6 +266,20 @@ class DashboardController {
       console.log('✓ Symbol P/L updated');
     } catch (e) {
       console.error('✗ Symbol P/L error:', e);
+    }
+    
+    try {
+      this.visualizations.winLossDonut.update(winLossDistribution);
+      console.log('✓ Win/Loss Donut updated');
+    } catch (e) {
+      console.error('✗ Win/Loss Donut error:', e);
+    }
+    
+    try {
+      this.visualizations.topUnderlyings.update(topUnderlyings);
+      console.log('✓ Top Underlyings updated');
+    } catch (e) {
+      console.error('✗ Top Underlyings error:', e);
     }
 
     // Update table

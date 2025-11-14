@@ -115,6 +115,18 @@
                 </section>
             </div>
 
+            <!-- Win/Loss Distribution and Top Underlyings (2 Column Grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Loss Distribution">
+                    <h2 class="text-lg font-semibold mb-4">Win/Loss Distribution</h2>
+                    <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
+                </section>
+                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Top Performing Underlyings">
+                    <h2 class="text-lg font-semibold mb-4">Top 5 Underlyings by Win $</h2>
+                    <div id="top-underlyings-chart" class="chart-container" aria-label="Bar chart showing top 5 symbols by winning dollars"></div>
+                </section>
+            </div>
+
             <!-- P/L by Symbol (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
                 <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
@@ -155,6 +167,8 @@
     <script src="js/visualizations/win-rate-chart.js"></script>
     <script src="js/visualizations/pl-breakdown-chart.js"></script>
     <script src="js/visualizations/symbol-pl-chart.js"></script>
+    <script src="js/visualizations/win-loss-donut-chart.js"></script>
+    <script src="js/visualizations/top-underlyings-chart.js"></script>
     
     <!-- Dashboard Controller -->
     <script src="js/dashboard-controller.js"></script>

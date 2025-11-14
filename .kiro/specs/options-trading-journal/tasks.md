@@ -116,7 +116,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Add responsive layout (stack vertically on mobile, 2x2 grid on desktop)
   - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.7, 13.8_
 
-- [ ] 12. Implement Win/Loss Distribution Donut Chart
+- [x] 12. Implement Win/Loss Distribution Donut Chart
   - Create `js/visualizations/win-loss-donut-chart.js` with WinLossDonutChart class
   - Implement constructor with D3.js setup (SVG, arc generator)
   - Set inner radius to 60% of outer radius for donut effect
@@ -129,7 +129,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Implement `resize()` method with ResizeObserver
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.8_
 
-- [ ] 13. Implement Top Underlyings Chart
+- [x] 13. Implement Top Underlyings Chart
   - Create `js/visualizations/top-underlyings-chart.js` with TopUnderlyingsChart class
   - Implement constructor with D3.js setup for horizontal bar chart
   - Render bars with symbols on y-axis and winning dollars on x-axis
@@ -154,7 +154,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Add empty state display when no data is available
   - _Requirements: 1.1, 8.3, 9.6, 12.1, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 15. Update HTML structure for new visualizations
+- [x] 15. Update HTML structure for new visualizations
   - Add summary metrics panel container at the top of the dashboard (after filters, before P/L trend)
   - Create 2x2 grid layout for the four metric cards
   - Add container for win/loss donut chart in the visualization grid
@@ -163,7 +163,7 @@ This implementation plan breaks down the feature into discrete, actionable codin
   - Add script tags for new visualization components (summary-metrics-panel.js, win-loss-donut-chart.js, top-underlyings-chart.js)
   - _Requirements: 13.1, 14.1, 15.1_
 
-- [ ] 16. Update Dashboard Controller to integrate new visualizations
+- [x] 16. Update Dashboard Controller to integrate new visualizations
   - Import and initialize SummaryMetricsPanel component in `initialize()` method
   - Import and initialize WinLossDonutChart component in `initialize()` method
   - Import and initialize TopUnderlyingsChart component in `initialize()` method

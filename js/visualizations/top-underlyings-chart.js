@@ -1,13 +1,13 @@
 /**
- * P/L Breakdown Chart Component
- * Renders a horizontal bar chart for P/L by dimension (Symbol, Strategy, Type, Account)
- * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
+ * Top Underlyings Chart Component
+ * Renders a horizontal bar chart showing top 5 symbols by winning dollars
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.7
  */
-class PLBreakdownChart {
+class TopUnderlyingsChart {
   /**
-   * Create P/L Breakdown Chart
+   * Create Top Underlyings Chart
    * @param {string} containerId - DOM element ID for the chart container
-   * @param {Array} data - Array of P/L breakdown objects
+   * @param {Array} data - Array of {symbol, winningDollars, winCount} objects
    * @param {Object} options - Chart configuration options
    */
   constructor(containerId, data = [], options = {}) {
@@ -20,11 +20,11 @@ class PLBreakdownChart {
     }
 
     // Chart configuration
-    this.margin = { top: 20, right: 30, bottom: 50, left: 120 };
+    this.margin = { top: 20, right: 80, bottom: 50, left: 100 };
     this.options = {
       animationDuration: 750,
-      maxBars: 15, // Limit number of bars for readability
-      dimension: 'Symbol', // Default dimension for grouping
+      maxSymbols: 5, // Top 5 symbols (Requirement 15.1)
+      barColor: '#10b981', // Green for all bars (Requirement 15.5)
       ...options
     };
 
@@ -53,7 +53,7 @@ class PLBreakdownChart {
       .append('svg')
       .attr('width', '100%')
       .attr('height', '100%')
-      .attr('class', 'pl-breakdown-svg');
+      .attr('class', 'top-underlyings-svg');
 
     // Create main group for chart content
     this.chartGroup = this.svg.append('g')
@@ -62,6 +62,7 @@ class PLBreakdownChart {
 
     // Create groups for different chart elements
     this.barsGroup = this.chartGroup.append('g').attr('class', 'bars-group');
+    this.labelsGroup = this.chartGroup.append('g').attr('class', 'labels-group');
     this.xAxisGroup = this.chartGroup.append('g').attr('class', 'x-axis');
     this.yAxisGroup = this.chartGroup.append('g').attr('class', 'y-axis');
 
@@ -98,10 +99,9 @@ class PLBreakdownChart {
 
   /**
    * Update chart with new data
-   * @param {Array} data - Array of P/L breakdown objects
-   * @param {Object} options - Optional configuration updates
+   * @param {Array} data - Array of top underlying objects
    */
-  update(data, options = {}) {
+  update(data) {
     if (!data || data.length === 0) {
       this._showEmptyState();
       return;
@@ -112,25 +112,11 @@ class PLBreakdownChart {
       this.chartGroup.selectAll('.empty-state-text').remove();
     }
 
-    // Update options if provided
-    if (options.dimension) {
-      this.options.dimension = options.dimension;
-    }
-
-    // Sort data by P/L in descending order (Requirement 7.4)
-    let sortedData = [...data].sort((a, b) => b.pl - a.pl);
-    
-    // If we have more than maxBars, show top winners AND top losers
-    if (sortedData.length > this.options.maxBars) {
-      const halfMax = Math.floor(this.options.maxBars / 2);
-      const topWinners = sortedData.slice(0, halfMax);
-      const topLosers = sortedData.slice(-halfMax);
-      this.data = [...topWinners, ...topLosers];
-      // Re-sort for display
-      this.data.sort((a, b) => b.pl - a.pl);
-    } else {
-      this.data = sortedData;
-    }
+    // Sort by winning dollars descending and take top 5 (Requirement 15.3)
+    // Handle cases with fewer than 5 symbols (Requirement 15.7)
+    this.data = [...data]
+      .sort((a, b) => b.winningDollars - a.winningDollars)
+      .slice(0, this.options.maxSymbols);
 
     this._render();
   }
@@ -145,51 +131,33 @@ class PLBreakdownChart {
     this.width = containerRect.width - this.margin.left - this.margin.right;
     this.height = containerRect.height - this.margin.top - this.margin.bottom;
 
-    // Extract labels from data (Requirement 7.1, 7.2, 7.3)
-    const labels = this.data.map(d => this._getLabel(d));
+    // Extract symbols from data (Requirement 15.4)
+    const symbols = this.data.map(d => d.symbol);
 
     // Update scales
+    // Y-axis: symbols (highest at top) (Requirement 15.3)
     this.yScale
-      .domain(labels)
+      .domain(symbols)
       .range([0, this.height])
-      .padding(0.2);
+      .padding(0.3);
 
-    // Calculate x-axis domain with padding
-    const plValues = this.data.map(d => d.pl);
-    const minPL = Math.min(0, ...plValues);
-    const maxPL = Math.max(0, ...plValues);
-    const padding = Math.abs(maxPL - minPL) * 0.1 || 100;
-
+    // X-axis: winning dollars (Requirement 15.4)
+    const maxWinning = this.data.length > 0
+      ? Math.max(...this.data.map(d => d.winningDollars))
+      : 100; // Default to 100 if no data to avoid invalid scale
     this.xScale
-      .domain([minPL - padding, maxPL + padding])
+      .domain([0, maxWinning * 1.15]) // Add 15% padding for labels
       .range([0, this.width])
       .nice();
 
     // Render axes
     this._renderAxes();
 
-    // Render bars (Requirement 7.5)
+    // Render bars (Requirement 15.4)
     this._renderBars();
-  }
 
-  /**
-   * Get label for data point based on dimensions
-   * @param {Object} d - Data point
-   * @returns {string} - Label string
-   * @private
-   */
-  _getLabel(d) {
-    if (d.dimensions) {
-      // For multi-dimensional grouping, combine dimension values
-      const parts = [];
-      if (d.dimensions.Symbol) parts.push(d.dimensions.Symbol);
-      if (d.dimensions.Strategy) parts.push(d.dimensions.Strategy);
-      if (d.dimensions.Type) parts.push(d.dimensions.Type);
-      if (d.dimensions.Account) parts.push(d.dimensions.Account);
-      return parts.join(' - ');
-    }
-    // Fallback for simple grouping
-    return d.label || d.symbol || d.strategy || d.type || d.account || 'Unknown';
+    // Render dollar amount labels at end of bars (Requirement 15.5)
+    this._renderValueLabels();
   }
 
   /**
@@ -199,10 +167,10 @@ class PLBreakdownChart {
   _renderAxes() {
     // X-axis
     const xAxis = d3.axisBottom(this.xScale)
-      .ticks(6)
+      .ticks(5)
       .tickSize(0)
       .tickPadding(10)
-      .tickFormat(d => this._formatCurrency(d));
+      .tickFormat(d => this._formatCurrency(d, false)); // No sign for x-axis
 
     this.xAxisGroup
       .attr('transform', `translate(0,${this.height})`)
@@ -226,7 +194,9 @@ class PLBreakdownChart {
     // Style y-axis labels
     this.yAxisGroup.selectAll('text')
       .attr('fill', '#9ca3af')
-      .attr('font-size', '12px');
+      .attr('font-size', '13px')
+      .attr('font-family', 'monospace')
+      .attr('font-weight', '700');
 
     // Add axis labels
     this._addAxisLabels();
@@ -249,19 +219,19 @@ class PLBreakdownChart {
       .attr('fill', '#e5e7eb')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
-      .text('Profit/Loss ($)');
+      .text('Winning Dollars ($)');
 
     // Y-axis label
     this.chartGroup.append('text')
       .attr('class', 'axis-label')
       .attr('transform', 'rotate(-90)')
       .attr('x', -this.height / 2)
-      .attr('y', -100)
+      .attr('y', -85)
       .attr('text-anchor', 'middle')
       .attr('fill', '#e5e7eb')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
-      .text(this.options.dimension);
+      .text('Symbol');
   }
 
   /**
@@ -269,22 +239,22 @@ class PLBreakdownChart {
    * @private
    */
   _renderBars() {
-    const labels = this.data.map(d => this._getLabel(d));
-    const zeroX = this.xScale(0);
+    const symbols = this.data.map(d => d.symbol);
 
     // Bind data
     const bars = this.barsGroup
-      .selectAll('.pl-bar')
-      .data(this.data, (d, i) => this._getLabel(d) + i);
+      .selectAll('.top-underlying-bar')
+      .data(this.data, d => d.symbol);
 
     // Enter
     const barsEnter = bars.enter()
       .append('rect')
-      .attr('class', 'pl-bar')
-      .attr('y', (d, i) => this.yScale(labels[i]))
-      .attr('x', zeroX)
+      .attr('class', 'top-underlying-bar')
+      .attr('y', (d, i) => this.yScale(symbols[i]))
+      .attr('x', 0)
       .attr('width', 0)
       .attr('height', this.yScale.bandwidth())
+      .attr('fill', this.options.barColor)
       .attr('opacity', 0.9)
       .style('cursor', 'pointer');
 
@@ -294,45 +264,80 @@ class PLBreakdownChart {
       .on('mouseout', () => this._hideTooltip())
       .transition()
       .duration(this.options.animationDuration)
-      .attr('y', (d, i) => this.yScale(labels[i]))
-      .attr('x', d => {
-        // Color coding: green for positive, red for negative (Requirement 7.5)
-        return d.pl >= 0 ? zeroX : this.xScale(d.pl);
-      })
-      .attr('width', d => Math.max(0, Math.abs(this.xScale(d.pl) - zeroX)))
-      .attr('height', this.yScale.bandwidth())
-      .attr('fill', d => d.pl >= 0 ? '#10b981' : '#ef4444');
+      .attr('y', (d, i) => this.yScale(symbols[i]))
+      .attr('x', 0)
+      .attr('width', d => Math.max(0, this.xScale(d.winningDollars)))
+      .attr('height', this.yScale.bandwidth());
 
     // Exit
     bars.exit()
       .transition()
       .duration(this.options.animationDuration / 2)
       .attr('width', 0)
-      .attr('x', zeroX)
       .remove();
   }
 
   /**
-   * Show tooltip on hover (Requirement 7.5)
+   * Render value labels at the end of bars (Requirement 15.5)
+   * @private
+   */
+  _renderValueLabels() {
+    const symbols = this.data.map(d => d.symbol);
+
+    // Bind data
+    const labels = this.labelsGroup
+      .selectAll('.value-label')
+      .data(this.data, d => d.symbol);
+
+    // Enter
+    const labelsEnter = labels.enter()
+      .append('text')
+      .attr('class', 'value-label')
+      .attr('y', (d, i) => this.yScale(symbols[i]) + this.yScale.bandwidth() / 2)
+      .attr('x', 0)
+      .attr('dy', '0.35em')
+      .attr('dx', '8')
+      .attr('fill', '#e5e7eb')
+      .attr('font-size', '12px')
+      .attr('font-weight', '600')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('opacity', 0);
+
+    // Enter + Update
+    labelsEnter.merge(labels)
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('y', (d, i) => this.yScale(symbols[i]) + this.yScale.bandwidth() / 2)
+      .attr('x', d => this.xScale(d.winningDollars))
+      .attr('opacity', 1)
+      .text(d => this._formatCurrency(d.winningDollars, true));
+
+    // Exit
+    labels.exit()
+      .transition()
+      .duration(this.options.animationDuration / 2)
+      .attr('opacity', 0)
+      .remove();
+  }
+
+  /**
+   * Show tooltip on hover (Requirement 15.5)
    * @param {Event} event - Mouse event
    * @param {Object} data - Bar data
    * @private
    */
   _showTooltip(event, data) {
-    const plColor = data.pl >= 0 ? '#10b981' : '#ef4444';
-    const label = this._getLabel(data);
-
     this.tooltip
       .style('visibility', 'visible')
       .html(`
         <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px;">
-          ${label}
+          ${data.symbol}
         </div>
         <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
+          Winning $: <span style="color: ${this.options.barColor}; font-weight: 600;">${this._formatCurrency(data.winningDollars, true)}</span>
         </div>
         <div style="color: #9ca3af; font-size: 11px;">
-          Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.tradeCount}</span>
+          Win Count: <span style="color: #e5e7eb; font-weight: 600;">${data.winCount}</span>
         </div>
       `);
 
@@ -377,11 +382,12 @@ class PLBreakdownChart {
   /**
    * Format currency values
    * @param {number} value - Numeric value
+   * @param {boolean} includeSign - Whether to include + sign for positive values
    * @returns {string} - Formatted currency string
    * @private
    */
-  _formatCurrency(value) {
-    const sign = value >= 0 ? '+' : '';
+  _formatCurrency(value, includeSign = false) {
+    const sign = (includeSign && value >= 0) ? '+' : '';
     return sign + '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
@@ -392,6 +398,7 @@ class PLBreakdownChart {
   _showEmptyState() {
     // Clear chart groups but keep SVG structure
     if (this.barsGroup) this.barsGroup.selectAll('*').remove();
+    if (this.labelsGroup) this.labelsGroup.selectAll('*').remove();
     if (this.xAxisGroup) this.xAxisGroup.selectAll('*').remove();
     if (this.yAxisGroup) this.yAxisGroup.selectAll('*').remove();
     
@@ -411,7 +418,7 @@ class PLBreakdownChart {
         .attr('text-anchor', 'middle')
         .attr('fill', '#9ca3af')
         .attr('font-size', '16px')
-        .text('No P/L breakdown data available');
+        .text('No winning trades data available');
       
       this.chartGroup.append('text')
         .attr('class', 'empty-state-text')
@@ -420,7 +427,7 @@ class PLBreakdownChart {
         .attr('text-anchor', 'middle')
         .attr('fill', '#9ca3af')
         .attr('font-size', '12px')
-        .text(`Upload trades to see P/L by ${this.options.dimension}`);
+        .text('Upload trades to see top performing symbols');
     }
   }
 
@@ -453,5 +460,5 @@ class PLBreakdownChart {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = PLBreakdownChart;
+  module.exports = TopUnderlyingsChart;
 }

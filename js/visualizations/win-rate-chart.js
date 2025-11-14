@@ -65,7 +65,10 @@ class WinRateChart {
     this.yAxisGroup = this.chartGroup.append('g').attr('class', 'y-axis');
     this.legendGroup = this.svg.append('g').attr('class', 'legend-group');
 
-    // Create tooltip
+    // Create tooltip (remove old one if it exists)
+    if (this.tooltip) {
+      this.tooltip.remove();
+    }
     this.tooltip = d3.select('body')
       .append('div')
       .attr('class', 'chart-tooltip')
@@ -109,6 +112,11 @@ class WinRateChart {
       return;
     }
 
+    // Remove empty state text if it exists
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+    }
+
     this.data = data;
     this._render();
   }
@@ -130,9 +138,9 @@ class WinRateChart {
       .padding(0.3);
 
     // Calculate max value for y-axis (use max of wins or losses count)
-    const maxCount = Math.max(
-      ...this.data.map(d => Math.max(d.wins, d.losses))
-    );
+    const maxCount = this.data.length > 0 
+      ? Math.max(...this.data.map(d => Math.max(d.wins, d.losses)))
+      : 1; // Default to 1 if no data to avoid invalid scale
 
     this.yScale
       .domain([0, maxCount])
@@ -230,7 +238,7 @@ class WinRateChart {
    * @private
    */
   _renderBars() {
-    const barWidth = this.xScale.bandwidth() / 2;
+    const barWidth = Math.max(0, this.xScale.bandwidth() / 2);
 
     // Prepare data for bars
     const barsData = [];
@@ -285,7 +293,7 @@ class WinRateChart {
       })
       .attr('y', d => this.yScale(d.value))
       .attr('width', barWidth)
-      .attr('height', d => this.height - this.yScale(d.value))
+      .attr('height', d => Math.max(0, this.height - this.yScale(d.value)))
       .attr('fill', d => this.colorScale(d.type));
 
     // Exit
@@ -419,14 +427,38 @@ class WinRateChart {
    * @private
    */
   _showEmptyState() {
-    this.container.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af;">
-        <div style="text-align: center;">
-          <div style="font-size: 16px; margin-bottom: 8px;">No win rate data available</div>
-          <div style="font-size: 12px;">Upload trades to see strategy performance</div>
-        </div>
-      </div>
-    `;
+    // Clear chart groups but keep SVG structure
+    if (this.barsGroup) this.barsGroup.selectAll('*').remove();
+    if (this.xAxisGroup) this.xAxisGroup.selectAll('*').remove();
+    if (this.yAxisGroup) this.yAxisGroup.selectAll('*').remove();
+    if (this.legendGroup) this.legendGroup.selectAll('*').remove();
+    
+    // Add empty state message to chart group
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+      
+      const containerRect = this.container.getBoundingClientRect();
+      const width = containerRect.width - this.margin.left - this.margin.right;
+      const height = containerRect.height - this.margin.top - this.margin.bottom;
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '16px')
+        .text('No win rate data available');
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 + 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '12px')
+        .text('Upload trades to see strategy performance');
+    }
   }
 
   /**

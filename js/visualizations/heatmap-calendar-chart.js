@@ -21,8 +21,8 @@ class HeatmapCalendarChart {
 
     // Chart configuration
     this.margin = { top: 80, right: 120, bottom: 20, left: 120 };
-    this.cellSize = 14;
-    this.cellGap = 2;
+    this.cellSize = 80; // Increased for text visibility
+    this.cellGap = 4;
     this.options = {
       monthsToShow: 12,
       animationDuration: 750,
@@ -64,6 +64,7 @@ class HeatmapCalendarChart {
     // Create groups for different chart elements
     this.monthLabelsGroup = this.chartGroup.append('g').attr('class', 'month-labels');
     this.cellsGroup = this.chartGroup.append('g').attr('class', 'cells-group');
+    this.cellTextGroup = this.chartGroup.append('g').attr('class', 'cell-text-group');
     this.legendGroup = this.chartGroup.append('g').attr('class', 'legend-group');
 
     // Create tooltip
@@ -152,8 +153,8 @@ class HeatmapCalendarChart {
       targetCellSize = Math.floor(availableWidthPerCell - this.cellGap);
     }
     
-    // Apply min/max constraints
-    this.cellSize = Math.min(Math.max(targetCellSize, 12), 70);
+    // Apply min/max constraints - increased for text visibility
+    this.cellSize = Math.min(Math.max(targetCellSize, 60), 120);
 
     // Update color scale domain based on P/L range
     const plValues = this.processedData.map(d => d.pl);
@@ -162,6 +163,9 @@ class HeatmapCalendarChart {
 
     // Render calendar grid (Requirement 3.2)
     this._renderCalendar();
+
+    // Render cell text
+    this._renderCellText();
 
     // Render month labels (Requirement 3.2)
     this._renderMonthLabels();
@@ -293,6 +297,161 @@ class HeatmapCalendarChart {
       .duration(this.options.animationDuration / 2)
       .attr('opacity', 0)
       .remove();
+  }
+
+  /**
+   * Render text inside calendar cells
+   * @private
+   */
+  _renderCellText() {
+    // Generate all dates in range
+    const allDates = d3.timeDays(
+      d3.timeWeek.floor(this.startDate),
+      d3.timeWeek.ceil(this.endDate)
+    );
+
+    // Calculate position for each date
+    const cellData = allDates
+      .filter(date => {
+        const dayOfWeek = date.getDay();
+        return dayOfWeek !== 0 && dayOfWeek !== 6;
+      })
+      .map(date => {
+        const dateKey = d3.timeFormat('%Y-%m-%d')(date);
+        const data = this.dataMap.get(dateKey);
+        
+        const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), date);
+        const dayOfWeek = date.getDay();
+        const rowIndex = dayOfWeek - 1;
+        
+        return {
+          date: date,
+          x: weeksSinceStart * (this.cellSize + this.cellGap),
+          y: rowIndex * (this.cellSize + this.cellGap),
+          pl: data ? data.pl : null,
+          tradeCount: data ? data.tradeCount : 0,
+          hasData: !!data
+        };
+      })
+      .filter(d => d.hasData); // Only show text for cells with data
+
+    // Calculate dynamic font sizes based on cell size
+    const dateFontSize = Math.max(9, Math.min(this.cellSize * 0.14, 14));
+    const plFontSize = Math.max(11, Math.min(this.cellSize * 0.18, 18));
+    const tradeFontSize = Math.max(8, Math.min(this.cellSize * 0.12, 12));
+
+    // Calculate dynamic positioning
+    const dateYOffset = this.cellSize * 0.20;
+    const plYOffset = this.cellSize * 0.50;
+    const tradeYOffset = this.cellSize * 0.85;
+
+    // Bind data for date labels
+    const dateLabels = this.cellTextGroup
+      .selectAll('.cell-date-text')
+      .data(cellData, d => d3.timeFormat('%Y-%m-%d')(d.date));
+
+    // Enter date labels
+    const dateLabelsEnter = dateLabels.enter()
+      .append('text')
+      .attr('class', 'cell-date-text')
+      .attr('text-anchor', 'middle')
+      .attr('font-weight', '600')
+      .attr('opacity', 0)
+      .style('pointer-events', 'none');
+
+    // Update date labels
+    dateLabelsEnter.merge(dateLabels)
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('x', d => d.x + this.cellSize / 2)
+      .attr('y', d => d.y + dateYOffset)
+      .attr('font-size', `${dateFontSize}px`)
+      .attr('fill', d => {
+        // Use contrasting text color based on background
+        const bgColor = this.colorScale(d.pl);
+        return this._getContrastColor(bgColor);
+      })
+      .attr('opacity', 1)
+      .text(d => d3.timeFormat('%m/%d')(d.date));
+
+    dateLabels.exit().remove();
+
+    // Bind data for P/L labels
+    const plLabels = this.cellTextGroup
+      .selectAll('.cell-pl-text')
+      .data(cellData, d => d3.timeFormat('%Y-%m-%d')(d.date));
+
+    // Enter P/L labels
+    const plLabelsEnter = plLabels.enter()
+      .append('text')
+      .attr('class', 'cell-pl-text')
+      .attr('text-anchor', 'middle')
+      .attr('font-weight', '700')
+      .attr('opacity', 0)
+      .style('pointer-events', 'none');
+
+    // Update P/L labels
+    plLabelsEnter.merge(plLabels)
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('x', d => d.x + this.cellSize / 2)
+      .attr('y', d => d.y + plYOffset)
+      .attr('font-size', `${plFontSize}px`)
+      .attr('fill', d => {
+        const bgColor = this.colorScale(d.pl);
+        return this._getContrastColor(bgColor);
+      })
+      .attr('opacity', 1)
+      .text(d => this._formatCurrency(d.pl));
+
+    plLabels.exit().remove();
+
+    // Bind data for trade count labels
+    const tradeLabels = this.cellTextGroup
+      .selectAll('.cell-trade-text')
+      .data(cellData, d => d3.timeFormat('%Y-%m-%d')(d.date));
+
+    // Enter trade count labels
+    const tradeLabelsEnter = tradeLabels.enter()
+      .append('text')
+      .attr('class', 'cell-trade-text')
+      .attr('text-anchor', 'middle')
+      .attr('font-weight', '500')
+      .attr('opacity', 0)
+      .style('pointer-events', 'none');
+
+    // Update trade count labels
+    tradeLabelsEnter.merge(tradeLabels)
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('x', d => d.x + this.cellSize / 2)
+      .attr('y', d => d.y + tradeYOffset)
+      .attr('font-size', `${tradeFontSize}px`)
+      .attr('fill', d => {
+        const bgColor = this.colorScale(d.pl);
+        return this._getContrastColor(bgColor);
+      })
+      .attr('opacity', 0.9)
+      .text(d => `${d.tradeCount} trade${d.tradeCount !== 1 ? 's' : ''}`);
+
+    tradeLabels.exit().remove();
+  }
+
+  /**
+   * Get contrasting text color for background
+   * @param {string} bgColor - Background color
+   * @returns {string} - Contrasting text color
+   * @private
+   */
+  _getContrastColor(bgColor) {
+    // Convert color to RGB
+    const rgb = d3.rgb(bgColor);
+    
+    // Calculate relative luminance
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    
+    // Return black for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#1f2937' : '#ffffff';
   }
 
   /**
@@ -517,6 +676,7 @@ class HeatmapCalendarChart {
   _showEmptyState() {
     // Clear chart groups but keep SVG structure
     if (this.cellsGroup) this.cellsGroup.selectAll('*').remove();
+    if (this.cellTextGroup) this.cellTextGroup.selectAll('*').remove();
     if (this.monthLabelsGroup) this.monthLabelsGroup.selectAll('*').remove();
     if (this.legendGroup) this.legendGroup.selectAll('*').remove();
     

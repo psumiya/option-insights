@@ -6,7 +6,10 @@
 /* ============================================
    CSS Variables - Color Palette
    ============================================ */
-:root {
+
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
     /* Background Colors */
     --color-background: #0a0e27;
     --color-surface: #141b2d;
@@ -21,6 +24,27 @@
     --color-loss: #ef4444;
     --color-accent: #3b82f6;
     --color-warning: #f59e0b;
+    
+    /* Spacing */
+    --spacing-unit: 8px;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    /* Background Colors */
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+    
+    /* Text Colors */
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #64748b;
+    
+    /* Semantic Colors */
+    --color-profit: #059669;
+    --color-loss: #dc2626;
+    --color-accent: #2563eb;
+    --color-warning: #d97706;
     
     /* Spacing */
     --spacing-unit: 8px;
@@ -705,4 +729,130 @@ input[type="file"] {
         min-height: 450px;
         height: 450px;
     }
+}
+
+/* ============================================
+   Theme Toggle Component
+   ============================================ */
+.theme-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    transition: all 0.2s ease;
+    /* iOS Safari fixes */
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+    touch-action: manipulation;
+}
+
+.theme-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-text-primary);
+}
+
+.theme-btn.active {
+    background: var(--color-accent);
+    color: #ffffff;
+}
+
+.theme-btn:active {
+    transform: scale(0.95);
+}
+
+.theme-btn:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.theme-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Mobile responsive */
+@media (max-width: 767px) {
+    .theme-toggle {
+        gap: 2px;
+        padding: 3px;
+    }
+    
+    .theme-btn {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .theme-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* ============================================
+   Light Theme Specific Adjustments
+   ============================================ */
+[data-theme="light"] {
+    /* Adjust shadows for light mode */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .toast {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .data-table tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .data-table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .collapsible-header:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .btn-secondary:active {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] #drop-zone:active {
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+[data-theme="light"] .theme-btn:hover {
+    background: rgba(37, 99, 235, 0.1);
+}
+
+/* Smooth theme transition */
+html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body,
+.bg-surface,
+.bg-background,
+.btn-secondary,
+.filter-select,
+.theme-toggle {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

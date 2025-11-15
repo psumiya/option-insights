@@ -71,11 +71,17 @@ http://localhost:8000/tests/test-simple.html
 ```
 Verifies basic class loading and broker detection.
 
+### Test Demo Data Generator
+```
+http://localhost:8000/tests/test-demo-data.html
+```
+Test the demo data generation feature with various parameters.
+
 ### Test Main Application
 ```
 http://localhost:8000/index.html
 ```
-Upload your actual CSV files and see the full dashboard.
+Upload your actual CSV files or click "Load Demo Data" to see the full dashboard with sample data.
 
 ## Debugging Failed Tests
 
@@ -119,6 +125,7 @@ The automated test suite runs:
 | `tests/automated-test.html` | Full automated test suite |
 | `tests/test-broker-adapters.html` | Manual broker testing |
 | `tests/test-simple.html` | Basic component verification |
+| `tests/test-demo-data.html` | Demo data generator testing |
 | `run-tests.js` | CLI test runner |
 
 ## Expected Results

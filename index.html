@@ -23,6 +23,9 @@
                 <h1 class="text-2xl font-semibold">My Option Insights</h1>
                 <p>Your personal options trading analytics dashboard.</p>
                 <div class="flex gap-4">
+                    <button id="demo-data-btn" class="btn-secondary" aria-label="Load demo data">
+                        Load Demo Data
+                    </button>
                     <button id="upload-btn" class="btn-primary" aria-label="Upload CSV file">
                         Upload CSV
                     </button>
@@ -89,7 +92,10 @@
         <div id="empty-state" class="bg-surface border border-border rounded-lg p-12 text-center">
             <h2 class="text-xl font-semibold mb-2">No Trade Data Available</h2>
             <p class="text-text-secondary mb-6">Upload a CSV file to get started with your trading analytics</p>
-            <button id="empty-state-upload-btn" class="btn-primary">Upload CSV</button>
+            <div class="flex gap-4 justify-center">
+                <button id="empty-state-demo-btn" class="btn-secondary">Load Demo Data</button>
+                <button id="empty-state-upload-btn" class="btn-primary">Upload CSV</button>
+            </div>
         </div>
 
         <!-- Dashboard Container (Hidden until data loaded) -->
@@ -166,6 +172,7 @@
     <script src="js/strategy-detector.js"></script>
     <script src="js/analytics-engine.js"></script>
     <script src="js/data-store.js"></script>
+    <script src="js/demo-data-generator.js"></script>
     
     <!-- UI Components -->
     <script src="js/collapsible-section.js"></script>

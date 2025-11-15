@@ -10,6 +10,7 @@ let analyticsEngine;
 let strategyDetector;
 let csvParser;
 let dashboardController;
+let demoDataGenerator;
 
 // Table sorting state
 let currentSortColumn = 'pl'; // Default sort by P/L
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   analyticsEngine = new AnalyticsEngine();
   strategyDetector = new StrategyDetector();
   csvParser = new CSVParser();
+  demoDataGenerator = new DemoDataGenerator();
   
   // Initialize dashboard controller
   dashboardController = new DashboardController(
@@ -60,6 +62,10 @@ function setupEventListeners() {
   const fileInput = document.getElementById('file-input');
   const browseBtn = document.getElementById('browse-btn');
   
+  // Demo data buttons
+  const demoDataBtn = document.getElementById('demo-data-btn');
+  const emptyStateDemoBtn = document.getElementById('empty-state-demo-btn');
+  
   // Reload data button
   const reloadBtn = document.getElementById('reload-btn');
   
@@ -81,6 +87,19 @@ function setupEventListeners() {
   if (emptyStateUploadBtn) {
     emptyStateUploadBtn.addEventListener('click', () => {
       uploadZone.classList.remove('hidden');
+    });
+  }
+  
+  // Demo data button handlers
+  if (demoDataBtn) {
+    demoDataBtn.addEventListener('click', () => {
+      handleDemoDataLoad();
+    });
+  }
+  
+  if (emptyStateDemoBtn) {
+    emptyStateDemoBtn.addEventListener('click', () => {
+      handleDemoDataLoad();
     });
   }
   
@@ -339,4 +358,44 @@ function formatCurrency(value) {
   const sign = value >= 0 ? '+' : '-';
   const absValue = Math.abs(value);
   return sign + '$' + absValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Handle demo data load
+ * Generates and loads sample trading data
+ */
+function handleDemoDataLoad() {
+  console.log('Loading demo data...');
+  
+  // Generate demo trades (100 trades over the past year)
+  const demoTrades = demoDataGenerator.generate(100, 365);
+  
+  // Enrich trades with computed fields
+  const enrichedTrades = demoTrades.map(trade => {
+    // Apply strategy detection (already set, but ensure consistency)
+    const detectedStrategy = strategyDetector.detect(trade);
+    trade.Strategy = detectedStrategy || trade.Strategy;
+    
+    // Enrich with analytics
+    return analyticsEngine.enrichTrade(trade);
+  });
+  
+  // Save to data store
+  try {
+    dataStore.saveTrades(enrichedTrades);
+    console.log('✓ Demo data saved to localStorage');
+  } catch (storageError) {
+    console.warn('✗ Failed to save demo data to localStorage:', storageError);
+  }
+  
+  // Update dashboard controller
+  dashboardController.enrichedTrades = enrichedTrades;
+  dashboardController.showDashboard();
+  dashboardController.refreshDashboard();
+  
+  // Show success notification
+  dashboardController.showToast(
+    `Successfully loaded ${enrichedTrades.length} demo trades`,
+    'success'
+  );
 }

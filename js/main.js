@@ -78,43 +78,81 @@ function setupEventListeners() {
   
   // Upload button click - show upload zone
   if (uploadBtn) {
-    uploadBtn.addEventListener('click', () => {
+    uploadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       uploadZone.classList.remove('hidden');
     });
+    // Add touchend for iOS compatibility
+    uploadBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('hidden');
+    }, { passive: false });
   }
   
   // Empty state upload button
   if (emptyStateUploadBtn) {
-    emptyStateUploadBtn.addEventListener('click', () => {
+    emptyStateUploadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       uploadZone.classList.remove('hidden');
     });
+    // Add touchend for iOS compatibility
+    emptyStateUploadBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('hidden');
+    }, { passive: false });
   }
   
   // Demo data button handlers
   if (demoDataBtn) {
-    demoDataBtn.addEventListener('click', () => {
+    // Add both click and touchend for iOS compatibility
+    demoDataBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       handleDemoDataLoad();
     });
+    demoDataBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleDemoDataLoad();
+    }, { passive: false });
   }
   
   if (emptyStateDemoBtn) {
-    emptyStateDemoBtn.addEventListener('click', () => {
+    // Add both click and touchend for iOS compatibility
+    emptyStateDemoBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       handleDemoDataLoad();
     });
+    emptyStateDemoBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleDemoDataLoad();
+    }, { passive: false });
   }
   
   // Close upload zone
   if (closeUploadBtn) {
-    closeUploadBtn.addEventListener('click', () => {
+    closeUploadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       uploadZone.classList.add('hidden');
     });
+    // Add touchend for iOS compatibility
+    closeUploadBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('hidden');
+    }, { passive: false });
   }
   
   // Browse files button
   if (browseBtn) {
-    browseBtn.addEventListener('click', () => {
+    browseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       fileInput.click();
     });
+    // Add touchend for iOS compatibility
+    browseBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileInput.click();
+    }, { passive: false });
   }
   
   // File input change - handle file upload (Requirement 1.5)
@@ -151,16 +189,43 @@ function setupEventListeners() {
         dashboardController.showToast('Please upload a CSV file', 'error');
       }
     });
+    
+    // Add click handler for mobile devices (iOS doesn't support drag/drop well)
+    dropZone.addEventListener('click', (e) => {
+      // Only trigger if not clicking the browse button
+      if (e.target !== browseBtn && !browseBtn.contains(e.target)) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+    
+    // Add touchend for iOS
+    dropZone.addEventListener('touchend', (e) => {
+      // Only trigger if not clicking the browse button
+      if (e.target !== browseBtn && !browseBtn.contains(e.target)) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    }, { passive: false });
   }
   
   // Reload data button - clear data and show upload (Requirement 1.5)
   if (reloadBtn) {
-    reloadBtn.addEventListener('click', () => {
+    reloadBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       if (confirm('This will clear all current data. Are you sure?')) {
         dashboardController.clearData();
         uploadZone.classList.remove('hidden');
       }
     });
+    // Add touchend for iOS compatibility
+    reloadBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (confirm('This will clear all current data. Are you sure?')) {
+        dashboardController.clearData();
+        uploadZone.classList.remove('hidden');
+      }
+    }, { passive: false });
   }
   
   // Date range filter - immediate update (Requirements 8.1, 8.2, 8.3, 8.4)

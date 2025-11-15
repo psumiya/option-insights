@@ -42,6 +42,9 @@ body {
     background-color: var(--color-background);
     color: var(--color-text-primary);
     min-height: 100vh;
+    /* iOS Safari fixes */
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ============================================
@@ -111,6 +114,11 @@ button {
     transition: all 0.2s ease;
     font-family: inherit;
     font-size: 14px;
+    /* iOS Safari fixes */
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .btn-primary {
@@ -120,10 +128,18 @@ button {
     border: none;
     border-radius: 4px;
     font-weight: 500;
+    /* iOS Safari fixes */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .btn-primary:hover {
     background-color: #2563eb;
+}
+
+.btn-primary:active {
+    background-color: #1d4ed8;
+    transform: scale(0.98);
 }
 
 .btn-primary:focus {
@@ -138,11 +154,19 @@ button {
     border: 1px solid var(--color-border);
     border-radius: 4px;
     font-weight: 500;
+    /* iOS Safari fixes */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .btn-secondary:hover {
     background-color: var(--color-surface);
     border-color: var(--color-text-secondary);
+}
+
+.btn-secondary:active {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(0.98);
 }
 
 .btn-secondary:focus {
@@ -162,9 +186,12 @@ button {
     font-size: 14px;
     cursor: pointer;
     appearance: none;
+    -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
+    /* iOS Safari fixes */
+    touch-action: manipulation;
 }
 
 .filter-select:hover {
@@ -175,6 +202,13 @@ button {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-color: var(--color-accent);
+}
+
+/* File input styling for iOS */
+input[type="file"] {
+    /* iOS Safari fixes */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 /* ============================================
@@ -426,6 +460,27 @@ button {
 
 .visible {
     display: block;
+}
+
+/* ============================================
+   Upload Zone & Drop Zone - iOS Fixes
+   ============================================ */
+#upload-zone {
+    /* Ensure proper z-index and touch handling on iOS */
+    -webkit-overflow-scrolling: touch;
+}
+
+#drop-zone {
+    cursor: pointer;
+    /* iOS Safari fixes */
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#drop-zone:active {
+    background-color: rgba(59, 130, 246, 0.05);
 }
 
 /* ============================================

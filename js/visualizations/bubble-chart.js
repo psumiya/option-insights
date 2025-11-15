@@ -414,19 +414,31 @@ class BubbleChart {
       .attr('class', 'bubble-label')
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#141b2d')
+      .attr('fill', '#ffffff')
       .attr('font-size', '11px')
       .attr('font-weight', '600')
       .attr('pointer-events', 'none')
-      .attr('opacity', 0);
+      .attr('opacity', 0)
+      .style('text-shadow', '0 1px 3px rgba(0, 0, 0, 0.8)');
 
     labelsEnter.merge(labels)
       .transition()
       .duration(this.options.animationDuration)
       .attr('x', d => this.xScale(d.winRate))
       .attr('y', d => this.yScale(d.averageWin))
-      .attr('opacity', d => this.sizeScale(d.tradeCount) > 20 ? 1 : 0) // Only show label if bubble is large enough
-      .text(d => d.strategy);
+      .attr('opacity', d => {
+        const radius = this.sizeScale(d.tradeCount);
+        // Calculate if text fits with padding
+        const textWidth = d.strategy.length * 6.5; // Approximate character width
+        const availableWidth = radius * 2 * 0.85; // Use 85% of diameter for padding
+        return radius > 20 && textWidth < availableWidth ? 1 : 0;
+      })
+      .text(d => {
+        const radius = this.sizeScale(d.tradeCount);
+        const maxChars = Math.floor((radius * 2 * 0.85) / 6.5);
+        // Truncate text if too long
+        return d.strategy.length > maxChars ? d.strategy.substring(0, maxChars - 1) + '…' : d.strategy;
+      });
 
     labels.exit()
       .transition()

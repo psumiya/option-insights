@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-background text-text-primary font-sans">
+    <header class="bg-surface border-b border-border px-6 py-4">
+        <div class="max-w-[1920px] mx-auto">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-semibold">Theme Toggle Test</h1>
+                <div id="theme-toggle" class="theme-toggle" role="radiogroup" aria-label="Theme selection">
+                    <button id="theme-light" class="theme-btn" data-theme="light" aria-label="Light mode" role="radio" aria-checked="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    </button>
+                    <button id="theme-system" class="theme-btn active" data-theme="system" aria-label="System theme" role="radio" aria-checked="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </button>
+                    <button id="theme-dark" class="theme-btn" data-theme="dark" aria-label="Dark mode" role="radio" aria-checked="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1920px] mx-auto px-6 py-6">
+        <section class="bg-surface border border-border rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Theme Toggle Demo</h2>
+            <p class="text-text-secondary mb-4">Click the theme buttons in the header to switch between:</p>
+            <ul class="list-disc list-inside space-y-2 text-text-secondary">
+                <li><strong class="text-text-primary">Light Mode:</strong> Bright background with dark text</li>
+                <li><strong class="text-text-primary">System:</strong> Automatically matches your OS preference</li>
+                <li><strong class="text-text-primary">Dark Mode:</strong> Dark background with light text (default)</li>
+            </ul>
+        </section>
+
+        <section class="bg-surface border border-border rounded-lg p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Sample Content</h2>
+            <div class="space-y-4">
+                <p class="text-text-primary">This is primary text that adapts to the theme.</p>
+                <p class="text-text-secondary">This is secondary text with reduced emphasis.</p>
+                <div class="flex gap-4">
+                    <button class="btn-primary">Primary Button</button>
+                    <button class="btn-secondary">Secondary Button</button>
+                </div>
+                <div class="flex gap-4">
+                    <span class="text-profit">Profit: +$1,234.56</span>
+                    <span class="text-loss">Loss: -$567.89</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-surface border border-border rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Current Theme Info</h2>
+            <div class="space-y-2 text-text-secondary">
+                <p>Active Theme: <span id="current-theme" class="text-text-primary font-mono">system</span></p>
+                <p>Effective Theme: <span id="effective-theme" class="text-text-primary font-mono">-</span></p>
+                <p>System Preference: <span id="system-pref" class="text-text-primary font-mono">-</span></p>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/theme-manager.js"></script>
+    <script>
+        // Update theme info display
+        function updateThemeInfo() {
+            const currentTheme = themeManager.currentTheme;
+            const effectiveTheme = document.documentElement.getAttribute('data-theme');
+            const systemPref = themeManager.systemPreference;
+            
+            document.getElementById('current-theme').textContent = currentTheme;
+            document.getElementById('effective-theme').textContent = effectiveTheme;
+            document.getElementById('system-pref').textContent = systemPref;
+        }
+        
+        // Update on load
+        updateThemeInfo();
+        
+        // Update when theme changes
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTimeout(updateThemeInfo, 100);
+            });
+        });
+    </script>
+</body>
+</html>

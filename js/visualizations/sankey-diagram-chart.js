@@ -20,13 +20,14 @@ class SankeyDiagramChart {
     }
 
     // Chart configuration
-    this.margin = { top: 40, right: 40, bottom: 40, left: 60 };
+    this.margin = { top: 60, right: 80, bottom: 60, left: 80 };
     this.options = {
       animationDuration: 750,
       maxSymbols: 10, // Requirement 6.6
-      nodeWidth: 20,
-      nodePadding: 20,
-      minLinkWidth: 2,
+      nodeWidth: 30, // Increased from 20
+      nodePadding: 30, // Increased from 20
+      minLinkWidth: 3, // Increased from 2
+      resultNodeWidth: 50, // Special width for Win/Loss nodes
       ...options
     };
 
@@ -35,6 +36,11 @@ class SankeyDiagramChart {
     
     // Set up resize observer (Requirement 6.1)
     this._setupResizeObserver();
+    
+    // Register for theme changes
+    if (typeof ThemeColors !== 'undefined') {
+      ThemeColors.registerChart(this);
+    }
     
     // Render initial data
     if (data && data.nodes && data.nodes.length > 0) {
@@ -66,20 +72,17 @@ class SankeyDiagramChart {
     this.linksGroup = this.chartGroup.append('g').attr('class', 'links-group');
     this.nodesGroup = this.chartGroup.append('g').attr('class', 'nodes-group');
 
-    // Create tooltip
+    // Create tooltip (theme-aware via CSS)
     this.tooltip = d3.select('body')
       .append('div')
       .attr('class', 'chart-tooltip')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
-      .style('background-color', '#141b2d')
-      .style('border', '1px solid #1f2937')
       .style('border-radius', '4px')
       .style('padding', '8px 12px')
       .style('font-size', '12px')
       .style('pointer-events', 'none')
-      .style('z-index', '1000')
-      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)');
+      .style('z-index', '1000');
   }
 
   /**
@@ -104,7 +107,8 @@ class SankeyDiagramChart {
       return;
     }
 
-    // Store data
+    // Store data for theme changes
+    this.currentData = data;
     this.data = data;
 
     // Render chart
@@ -116,6 +120,10 @@ class SankeyDiagramChart {
    * @private
    */
   _render() {
+    // Get theme colors
+    const colors = ThemeColors.get();
+    this.colors = colors;
+
     // Get container dimensions
     const containerRect = this.container.getBoundingClientRect();
     const width = containerRect.width;
@@ -175,11 +183,11 @@ class SankeyDiagramChart {
       .attr('stroke', d => {
         // Requirement 6.4: Color flows by result (green for Win, red for Loss)
         if (d.result === 'Win') {
-          return '#10b981';
+          return this.colors.profit;
         } else if (d.result === 'Loss') {
-          return '#ef4444';
+          return this.colors.loss;
         }
-        return '#6b7280'; // Default gray for other cases
+        return this.colors.textSecondary; // Default gray for other cases
       })
       .attr('fill', 'none')
       .attr('opacity', 0)
@@ -230,23 +238,37 @@ class SankeyDiagramChart {
 
     // Add rectangles for nodes
     nodesEnter.append('rect')
-      .attr('x', d => d.x0)
+      .attr('x', d => {
+        // For Win/Loss nodes (layer 2), adjust x position to accommodate larger width
+        if (d.layer === 2) {
+          const extraWidth = (this.options.resultNodeWidth - (d.x1 - d.x0)) / 2;
+          return d.x0 - extraWidth;
+        }
+        return d.x0;
+      })
       .attr('y', d => d.y0)
-      .attr('width', d => d.x1 - d.x0)
+      .attr('width', d => {
+        // Use larger width for Win/Loss nodes
+        if (d.layer === 2) {
+          return this.options.resultNodeWidth;
+        }
+        return d.x1 - d.x0;
+      })
       .attr('height', 0)
       .attr('fill', d => {
         // Color nodes by layer
-        if (d.layer === 0) return '#3b82f6'; // Symbol - blue
-        if (d.layer === 1) return '#8b5cf6'; // Strategy - purple
+        if (d.layer === 0) return this.colors.accent; // Symbol - blue
+        if (d.layer === 1) return '#8b5cf6'; // Strategy - purple (consistent across themes)
         if (d.layer === 2) {
           // Result - green or red
-          return d.name === 'Win' ? '#10b981' : '#ef4444';
+          return d.name === 'Win' ? this.colors.profit : this.colors.loss;
         }
-        return '#6b7280';
+        return this.colors.textSecondary;
       })
-      .attr('stroke', '#141b2d')
-      .attr('stroke-width', 1)
+      .attr('stroke', this.colors.surface)
+      .attr('stroke-width', 3)
       .attr('opacity', 0.9)
+      .attr('rx', d => d.layer === 2 ? 6 : 2) // Rounded corners for Win/Loss
       .style('cursor', 'pointer')
       .on('mouseover', (event, d) => this._showNodeTooltip(event, d))
       .on('mousemove', (event) => this._moveTooltip(event))
@@ -261,10 +283,11 @@ class SankeyDiagramChart {
         // Position text based on layer
         if (d.layer === 0) {
           // Symbol - left side, text to the left
-          return d.x0 - 6;
+          return d.x0 - 10;
         } else if (d.layer === 2) {
-          // Result - right side, text to the right
-          return d.x1 + 6;
+          // Result - right side, text to the right (account for larger node)
+          const extraWidth = (this.options.resultNodeWidth - (d.x1 - d.x0)) / 2;
+          return d.x1 + extraWidth + 10;
         } else {
           // Strategy - middle, text centered
           return (d.x0 + d.x1) / 2;
@@ -277,9 +300,22 @@ class SankeyDiagramChart {
         if (d.layer === 2) return 'start';
         return 'middle';
       })
-      .attr('fill', '#e5e7eb')
-      .attr('font-size', '11px')
-      .attr('font-weight', '500')
+      .attr('fill', this.colors.textPrimary)
+      .attr('font-size', d => {
+        // Scale font size based on layer and node height
+        const nodeHeight = d.y1 - d.y0;
+        if (d.layer === 2) {
+          // Win/Loss nodes - larger font
+          return Math.min(Math.max(nodeHeight * 0.3, 18), 24) + 'px';
+        } else if (d.layer === 1) {
+          // Strategy nodes - medium font
+          return Math.min(Math.max(nodeHeight * 0.25, 14), 18) + 'px';
+        } else {
+          // Symbol nodes - standard font
+          return Math.min(Math.max(nodeHeight * 0.2, 13), 16) + 'px';
+        }
+      })
+      .attr('font-weight', d => d.layer === 2 ? '700' : '600')
       .attr('opacity', 0)
       .text(d => d.name)
       .transition()
@@ -305,6 +341,9 @@ class SankeyDiagramChart {
       { label: 'Result', x: chartWidth }
     ];
 
+    // Remove existing headers
+    this.chartGroup.selectAll('.column-header').remove();
+
     const headerGroup = this.chartGroup
       .selectAll('.column-header')
       .data(headers);
@@ -313,15 +352,17 @@ class SankeyDiagramChart {
       .append('text')
       .attr('class', 'column-header')
       .attr('x', d => d.x)
-      .attr('y', -15)
+      .attr('y', -25)
       .attr('text-anchor', d => {
         if (d.label === 'Symbol') return 'start';
         if (d.label === 'Result') return 'end';
         return 'middle';
       })
-      .attr('fill', '#9ca3af')
-      .attr('font-size', '13px')
-      .attr('font-weight', '600')
+      .attr('fill', this.colors.textPrimary)
+      .attr('font-size', '18px')
+      .attr('font-weight', '700')
+      .attr('text-transform', 'uppercase')
+      .attr('letter-spacing', '0.1em')
       .text(d => d.label);
   }
 
@@ -332,23 +373,24 @@ class SankeyDiagramChart {
   _showLinkTooltip(event, d) {
     // Requirement 6.5: Display Symbol, Strategy, Result, trade count, and total P/L
     const formatCurrency = d3.format('$,.2f');
+    const colors = this.colors;
     
     const content = `
-      <div style="font-weight: 600; margin-bottom: 6px; color: #f3f4f6;">
+      <div style="font-weight: 600; margin-bottom: 6px; color: ${colors.textPrimary};">
         ${d.source.name} → ${d.target.name}
       </div>
-      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-        Result: <span style="color: ${d.result === 'Win' ? '#10b981' : '#ef4444'}; font-weight: 600;">
+      <div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">
+        Result: <span style="color: ${d.result === 'Win' ? colors.profit : colors.loss}; font-weight: 600;">
           ${d.result || 'N/A'}
         </span>
       </div>
-      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-        Trade Count: <span style="color: #e5e7eb; font-weight: 600;">
+      <div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">
+        Trade Count: <span style="color: ${colors.textPrimary}; font-weight: 600;">
           ${d.tradeCount || 0}
         </span>
       </div>
-      <div style="color: #9ca3af; font-size: 11px;">
-        Total P/L: <span style="color: ${d.value >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+      <div style="color: ${colors.textSecondary}; font-size: 11px;">
+        Total P/L: <span style="color: ${d.value >= 0 ? colors.profit : colors.loss}; font-weight: 600;">
           ${formatCurrency(Math.abs(d.value))}
         </span>
       </div>
@@ -367,6 +409,7 @@ class SankeyDiagramChart {
    */
   _showNodeTooltip(event, d) {
     const formatCurrency = d3.format('$,.2f');
+    const colors = this.colors;
     
     // Calculate total value flowing through this node
     const totalValue = d.value || 0;
@@ -374,28 +417,28 @@ class SankeyDiagramChart {
                        d.targetLinks.reduce((sum, link) => sum + (link.tradeCount || 0), 0);
     
     let content = `
-      <div style="font-weight: 600; margin-bottom: 6px; color: #f3f4f6;">
+      <div style="font-weight: 600; margin-bottom: 6px; color: ${colors.textPrimary};">
         ${d.name}
       </div>
     `;
     
     // Add layer-specific information
     if (d.layer === 0) {
-      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Symbol</div>`;
+      content += `<div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">Symbol</div>`;
     } else if (d.layer === 1) {
-      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Strategy</div>`;
+      content += `<div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">Strategy</div>`;
     } else if (d.layer === 2) {
-      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Result</div>`;
+      content += `<div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">Result</div>`;
     }
     
     content += `
-      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-        Trade Count: <span style="color: #e5e7eb; font-weight: 600;">
+      <div style="color: ${colors.textSecondary}; font-size: 11px; margin-bottom: 2px;">
+        Trade Count: <span style="color: ${colors.textPrimary}; font-weight: 600;">
           ${tradeCount}
         </span>
       </div>
-      <div style="color: #9ca3af; font-size: 11px;">
-        Total Value: <span style="color: ${totalValue >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+      <div style="color: ${colors.textSecondary}; font-size: 11px;">
+        Total Value: <span style="color: ${totalValue >= 0 ? colors.profit : colors.loss}; font-weight: 600;">
           ${formatCurrency(Math.abs(totalValue))}
         </span>
       </div>

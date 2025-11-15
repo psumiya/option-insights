@@ -37,6 +37,7 @@ class DashboardController {
     // Initialize visualization components
     this.visualizations = {
       summaryMetrics: new SummaryMetricsPanel('summary-metrics-panel'),
+      tradeFlow: new SankeyDiagramChart('trade-flow-chart'),
       plTrend: new PLTrendChart('pl-trend-chart'),
       winRate: new WinRateChart('win-rate-chart'),
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
@@ -112,24 +113,6 @@ class DashboardController {
       }
     );
     
-    this.advancedVizPanel.registerVisualization(
-      'sankey',
-      'Trade Flow',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.sankey = new SankeyDiagramChart(container.id);
-          return this.advancedVizPanel.charts.sankey;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.sankey) {
-            const sankeyData = this.analyticsEngine.calculateSankeyData(data, 20); // Show top 20 symbols
-            this.advancedVizPanel.charts.sankey.update(sankeyData);
-          }
-        }
-      }
-    );
     
     this.advancedVizPanel.registerVisualization(
       'bubble',
@@ -413,6 +396,14 @@ class DashboardController {
       console.log('✓ Summary Metrics updated');
     } catch (e) {
       console.error('✗ Summary Metrics error:', e);
+    }
+    
+    try {
+      const sankeyData = this.analyticsEngine.calculateSankeyData(filteredTrades, 20);
+      this.visualizations.tradeFlow.update(sankeyData);
+      console.log('✓ Trade Flow updated');
+    } catch (e) {
+      console.error('✗ Trade Flow error:', e);
     }
     
     try {

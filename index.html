@@ -116,6 +116,12 @@
                 <div id="summary-metrics-panel"></div>
             </section>
 
+            <!-- Trade Flow (Sankey Diagram) - Full Width -->
+            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
+                <h2 class="text-lg font-semibold mb-4">Trade Flow</h2>
+                <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
+            </section>
+
             <!-- P/L Trend Chart (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
                 <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
@@ -179,6 +185,7 @@
     <!-- Application Scripts -->
     <!-- Theme Manager -->
     <script src="js/theme-manager.js"></script>
+    <script src="js/theme-colors.js"></script>
     
     <!-- Core Components -->
     <script src="js/broker-adapters.js"></script>

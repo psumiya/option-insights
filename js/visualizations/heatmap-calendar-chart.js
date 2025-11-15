@@ -1,0 +1,581 @@
+/**
+ * Heatmap Calendar Chart Component
+ * Renders a calendar heatmap showing daily P/L with color intensity
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
+ */
+class HeatmapCalendarChart {
+  /**
+   * Create Heatmap Calendar Chart
+   * @param {string} containerId - DOM element ID for the chart container
+   * @param {Array} data - Array of {date, pl, tradeCount} objects
+   * @param {Object} options - Chart configuration options
+   */
+  constructor(containerId, data = [], options = {}) {
+    this.containerId = containerId;
+    this.container = document.getElementById(containerId);
+    
+    if (!this.container) {
+      console.error(`Container with id "${containerId}" not found`);
+      return;
+    }
+
+    // Chart configuration
+    this.margin = { top: 80, right: 120, bottom: 20, left: 120 };
+    this.cellSize = 14;
+    this.cellGap = 2;
+    this.options = {
+      monthsToShow: 12,
+      animationDuration: 750,
+      ...options
+    };
+
+    // Initialize chart
+    this._initChart();
+    
+    // Set up resize observer (Requirement 3.1)
+    this._setupResizeObserver();
+    
+    // Render initial data
+    if (data && data.length > 0) {
+      this.update(data);
+    }
+  }
+
+  /**
+   * Initialize SVG and chart elements
+   * @private
+   */
+  _initChart() {
+    // Clear any existing content
+    this.container.innerHTML = '';
+
+    // Create SVG
+    this.svg = d3.select(`#${this.containerId}`)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('class', 'heatmap-calendar-svg');
+
+    // Create main group for chart content
+    this.chartGroup = this.svg.append('g')
+      .attr('class', 'chart-content')
+      .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+    // Create groups for different chart elements
+    this.monthLabelsGroup = this.chartGroup.append('g').attr('class', 'month-labels');
+    this.cellsGroup = this.chartGroup.append('g').attr('class', 'cells-group');
+    this.legendGroup = this.chartGroup.append('g').attr('class', 'legend-group');
+
+    // Create tooltip
+    this.tooltip = d3.select('body')
+      .append('div')
+      .attr('class', 'chart-tooltip')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', '#141b2d')
+      .style('border', '1px solid #1f2937')
+      .style('border-radius', '4px')
+      .style('padding', '8px 12px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('z-index', '1000')
+      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)');
+
+    // Initialize color scale (Requirement 3.3)
+    // Red (loss) → White (neutral) → Green (profit)
+    this.colorScale = d3.scaleSequential()
+      .interpolator(d3.interpolateRdYlGn);
+  }
+
+  /**
+   * Set up ResizeObserver for responsive behavior
+   * @private
+   */
+  _setupResizeObserver() {
+    this.resizeObserver = new ResizeObserver(() => {
+      this.resize();
+    });
+    this.resizeObserver.observe(this.container);
+  }
+
+  /**
+   * Update chart with new data
+   * @param {Array} data - Array of daily P/L objects
+   */
+  update(data) {
+    if (!data || data.length === 0) {
+      this._showEmptyState();
+      return;
+    }
+
+    // Remove empty state text if it exists
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+    }
+
+    this.data = data;
+    this._render();
+  }
+
+  /**
+   * Render the chart
+   * @private
+   */
+  _render() {
+    // Get container dimensions
+    const containerRect = this.container.getBoundingClientRect();
+    this.width = Math.max(containerRect.width - this.margin.left - this.margin.right, 200);
+    this.height = Math.max(containerRect.height - this.margin.top - this.margin.bottom, 200);
+
+    // Process data and calculate date range (Requirement 3.6)
+    this._processData();
+    
+    // Calculate optimal cell size based on available space
+    // Calendar has 5 rows (weekdays only) and variable columns (weeks)
+    const numWeeks = Math.ceil(d3.timeWeek.count(
+      d3.timeWeek.floor(this.startDate),
+      d3.timeWeek.ceil(this.endDate)
+    ));
+    
+    // Calculate cell size to fit the container
+    // Prioritize using available height to make calendar taller
+    const availableHeightPerCell = this.height / 5;
+    const availableWidthPerCell = this.width / numWeeks;
+    
+    // Use height-based sizing, but cap it if it would overflow width
+    let targetCellSize = Math.floor(availableHeightPerCell - this.cellGap);
+    
+    // Check if this would overflow the width
+    const totalWidth = numWeeks * (targetCellSize + this.cellGap);
+    if (totalWidth > this.width) {
+      // Fall back to width-based sizing
+      targetCellSize = Math.floor(availableWidthPerCell - this.cellGap);
+    }
+    
+    // Apply min/max constraints
+    this.cellSize = Math.min(Math.max(targetCellSize, 12), 70);
+
+    // Update color scale domain based on P/L range
+    const plValues = this.processedData.map(d => d.pl);
+    const maxAbsPL = Math.max(Math.abs(d3.min(plValues)), Math.abs(d3.max(plValues)));
+    this.colorScale.domain([-maxAbsPL, maxAbsPL]);
+
+    // Render calendar grid (Requirement 3.2)
+    this._renderCalendar();
+
+    // Render month labels (Requirement 3.2)
+    this._renderMonthLabels();
+
+    // Render legend
+    this._renderLegend();
+  }
+
+  /**
+   * Process data and filter to last N months
+   * @private
+   */
+  _processData() {
+    // Convert dates to Date objects and sort
+    this.processedData = this.data.map(d => ({
+      date: d.date instanceof Date ? d.date : new Date(d.date),
+      pl: d.pl,
+      tradeCount: d.tradeCount
+    })).sort((a, b) => a.date - b.date);
+
+    // Filter to last N months (Requirement 3.6)
+    const endDate = new Date(Math.max(...this.processedData.map(d => d.date)));
+    const startDate = new Date(endDate);
+    startDate.setMonth(startDate.getMonth() - this.options.monthsToShow);
+
+    this.processedData = this.processedData.filter(d => d.date >= startDate);
+
+    // Calculate date range for calendar
+    if (this.processedData.length > 0) {
+      this.startDate = new Date(Math.min(...this.processedData.map(d => d.date)));
+      this.endDate = new Date(Math.max(...this.processedData.map(d => d.date)));
+    } else {
+      const now = new Date();
+      this.endDate = now;
+      this.startDate = new Date(now);
+      this.startDate.setMonth(this.startDate.getMonth() - this.options.monthsToShow);
+    }
+
+    // Create a map for quick lookup
+    this.dataMap = new Map();
+    this.processedData.forEach(d => {
+      const dateKey = d3.timeFormat('%Y-%m-%d')(d.date);
+      this.dataMap.set(dateKey, d);
+    });
+  }
+
+  /**
+   * Render calendar grid with day cells
+   * @private
+   */
+  _renderCalendar() {
+    // Generate all dates in range
+    const allDates = d3.timeDays(
+      d3.timeWeek.floor(this.startDate),
+      d3.timeWeek.ceil(this.endDate)
+    );
+
+    // Calculate position for each date (Requirement 3.2)
+    // Filter out weekends (Saturday = 6, Sunday = 0)
+    const cellData = allDates
+      .filter(date => {
+        const dayOfWeek = date.getDay();
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday and Saturday
+      })
+      .map(date => {
+        const dateKey = d3.timeFormat('%Y-%m-%d')(date);
+        const data = this.dataMap.get(dateKey);
+        
+        // Calculate week-based position
+        const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), date);
+        const dayOfWeek = date.getDay();
+        
+        // Map day of week to row (Mon=0, Tue=1, Wed=2, Thu=3, Fri=4)
+        const rowIndex = dayOfWeek - 1;
+        
+        return {
+          date: date,
+          x: weeksSinceStart * (this.cellSize + this.cellGap),
+          y: rowIndex * (this.cellSize + this.cellGap),
+          pl: data ? data.pl : null,
+          tradeCount: data ? data.tradeCount : 0,
+          hasData: !!data
+        };
+      });
+
+    // Bind data
+    const cells = this.cellsGroup
+      .selectAll('.calendar-cell')
+      .data(cellData, d => d3.timeFormat('%Y-%m-%d')(d.date));
+
+    // Enter
+    const cellsEnter = cells.enter()
+      .append('rect')
+      .attr('class', 'calendar-cell')
+      .attr('width', this.cellSize)
+      .attr('height', this.cellSize)
+      .attr('rx', 2)
+      .attr('ry', 2)
+      .attr('opacity', 0)
+      .style('cursor', d => d.hasData ? 'pointer' : 'default');
+
+    // Enter + Update
+    cellsEnter.merge(cells)
+      .on('mouseover', (event, d) => {
+        if (d.hasData) {
+          this._showTooltip(event, d);
+        }
+      })
+      .on('mouseout', () => this._hideTooltip())
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('x', d => d.x)
+      .attr('y', d => d.y)
+      .attr('fill', d => {
+        if (!d.hasData) {
+          // Empty days shown as dark gray (Requirement 3.5)
+          return '#1f2937';
+        }
+        // Color-code based on P/L (Requirement 3.3)
+        return this.colorScale(d.pl);
+      })
+      .attr('stroke', d => d.hasData ? '#141b2d' : '#0f172a')
+      .attr('stroke-width', 1)
+      .attr('opacity', 1);
+
+    // Exit
+    cells.exit()
+      .transition()
+      .duration(this.options.animationDuration / 2)
+      .attr('opacity', 0)
+      .remove();
+  }
+
+  /**
+   * Render month labels above columns
+   * @private
+   */
+  _renderMonthLabels() {
+    // Calculate first day of each month in the range
+    const months = [];
+    let currentDate = new Date(this.startDate);
+    currentDate.setDate(1);
+
+    while (currentDate <= this.endDate) {
+      const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), currentDate);
+      months.push({
+        date: new Date(currentDate),
+        x: weeksSinceStart * (this.cellSize + this.cellGap),
+        label: d3.timeFormat('%b %Y')(currentDate)
+      });
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    // Bind data
+    const labels = this.monthLabelsGroup
+      .selectAll('.month-label')
+      .data(months, d => d3.timeFormat('%Y-%m')(d.date));
+
+    // Enter
+    const labelsEnter = labels.enter()
+      .append('text')
+      .attr('class', 'month-label')
+      .attr('fill', '#e5e7eb')
+      .attr('font-size', '12px')
+      .attr('font-weight', '600')
+      .attr('opacity', 0);
+
+    // Enter + Update
+    labelsEnter.merge(labels)
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('x', d => d.x)
+      .attr('y', -10)
+      .attr('opacity', 1)
+      .text(d => d.label);
+
+    // Exit
+    labels.exit()
+      .transition()
+      .duration(this.options.animationDuration / 2)
+      .attr('opacity', 0)
+      .remove();
+
+    // Add day of week labels on the left (weekdays only)
+    const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const dayLabels = this.monthLabelsGroup
+      .selectAll('.day-label')
+      .data(daysOfWeek);
+
+    dayLabels.enter()
+      .append('text')
+      .attr('class', 'day-label')
+      .merge(dayLabels)
+      .attr('x', -10)
+      .attr('y', (d, i) => i * (this.cellSize + this.cellGap) + this.cellSize / 2)
+      .attr('text-anchor', 'end')
+      .attr('dominant-baseline', 'middle')
+      .attr('fill', '#9ca3af')
+      .attr('font-size', '10px')
+      .text(d => d);
+
+    dayLabels.exit().remove();
+  }
+
+  /**
+   * Render color legend
+   * @private
+   */
+  _renderLegend() {
+    const legendWidth = 200;
+    const legendHeight = 10;
+    const legendX = this.width - legendWidth;
+    const legendY = -30;
+
+    // Remove existing legend
+    this.legendGroup.selectAll('*').remove();
+
+    // Create gradient
+    const defs = this.svg.select('defs').empty() 
+      ? this.svg.append('defs') 
+      : this.svg.select('defs');
+
+    const gradient = defs.selectAll('#heatmap-gradient').data([null]);
+    const gradientEnter = gradient.enter()
+      .append('linearGradient')
+      .attr('id', 'heatmap-gradient')
+      .attr('x1', '0%')
+      .attr('x2', '100%');
+
+    gradientEnter.append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', '#ef4444');
+
+    gradientEnter.append('stop')
+      .attr('offset', '50%')
+      .attr('stop-color', '#fef08a');
+
+    gradientEnter.append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', '#10b981');
+
+    // Draw legend rectangle
+    this.legendGroup.append('rect')
+      .attr('x', legendX)
+      .attr('y', legendY)
+      .attr('width', legendWidth)
+      .attr('height', legendHeight)
+      .attr('fill', 'url(#heatmap-gradient)')
+      .attr('stroke', '#1f2937')
+      .attr('stroke-width', 1);
+
+    // Add legend labels
+    const plValues = this.processedData.map(d => d.pl);
+    const minPL = d3.min(plValues) || 0;
+    const maxPL = d3.max(plValues) || 0;
+
+    this.legendGroup.append('text')
+      .attr('x', legendX - 5)
+      .attr('y', legendY + legendHeight / 2)
+      .attr('text-anchor', 'end')
+      .attr('dominant-baseline', 'middle')
+      .attr('fill', '#9ca3af')
+      .attr('font-size', '10px')
+      .text(this._formatCurrency(minPL));
+
+    this.legendGroup.append('text')
+      .attr('x', legendX + legendWidth + 5)
+      .attr('y', legendY + legendHeight / 2)
+      .attr('text-anchor', 'start')
+      .attr('dominant-baseline', 'middle')
+      .attr('fill', '#9ca3af')
+      .attr('font-size', '10px')
+      .text(this._formatCurrency(maxPL));
+  }
+
+  /**
+   * Show tooltip on hover (Requirement 3.4)
+   * @param {Event} event - Mouse event
+   * @param {Object} data - Cell data
+   * @private
+   */
+  _showTooltip(event, data) {
+    const plColor = data.pl >= 0 ? '#10b981' : '#ef4444';
+    const dateStr = d3.timeFormat('%b %d, %Y')(data.date);
+
+    this.tooltip
+      .style('visibility', 'visible')
+      .html(`
+        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+          ${dateStr}
+        </div>
+        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+          P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
+        </div>
+        <div style="color: #9ca3af; font-size: 11px;">
+          Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.tradeCount}</span>
+        </div>
+      `);
+
+    this._positionTooltip(event);
+  }
+
+  /**
+   * Position tooltip near cursor
+   * @param {Event} event - Mouse event
+   * @private
+   */
+  _positionTooltip(event) {
+    const tooltipNode = this.tooltip.node();
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const offset = 15;
+
+    let left = event.pageX + offset;
+    let top = event.pageY + offset;
+
+    // Adjust if tooltip goes off screen
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = event.pageX - tooltipRect.width - offset;
+    }
+
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = event.pageY - tooltipRect.height - offset;
+    }
+
+    this.tooltip
+      .style('left', `${left}px`)
+      .style('top', `${top}px`);
+  }
+
+  /**
+   * Hide tooltip
+   * @private
+   */
+  _hideTooltip() {
+    this.tooltip.style('visibility', 'hidden');
+  }
+
+  /**
+   * Format currency values
+   * @param {number} value - Numeric value
+   * @returns {string} - Formatted currency string
+   * @private
+   */
+  _formatCurrency(value) {
+    const sign = value >= 0 ? '+' : '';
+    return sign + '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  /**
+   * Show empty state when no data
+   * @private
+   */
+  _showEmptyState() {
+    // Clear chart groups but keep SVG structure
+    if (this.cellsGroup) this.cellsGroup.selectAll('*').remove();
+    if (this.monthLabelsGroup) this.monthLabelsGroup.selectAll('*').remove();
+    if (this.legendGroup) this.legendGroup.selectAll('*').remove();
+    
+    // Add empty state message to chart group
+    if (this.chartGroup) {
+      this.chartGroup.selectAll('.empty-state-text').remove();
+      
+      const containerRect = this.container.getBoundingClientRect();
+      const width = containerRect.width - this.margin.left - this.margin.right;
+      const height = containerRect.height - this.margin.top - this.margin.bottom;
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 - 10)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '16px')
+        .text('No calendar data available');
+      
+      this.chartGroup.append('text')
+        .attr('class', 'empty-state-text')
+        .attr('x', width / 2)
+        .attr('y', height / 2 + 15)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#9ca3af')
+        .attr('font-size', '12px')
+        .text('Upload trades with close dates to see daily P/L patterns');
+    }
+  }
+
+  /**
+   * Resize chart to fit container
+   */
+  resize() {
+    if (this.data && this.data.length > 0) {
+      this._render();
+    }
+  }
+
+  /**
+   * Destroy chart and clean up resources
+   */
+  destroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    
+    if (this.tooltip) {
+      this.tooltip.remove();
+    }
+    
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+  }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = HeatmapCalendarChart;
+}

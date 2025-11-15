@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdvancedVisualizationPanel Component Test</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--color-accent);
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+        .test-pass {
+            color: var(--color-profit);
+        }
+        .test-fail {
+            color: var(--color-loss);
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .mock-viz {
+            padding: 40px;
+            text-align: center;
+            background: var(--color-background);
+            border-radius: 4px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mock-viz-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .mock-viz-data {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>AdvancedVisualizationPanel Component Tests</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Test Panel: Multiple Visualizations with Tab Switching</div>
+        <div id="test-panel-1"></div>
+    </div>
+
+    <div class="control-buttons">
+        <button class="btn-primary" onclick="testTabSwitching()">Test Tab Switching</button>
+        <button class="btn-secondary" onclick="testDataUpdate()">Test Data Update</button>
+        <button class="btn-secondary" onclick="testStatePersis tence()">Test State Persistence</button>
+        <button class="btn-secondary" onclick="testKeyboardNav()">Test Keyboard Navigation</button>
+        <button class="btn-secondary" onclick="runAllTests()">Run All Tests</button>
+    </div>
+
+    <div class="test-results" id="test-results">
+        <h3>Test Results</h3>
+        <div id="results-content">Click "Run All Tests" to see results</div>
+    </div>
+
+    <script src="../js/advanced-visualization-panel.js"></script>
+    <script>
+        // Mock visualization components
+        class MockVisualization {
+            constructor(name) {
+                this.name = name;
+                this.container = null;
+                this.data = null;
+                this.updateCount = 0;
+            }
+
+            initialize(container) {
+                this.container = container;
+                this.render();
+            }
+
+            update(data, options = {}) {
+                this.data = data;
+                this.updateCount++;
+                this.render();
+            }
+
+            render() {
+                if (!this.container) return;
+                
+                const dataInfo = this.data ? 
+                    `Data points: ${Array.isArray(this.data) ? this.data.length : 'N/A'}` : 
+                    'No data loaded';
+                
+                this.container.innerHTML = `
+                    <div class="mock-viz">
+                        <div class="mock-viz-title">${this.name}</div>
+                        <div class="mock-viz-data">${dataInfo}</div>
+                        <div class="mock-viz-data">Update count: ${this.updateCount}</div>
+                    </div>
+                `;
+            }
+
+            resize() {
+                console.log(`${this.name} resized`);
+            }
+
+            destroy() {
+                if (this.container) {
+                    this.container.innerHTML = '';
+                }
+                this.container = null;
+                this.data = null;
+            }
+        }
+
+        // Initialize panel and visualizations
+        let panel;
+        const mockData = [
+            { date: '2024-01-01', value: 100 },
+            { date: '2024-01-02', value: 150 },
+            { date: '2024-01-03', value: 120 }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create panel
+            panel = new AdvancedVisualizationPanel('test-panel-1', {
+                storageKey: 'test_viz_panel',
+                fadeTransitionDuration: 200
+            });
+            panel.initialize();
+
+            // Register mock visualizations
+            panel.registerVisualization(
+                'heatmap',
+                'Calendar Heatmap',
+                new MockVisualization('Calendar Heatmap'),
+                { icon: '📅' }
+            );
+
+            panel.registerVisualization(
+                'scatter',
+                'Days Held vs P/L',
+                new MockVisualization('Scatter Plot'),
+                { icon: '📊' }
+            );
+
+            panel.registerVisualization(
+                'violin',
+                'P/L Distribution',
+                new MockVisualization('Violin Plot'),
+                { icon: '🎻' }
+            );
+
+            panel.registerVisualization(
+                'bubble',
+                'Win Rate Analysis',
+                new MockVisualization('Bubble Chart'),
+                { icon: '⚪' }
+            );
+
+            // Load initial data
+            panel.update(mockData);
+        });
+
+        function testTabSwitching() {
+            console.log('Testing tab switching...');
+            
+            const tabs = ['heatmap', 'scatter', 'violin', 'bubble'];
+            let index = 0;
+
+            const switchNext = () => {
+                if (index < tabs.length) {
+                    panel.switchTab(tabs[index]);
+                    console.log(`Switched to: ${tabs[index]}`);
+                    index++;
+                    setTimeout(switchNext, 500);
+                } else {
+                    alert('Tab switching test complete!');
+                }
+            };
+
+            switchNext();
+        }
+
+        function testDataUpdate() {
+            const newData = [
+                { date: '2024-01-04', value: 200 },
+                { date: '2024-01-05', value: 180 },
+                { date: '2024-01-06', value: 220 },
+                { date: '2024-01-07', value: 190 }
+            ];
+            
+            panel.update(newData);
+            alert('Data updated! Check the active visualization.');
+        }
+
+        function testStatePersistence() {
+            const currentTab = panel.getActiveTab();
+            alert(`Current active tab: ${currentTab}\n\nThis tab ID is saved to localStorage and will be restored on page reload.`);
+        }
+
+        function testKeyboardNav() {
+            alert('Focus on a tab and use:\n- Arrow Left/Right to navigate\n- Home/End to jump to first/last tab\n- Enter/Space to activate a tab');
+            
+            // Focus the first tab
+            const firstTab = document.querySelector('.viz-tab');
+            if (firstTab) {
+                firstTab.focus();
+            }
+        }
+
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: Panel initialization
+            results.push({
+                name: 'Panel Initialized',
+                pass: panel !== null && panel.container !== null,
+                message: 'Panel should be initialized with a valid container'
+            });
+
+            // Test 2: Tabs registered
+            const tabCount = panel.tabs.size;
+            results.push({
+                name: 'Tabs Registered',
+                pass: tabCount === 4,
+                message: `Expected 4 tabs, found ${tabCount}`
+            });
+
+            // Test 3: Active tab set
+            const activeTab = panel.getActiveTab();
+            results.push({
+                name: 'Active Tab Set',
+                pass: activeTab !== null && panel.tabs.has(activeTab),
+                message: `Active tab: ${activeTab || 'none'}`
+            });
+
+            // Test 4: Tab buttons rendered
+            const tabButtons = document.querySelectorAll('.viz-tab');
+            results.push({
+                name: 'Tab Buttons Rendered',
+                pass: tabButtons.length === 4,
+                message: `Expected 4 tab buttons, found ${tabButtons.length}`
+            });
+
+            // Test 5: Active tab has correct class
+            const activeButton = document.querySelector('.viz-tab.active');
+            results.push({
+                name: 'Active Tab Styled',
+                pass: activeButton !== null,
+                message: 'One tab should have the "active" class'
+            });
+
+            // Test 6: Content container exists
+            const contentContainer = document.querySelector('.viz-content');
+            results.push({
+                name: 'Content Container Exists',
+                pass: contentContainer !== null,
+                message: 'Content container should be rendered'
+            });
+
+            // Test 7: Test tab switching
+            const initialTab = panel.getActiveTab();
+            const targetTab = initialTab === 'heatmap' ? 'scatter' : 'heatmap';
+            panel.switchTab(targetTab);
+            
+            setTimeout(() => {
+                const newTab = panel.getActiveTab();
+                results.push({
+                    name: 'Tab Switching Works',
+                    pass: newTab === targetTab,
+                    message: `Switched from ${initialTab} to ${newTab}`
+                });
+
+                // Test 8: Test data update
+                const testData = [{ test: 'data' }];
+                panel.update(testData);
+                results.push({
+                    name: 'Data Update Works',
+                    pass: panel.currentData === testData,
+                    message: 'Panel should store current data'
+                });
+
+                // Test 9: Test localStorage
+                const storedTab = localStorage.getItem(panel.options.storageKey);
+                results.push({
+                    name: 'State Persistence',
+                    pass: storedTab === targetTab,
+                    message: `Stored tab: ${storedTab}`
+                });
+
+                // Display results
+                displayResults(results);
+            }, 300);
+        }
+
+        function displayResults(results) {
+            const resultsContent = document.getElementById('results-content');
+            let html = '<ul style="list-style: none; padding: 0;">';
+            
+            results.forEach(result => {
+                const icon = result.pass ? '✓' : '✗';
+                const className = result.pass ? 'test-pass' : 'test-fail';
+                html += `
+                    <li style="margin-bottom: 10px;">
+                        <span class="${className}" style="font-weight: bold; font-size: 18px;">${icon}</span>
+                        <strong>${result.name}:</strong> ${result.message}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            html += `<p style="margin-top: 15px; font-weight: bold;">Results: ${passCount}/${totalCount} tests passed</p>`;
+            
+            resultsContent.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

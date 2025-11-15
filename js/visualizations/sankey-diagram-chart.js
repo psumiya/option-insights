@@ -1,0 +1,504 @@
+/**
+ * Sankey Diagram Chart Component
+ * Renders a Sankey diagram showing trade flow from symbols through strategies to outcomes
+ * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6
+ */
+class SankeyDiagramChart {
+  /**
+   * Create Sankey Diagram Chart
+   * @param {string} containerId - DOM element ID for the chart container
+   * @param {Array} data - Array of {nodes, links} objects
+   * @param {Object} options - Chart configuration options
+   */
+  constructor(containerId, data = [], options = {}) {
+    this.containerId = containerId;
+    this.container = document.getElementById(containerId);
+    
+    if (!this.container) {
+      console.error(`Container with id "${containerId}" not found`);
+      return;
+    }
+
+    // Chart configuration
+    this.margin = { top: 40, right: 40, bottom: 40, left: 60 };
+    this.options = {
+      animationDuration: 750,
+      maxSymbols: 10, // Requirement 6.6
+      nodeWidth: 20,
+      nodePadding: 20,
+      minLinkWidth: 2,
+      ...options
+    };
+
+    // Initialize chart
+    this._initChart();
+    
+    // Set up resize observer (Requirement 6.1)
+    this._setupResizeObserver();
+    
+    // Render initial data
+    if (data && data.nodes && data.nodes.length > 0) {
+      this.update(data);
+    }
+  }
+
+  /**
+   * Initialize SVG and chart elements
+   * @private
+   */
+  _initChart() {
+    // Clear any existing content
+    this.container.innerHTML = '';
+
+    // Create SVG
+    this.svg = d3.select(`#${this.containerId}`)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('class', 'sankey-diagram-svg');
+
+    // Create main group for chart content
+    this.chartGroup = this.svg.append('g')
+      .attr('class', 'chart-content')
+      .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+    // Create groups for different chart elements
+    this.linksGroup = this.chartGroup.append('g').attr('class', 'links-group');
+    this.nodesGroup = this.chartGroup.append('g').attr('class', 'nodes-group');
+
+    // Create tooltip
+    this.tooltip = d3.select('body')
+      .append('div')
+      .attr('class', 'chart-tooltip')
+      .style('position', 'absolute')
+      .style('visibility', 'hidden')
+      .style('background-color', '#141b2d')
+      .style('border', '1px solid #1f2937')
+      .style('border-radius', '4px')
+      .style('padding', '8px 12px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('z-index', '1000')
+      .style('box-shadow', '0 4px 6px rgba(0, 0, 0, 0.3)');
+  }
+
+  /**
+   * Set up ResizeObserver for responsive behavior
+   * @private
+   */
+  _setupResizeObserver() {
+    this.resizeObserver = new ResizeObserver(() => {
+      this.resize();
+    });
+    this.resizeObserver.observe(this.container);
+  }
+
+  /**
+   * Update chart with new data
+   * @param {Object} data - Object with nodes and links arrays
+   * @param {Object} options - Update options
+   */
+  update(data, options = {}) {
+    if (!data || !data.nodes || data.nodes.length === 0) {
+      this._showEmptyState();
+      return;
+    }
+
+    // Store data
+    this.data = data;
+
+    // Render chart
+    this._render();
+  }
+
+  /**
+   * Render the Sankey diagram
+   * @private
+   */
+  _render() {
+    // Get container dimensions
+    const containerRect = this.container.getBoundingClientRect();
+    const width = containerRect.width;
+    const height = containerRect.height;
+
+    // Calculate chart dimensions
+    const chartWidth = Math.max(width - this.margin.left - this.margin.right, 200);
+    const chartHeight = Math.max(height - this.margin.top - this.margin.bottom, 200);
+
+    // Update SVG size
+    this.svg
+      .attr('width', width)
+      .attr('height', height);
+
+    // Create Sankey layout (Requirement 6.2)
+    const sankey = d3.sankey()
+      .nodeId(d => d.id)
+      .nodeWidth(this.options.nodeWidth)
+      .nodePadding(this.options.nodePadding)
+      .extent([[0, 0], [chartWidth, chartHeight]]);
+
+    // Process data through Sankey layout
+    const { nodes, links } = sankey({
+      nodes: this.data.nodes.map(d => ({ ...d })),
+      links: this.data.links.map(d => ({ ...d }))
+    });
+
+    // Render links (flows) (Requirement 6.3)
+    this._renderLinks(links);
+
+    // Render nodes (Requirement 6.1)
+    this._renderNodes(nodes);
+  }
+
+  /**
+   * Render Sankey flow links
+   * @private
+   */
+  _renderLinks(links) {
+    // Clear existing links
+    this.linksGroup.selectAll('*').remove();
+
+    // Create link path generator
+    const linkGenerator = d3.sankeyLinkHorizontal();
+
+    // Bind data
+    const linkElements = this.linksGroup
+      .selectAll('.sankey-link')
+      .data(links);
+
+    // Enter
+    const linksEnter = linkElements.enter()
+      .append('path')
+      .attr('class', 'sankey-link')
+      .attr('d', linkGenerator)
+      .attr('stroke-width', d => Math.max(this.options.minLinkWidth, d.width))
+      .attr('stroke', d => {
+        // Requirement 6.4: Color flows by result (green for Win, red for Loss)
+        if (d.result === 'Win') {
+          return '#10b981';
+        } else if (d.result === 'Loss') {
+          return '#ef4444';
+        }
+        return '#6b7280'; // Default gray for other cases
+      })
+      .attr('fill', 'none')
+      .attr('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('mouseover', (event, d) => this._showLinkTooltip(event, d))
+      .on('mousemove', (event) => this._moveTooltip(event))
+      .on('mouseout', () => this._hideTooltip());
+
+    // Animate entrance
+    linksEnter
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('opacity', 0.5);
+
+    // Add hover effect
+    linksEnter
+      .on('mouseenter', function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.8);
+      })
+      .on('mouseleave', function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.5);
+      });
+  }
+
+  /**
+   * Render Sankey nodes
+   * @private
+   */
+  _renderNodes(nodes) {
+    // Clear existing nodes
+    this.nodesGroup.selectAll('*').remove();
+
+    // Bind data
+    const nodeElements = this.nodesGroup
+      .selectAll('.sankey-node')
+      .data(nodes);
+
+    // Enter - create node groups
+    const nodesEnter = nodeElements.enter()
+      .append('g')
+      .attr('class', 'sankey-node');
+
+    // Add rectangles for nodes
+    nodesEnter.append('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('width', d => d.x1 - d.x0)
+      .attr('height', 0)
+      .attr('fill', d => {
+        // Color nodes by layer
+        if (d.layer === 0) return '#3b82f6'; // Symbol - blue
+        if (d.layer === 1) return '#8b5cf6'; // Strategy - purple
+        if (d.layer === 2) {
+          // Result - green or red
+          return d.name === 'Win' ? '#10b981' : '#ef4444';
+        }
+        return '#6b7280';
+      })
+      .attr('stroke', '#141b2d')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.9)
+      .style('cursor', 'pointer')
+      .on('mouseover', (event, d) => this._showNodeTooltip(event, d))
+      .on('mousemove', (event) => this._moveTooltip(event))
+      .on('mouseout', () => this._hideTooltip())
+      .transition()
+      .duration(this.options.animationDuration)
+      .attr('height', d => d.y1 - d.y0);
+
+    // Add labels for nodes
+    nodesEnter.append('text')
+      .attr('x', d => {
+        // Position text based on layer
+        if (d.layer === 0) {
+          // Symbol - left side, text to the left
+          return d.x0 - 6;
+        } else if (d.layer === 2) {
+          // Result - right side, text to the right
+          return d.x1 + 6;
+        } else {
+          // Strategy - middle, text centered
+          return (d.x0 + d.x1) / 2;
+        }
+      })
+      .attr('y', d => (d.y0 + d.y1) / 2)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', d => {
+        if (d.layer === 0) return 'end';
+        if (d.layer === 2) return 'start';
+        return 'middle';
+      })
+      .attr('fill', '#e5e7eb')
+      .attr('font-size', '11px')
+      .attr('font-weight', '500')
+      .attr('opacity', 0)
+      .text(d => d.name)
+      .transition()
+      .duration(this.options.animationDuration)
+      .delay(this.options.animationDuration / 2)
+      .attr('opacity', 1);
+
+    // Add column headers
+    this._renderColumnHeaders();
+  }
+
+  /**
+   * Render column headers for the three layers
+   * @private
+   */
+  _renderColumnHeaders() {
+    const containerRect = this.container.getBoundingClientRect();
+    const chartWidth = containerRect.width - this.margin.left - this.margin.right;
+
+    const headers = [
+      { label: 'Symbol', x: 0 },
+      { label: 'Strategy', x: chartWidth / 2 },
+      { label: 'Result', x: chartWidth }
+    ];
+
+    const headerGroup = this.chartGroup
+      .selectAll('.column-header')
+      .data(headers);
+
+    headerGroup.enter()
+      .append('text')
+      .attr('class', 'column-header')
+      .attr('x', d => d.x)
+      .attr('y', -15)
+      .attr('text-anchor', d => {
+        if (d.label === 'Symbol') return 'start';
+        if (d.label === 'Result') return 'end';
+        return 'middle';
+      })
+      .attr('fill', '#9ca3af')
+      .attr('font-size', '13px')
+      .attr('font-weight', '600')
+      .text(d => d.label);
+  }
+
+  /**
+   * Show tooltip for link (flow)
+   * @private
+   */
+  _showLinkTooltip(event, d) {
+    // Requirement 6.5: Display Symbol, Strategy, Result, trade count, and total P/L
+    const formatCurrency = d3.format('$,.2f');
+    
+    const content = `
+      <div style="font-weight: 600; margin-bottom: 6px; color: #f3f4f6;">
+        ${d.source.name} → ${d.target.name}
+      </div>
+      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        Result: <span style="color: ${d.result === 'Win' ? '#10b981' : '#ef4444'}; font-weight: 600;">
+          ${d.result || 'N/A'}
+        </span>
+      </div>
+      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        Trade Count: <span style="color: #e5e7eb; font-weight: 600;">
+          ${d.tradeCount || 0}
+        </span>
+      </div>
+      <div style="color: #9ca3af; font-size: 11px;">
+        Total P/L: <span style="color: ${d.value >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+          ${formatCurrency(Math.abs(d.value))}
+        </span>
+      </div>
+    `;
+
+    this.tooltip
+      .html(content)
+      .style('visibility', 'visible');
+
+    this._moveTooltip(event);
+  }
+
+  /**
+   * Show tooltip for node
+   * @private
+   */
+  _showNodeTooltip(event, d) {
+    const formatCurrency = d3.format('$,.2f');
+    
+    // Calculate total value flowing through this node
+    const totalValue = d.value || 0;
+    const tradeCount = d.sourceLinks.reduce((sum, link) => sum + (link.tradeCount || 0), 0) ||
+                       d.targetLinks.reduce((sum, link) => sum + (link.tradeCount || 0), 0);
+    
+    let content = `
+      <div style="font-weight: 600; margin-bottom: 6px; color: #f3f4f6;">
+        ${d.name}
+      </div>
+    `;
+    
+    // Add layer-specific information
+    if (d.layer === 0) {
+      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Symbol</div>`;
+    } else if (d.layer === 1) {
+      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Strategy</div>`;
+    } else if (d.layer === 2) {
+      content += `<div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">Result</div>`;
+    }
+    
+    content += `
+      <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        Trade Count: <span style="color: #e5e7eb; font-weight: 600;">
+          ${tradeCount}
+        </span>
+      </div>
+      <div style="color: #9ca3af; font-size: 11px;">
+        Total Value: <span style="color: ${totalValue >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+          ${formatCurrency(Math.abs(totalValue))}
+        </span>
+      </div>
+    `;
+
+    this.tooltip
+      .html(content)
+      .style('visibility', 'visible');
+
+    this._moveTooltip(event);
+  }
+
+  /**
+   * Move tooltip to follow cursor
+   * @private
+   */
+  _moveTooltip(event) {
+    const tooltipNode = this.tooltip.node();
+    const tooltipWidth = tooltipNode.offsetWidth;
+    const tooltipHeight = tooltipNode.offsetHeight;
+    
+    let left = event.pageX + 10;
+    let top = event.pageY - 10;
+
+    // Keep tooltip within viewport
+    if (left + tooltipWidth > window.innerWidth) {
+      left = event.pageX - tooltipWidth - 10;
+    }
+    if (top + tooltipHeight > window.innerHeight) {
+      top = event.pageY - tooltipHeight - 10;
+    }
+
+    this.tooltip
+      .style('left', `${left}px`)
+      .style('top', `${top}px`);
+  }
+
+  /**
+   * Hide tooltip
+   * @private
+   */
+  _hideTooltip() {
+    this.tooltip.style('visibility', 'hidden');
+  }
+
+  /**
+   * Show empty state message
+   * @private
+   */
+  _showEmptyState() {
+    this.container.innerHTML = `
+      <div style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #9ca3af;
+        text-align: center;
+        padding: 40px;
+      ">
+        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">🌊</div>
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
+          No Trade Flow Data Available
+        </div>
+        <div style="font-size: 14px; opacity: 0.8;">
+          Trade data with symbols, strategies, and outcomes is needed to show flow diagram
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Resize chart to fit container
+   */
+  resize() {
+    if (this.data && this.data.nodes && this.data.nodes.length > 0) {
+      this._render();
+    }
+  }
+
+  /**
+   * Destroy chart and clean up resources
+   */
+  destroy() {
+    // Remove resize observer
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+
+    // Remove tooltip
+    if (this.tooltip) {
+      this.tooltip.remove();
+    }
+
+    // Clear container
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+  }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SankeyDiagramChart;
+}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsible Section Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--color-accent);
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+        .test-pass {
+            color: var(--color-profit);
+        }
+        .test-fail {
+            color: var(--color-loss);
+        }
+    </style>
+</head>
+<body>
+    <h1>Collapsible Section Integration Test</h1>
+    <p class="text-text-secondary mb-4">Testing the integration of CollapsibleSection with the table structure</p>
+    
+    <div class="test-section">
+        <div class="test-title">Test: Table wrapped in CollapsibleSection</div>
+        
+        <!-- Simulating the actual dashboard structure -->
+        <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
+            <div class="overflow-x-auto">
+                <table id="symbol-strategy-table" class="data-table" role="table">
+                    <thead>
+                        <tr>
+                            <th role="columnheader">Symbol</th>
+                            <th role="columnheader">Strategy</th>
+                            <th role="columnheader">Trades</th>
+                            <th role="columnheader">P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AAPL</td>
+                            <td>Iron Condor</td>
+                            <td class="font-mono">5</td>
+                            <td class="font-mono text-profit">+$250.00</td>
+                        </tr>
+                        <tr>
+                            <td>TSLA</td>
+                            <td>Credit Spread</td>
+                            <td class="font-mono">3</td>
+                            <td class="font-mono text-loss">-$150.00</td>
+                        </tr>
+                        <tr>
+                            <td>SPY</td>
+                            <td>Covered Call</td>
+                            <td class="font-mono">8</td>
+                            <td class="font-mono text-profit">+$180.00</td>
+                        </tr>
+                        <tr>
+                            <td>MSFT</td>
+                            <td>Bull Put Spread</td>
+                            <td class="font-mono">4</td>
+                            <td class="font-mono text-profit">+$120.00</td>
+                        </tr>
+                        <tr>
+                            <td>NVDA</td>
+                            <td>Long Call</td>
+                            <td class="font-mono">2</td>
+                            <td class="font-mono text-profit">+$300.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-buttons flex gap-4">
+        <button class="btn-primary" onclick="testCollapsibleSection()">Initialize Collapsible Section</button>
+        <button class="btn-secondary" onclick="testToggle()">Toggle Section</button>
+        <button class="btn-secondary" onclick="testUpdateSummary()">Update Summary (10 rows)</button>
+        <button class="btn-secondary" onclick="runAllTests()">Run All Tests</button>
+    </div>
+
+    <div class="test-results" id="test-results">
+        <h3>Test Results</h3>
+        <div id="results-content">Click "Run All Tests" to see results</div>
+    </div>
+
+    <script src="../js/collapsible-section.js"></script>
+    <script>
+        let collapsibleSection;
+
+        function testCollapsibleSection() {
+            // Initialize collapsible section (simulating DashboardController behavior)
+            collapsibleSection = new CollapsibleSection('symbol-strategy-section-container', {
+                title: 'P/L by Symbol & Strategy',
+                defaultExpanded: false, // Collapsed by default (Requirement 1.1)
+                animationDuration: 300, // Smooth animation (Requirement 1.4)
+                showSummary: true, // Show summary when collapsed (Requirement 1.5)
+                summaryText: '5 rows available', // Initial summary text
+                persistState: true, // Persist state to localStorage (Requirement 1.3)
+                storageKey: 'symbol_strategy_table_state'
+            });
+            collapsibleSection.initialize();
+            
+            alert('Collapsible section initialized! The table should now be wrapped in a collapsible container.');
+        }
+
+        function testToggle() {
+            if (!collapsibleSection) {
+                alert('Please initialize the collapsible section first!');
+                return;
+            }
+            collapsibleSection.toggle();
+        }
+
+        function testUpdateSummary() {
+            if (!collapsibleSection) {
+                alert('Please initialize the collapsible section first!');
+                return;
+            }
+            collapsibleSection.updateSummary('10 rows available');
+            alert('Summary updated to "10 rows available"');
+        }
+
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: Initialize if not already initialized
+            if (!collapsibleSection) {
+                testCollapsibleSection();
+            }
+            
+            // Test 2: Check if section is initialized
+            results.push({
+                name: 'CollapsibleSection Initialized',
+                pass: collapsibleSection !== null && collapsibleSection !== undefined,
+                message: 'CollapsibleSection should be initialized'
+            });
+
+            // Test 3: Check default state (should be collapsed)
+            results.push({
+                name: 'Default State (Collapsed)',
+                pass: !collapsibleSection.isExpanded(),
+                message: 'Section should be collapsed by default (Requirement 1.1)'
+            });
+
+            // Test 4: Check if table is still present
+            const table = document.getElementById('symbol-strategy-table');
+            results.push({
+                name: 'Table Preserved',
+                pass: table !== null && table.querySelector('tbody').children.length === 5,
+                message: 'Table should still exist with 5 rows'
+            });
+
+            // Test 5: Test expand functionality
+            collapsibleSection.expand();
+            setTimeout(() => {
+                results.push({
+                    name: 'Expand Functionality',
+                    pass: collapsibleSection.isExpanded(),
+                    message: 'Section should expand when expand() is called (Requirement 1.2)'
+                });
+
+                // Test 6: Test collapse functionality
+                collapsibleSection.collapse();
+                setTimeout(() => {
+                    results.push({
+                        name: 'Collapse Functionality',
+                        pass: !collapsibleSection.isExpanded(),
+                        message: 'Section should collapse when collapse() is called (Requirement 1.2)'
+                    });
+
+                    // Test 7: Test summary update
+                    collapsibleSection.updateSummary('Test summary');
+                    const summaryElement = document.querySelector('.collapsible-summary');
+                    results.push({
+                        name: 'Summary Update',
+                        pass: summaryElement && summaryElement.textContent === 'Test summary',
+                        message: 'Summary text should update correctly (Requirement 1.5)'
+                    });
+
+                    // Display results
+                    displayResults(results);
+                }, 400);
+            }, 400);
+        }
+
+        function displayResults(results) {
+            const resultsContent = document.getElementById('results-content');
+            let html = '<ul style="list-style: none; padding: 0;">';
+            
+            results.forEach(result => {
+                const icon = result.pass ? '✓' : '✗';
+                const className = result.pass ? 'test-pass' : 'test-fail';
+                html += `
+                    <li style="margin-bottom: 10px;">
+                        <span class="${className}" style="font-weight: bold; font-size: 18px;">${icon}</span>
+                        <strong>${result.name}:</strong> ${result.message}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            html += `<p style="margin-top: 15px; font-weight: bold;">Results: ${passCount}/${totalCount} tests passed</p>`;
+            
+            resultsContent.innerHTML = html;
+        }
+
+        // Auto-initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded. Click "Initialize Collapsible Section" to test.');
+        });
+    </script>
+</body>
+</html>

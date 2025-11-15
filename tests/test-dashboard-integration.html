@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Integration Test - Advanced Visualization Panel</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--color-accent);
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+        .test-pass {
+            color: var(--color-profit);
+        }
+        .test-fail {
+            color: var(--color-loss);
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Integration Test - Advanced Visualization Panel</h1>
+    <p class="text-text-secondary">Testing Task 4: Add advanced visualization panel to dashboard layout</p>
+    
+    <div class="test-section">
+        <div class="test-title">Test: Advanced Visualization Panel Integration</div>
+        <div id="advanced-viz-panel"></div>
+    </div>
+
+    <div class="control-buttons">
+        <button class="btn-primary" onclick="runIntegrationTests()">Run Integration Tests</button>
+        <button class="btn-secondary" onclick="testFilterUpdate()">Test Filter Update</button>
+    </div>
+
+    <div class="test-results" id="test-results">
+        <h3>Test Results</h3>
+        <div id="results-content">Click "Run Integration Tests" to see results</div>
+    </div>
+
+    <!-- Load all required scripts in correct order -->
+    <script src="../js/broker-adapters.js"></script>
+    <script src="../js/csv-parser.js"></script>
+    <script src="../js/strategy-detector.js"></script>
+    <script src="../js/analytics-engine.js"></script>
+    <script src="../js/data-store.js"></script>
+    <script src="../js/collapsible-section.js"></script>
+    <script src="../js/advanced-visualization-panel.js"></script>
+    <script src="../js/visualizations/summary-metrics-panel.js"></script>
+    <script src="../js/visualizations/pl-trend-chart.js"></script>
+    <script src="../js/visualizations/win-rate-chart.js"></script>
+    <script src="../js/visualizations/pl-breakdown-chart.js"></script>
+    <script src="../js/visualizations/symbol-pl-chart.js"></script>
+    <script src="../js/visualizations/win-loss-donut-chart.js"></script>
+    <script src="../js/visualizations/top-underlyings-chart.js"></script>
+    <script src="../js/dashboard-controller.js"></script>
+
+    <script>
+        // Mock visualization component for testing
+        class MockVisualization {
+            constructor(name) {
+                this.name = name;
+                this.container = null;
+                this.data = null;
+                this.updateCount = 0;
+            }
+
+            initialize(container) {
+                this.container = container;
+                this.render();
+            }
+
+            update(data, options = {}) {
+                this.data = data;
+                this.updateCount++;
+                this.render();
+            }
+
+            render() {
+                if (!this.container) return;
+                
+                const dataInfo = this.data ? 
+                    `Data points: ${Array.isArray(this.data) ? this.data.length : 'N/A'}` : 
+                    'No data loaded';
+                
+                this.container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; background: var(--color-background); border-radius: 4px; min-height: 300px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 24px; font-weight: 600;">${this.name}</div>
+                        <div style="color: var(--color-text-secondary); font-size: 14px;">${dataInfo}</div>
+                        <div style="color: var(--color-text-secondary); font-size: 14px;">Update count: ${this.updateCount}</div>
+                    </div>
+                `;
+            }
+
+            resize() {
+                console.log(`${this.name} resized`);
+            }
+
+            destroy() {
+                if (this.container) {
+                    this.container.innerHTML = '';
+                }
+                this.container = null;
+                this.data = null;
+            }
+        }
+
+        // Initialize components
+        let dataStore, analyticsEngine, strategyDetector, csvParser, dashboardController;
+        let advancedVizPanel;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize core components
+            dataStore = new DataStore();
+            analyticsEngine = new AnalyticsEngine();
+            strategyDetector = new StrategyDetector();
+            csvParser = new CSVParser();
+
+            // Initialize advanced visualization panel
+            advancedVizPanel = new AdvancedVisualizationPanel('advanced-viz-panel', {
+                defaultTab: 'heatmap',
+                storageKey: 'test_advanced_viz_panel',
+                fadeTransitionDuration: 200,
+                showLoadingIndicator: true,
+                loadingThreshold: 100
+            });
+            advancedVizPanel.initialize();
+
+            // Register mock visualizations
+            advancedVizPanel.registerVisualization(
+                'heatmap',
+                'Calendar Heatmap',
+                new MockVisualization('Calendar Heatmap'),
+                { icon: '📅' }
+            );
+
+            advancedVizPanel.registerVisualization(
+                'scatter',
+                'Days Held vs P/L',
+                new MockVisualization('Scatter Plot'),
+                { icon: '📊' }
+            );
+
+            advancedVizPanel.registerVisualization(
+                'violin',
+                'P/L Distribution',
+                new MockVisualization('Violin Plot'),
+                { icon: '🎻' }
+            );
+
+            console.log('✓ Advanced Visualization Panel initialized');
+        });
+
+        function runIntegrationTests() {
+            const results = [];
+            
+            // Test 1: Panel container exists in DOM
+            const panelContainer = document.getElementById('advanced-viz-panel');
+            results.push({
+                name: 'Panel Container Exists',
+                pass: panelContainer !== null,
+                message: 'Container div with id "advanced-viz-panel" should exist'
+            });
+
+            // Test 2: Panel initialized
+            results.push({
+                name: 'Panel Initialized',
+                pass: advancedVizPanel !== null && advancedVizPanel.container !== null,
+                message: 'AdvancedVisualizationPanel should be initialized'
+            });
+
+            // Test 3: Tabs rendered
+            const tabButtons = document.querySelectorAll('.viz-tab');
+            results.push({
+                name: 'Tabs Rendered',
+                pass: tabButtons.length === 3,
+                message: `Expected 3 tabs, found ${tabButtons.length}`
+            });
+
+            // Test 4: Content container exists
+            const contentContainer = document.querySelector('.viz-content');
+            results.push({
+                name: 'Content Container Exists',
+                pass: contentContainer !== null,
+                message: 'Content container should be rendered'
+            });
+
+            // Test 5: Active tab set
+            const activeTab = advancedVizPanel.getActiveTab();
+            results.push({
+                name: 'Active Tab Set',
+                pass: activeTab !== null,
+                message: `Active tab: ${activeTab || 'none'}`
+            });
+
+            // Test 6: Active tab has correct styling
+            const activeButton = document.querySelector('.viz-tab.active');
+            results.push({
+                name: 'Active Tab Styled',
+                pass: activeButton !== null,
+                message: 'One tab should have the "active" class'
+            });
+
+            // Test 7: Test data update
+            const mockData = [
+                { symbol: 'AAPL', pl: 100 },
+                { symbol: 'GOOGL', pl: 150 },
+                { symbol: 'MSFT', pl: -50 }
+            ];
+            
+            try {
+                advancedVizPanel.update(mockData);
+                results.push({
+                    name: 'Data Update Works',
+                    pass: advancedVizPanel.currentData === mockData,
+                    message: 'Panel should accept and store data updates'
+                });
+            } catch (error) {
+                results.push({
+                    name: 'Data Update Works',
+                    pass: false,
+                    message: `Error: ${error.message}`
+                });
+            }
+
+            // Test 8: Tab switching
+            const initialTab = advancedVizPanel.getActiveTab();
+            const targetTab = initialTab === 'heatmap' ? 'scatter' : 'heatmap';
+            advancedVizPanel.switchTab(targetTab);
+            
+            setTimeout(() => {
+                const newTab = advancedVizPanel.getActiveTab();
+                results.push({
+                    name: 'Tab Switching Works',
+                    pass: newTab === targetTab,
+                    message: `Switched from ${initialTab} to ${newTab}`
+                });
+
+                // Test 9: State persistence
+                const storedTab = localStorage.getItem(advancedVizPanel.options.storageKey);
+                results.push({
+                    name: 'State Persistence',
+                    pass: storedTab === targetTab,
+                    message: `Active tab saved to localStorage: ${storedTab}`
+                });
+
+                // Test 10: CSS styles applied
+                const panelElement = document.querySelector('.advanced-viz-panel');
+                const computedStyle = window.getComputedStyle(panelElement);
+                results.push({
+                    name: 'CSS Styles Applied',
+                    pass: computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)',
+                    message: 'Panel should have background color from CSS'
+                });
+
+                // Display results
+                displayResults(results);
+            }, 300);
+        }
+
+        function testFilterUpdate() {
+            const mockFilteredData = [
+                { symbol: 'AAPL', pl: 200, date: '2024-01-01' },
+                { symbol: 'TSLA', pl: -100, date: '2024-01-02' }
+            ];
+            
+            advancedVizPanel.update(mockFilteredData);
+            alert('Filter update simulated! Check the active visualization for updated data.');
+        }
+
+        function displayResults(results) {
+            const resultsContent = document.getElementById('results-content');
+            let html = '<ul style="list-style: none; padding: 0;">';
+            
+            results.forEach(result => {
+                const icon = result.pass ? '✓' : '✗';
+                const className = result.pass ? 'test-pass' : 'test-fail';
+                html += `
+                    <li style="margin-bottom: 10px;">
+                        <span class="${className}" style="font-weight: bold; font-size: 18px;">${icon}</span>
+                        <strong>${result.name}:</strong> ${result.message}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            const allPassed = passCount === totalCount;
+            
+            html += `<p style="margin-top: 15px; font-weight: bold; color: ${allPassed ? 'var(--color-profit)' : 'var(--color-warning)'};">
+                Results: ${passCount}/${totalCount} tests passed
+            </p>`;
+            
+            if (allPassed) {
+                html += `<p style="margin-top: 10px; color: var(--color-profit);">
+                    ✓ Task 4 implementation verified successfully!
+                </p>`;
+            }
+            
+            resultsContent.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

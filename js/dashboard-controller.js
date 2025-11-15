@@ -45,6 +45,184 @@ class DashboardController {
       topUnderlyings: new TopUnderlyingsChart('top-underlyings-chart')
     };
 
+    // Initialize Advanced Visualization Panel (Requirements: 2.1, 2.2)
+    this.advancedVizPanel = new AdvancedVisualizationPanel('advanced-viz-panel', {
+      defaultTab: 'heatmap',
+      storageKey: 'advanced-viz-active-tab',
+      fadeTransitionDuration: 200, // Requirement 2.5
+      showLoadingIndicator: true,
+      loadingThreshold: 100 // Requirement 12.3
+    });
+    this.advancedVizPanel.initialize();
+
+    // Register all advanced visualizations (Requirements: 2.3, 2.4)
+    // Note: Pass factory functions instead of instances so charts are created
+    // only when their tab container is ready
+    this.advancedVizPanel.registerVisualization(
+      'heatmap',
+      'Calendar Heatmap',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.heatmap = new HeatmapCalendarChart(container.id);
+          return this.advancedVizPanel.charts.heatmap;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.heatmap) {
+            const dailyPL = this.analyticsEngine.calculateDailyPL(data);
+            this.advancedVizPanel.charts.heatmap.update(dailyPL);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'scatter',
+      'Days Held vs P/L',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.scatter = new ScatterPlotChart(container.id);
+          return this.advancedVizPanel.charts.scatter;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.scatter) {
+            const scatterData = this.analyticsEngine.calculateScatterData(data);
+            this.advancedVizPanel.charts.scatter.update(scatterData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'violin',
+      'P/L Distribution',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.violin = new ViolinPlotChart(container.id);
+          return this.advancedVizPanel.charts.violin;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.violin) {
+            const violinData = this.analyticsEngine.calculateViolinData(data);
+            this.advancedVizPanel.charts.violin.update(violinData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'sankey',
+      'Trade Flow',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.sankey = new SankeyDiagramChart(container.id);
+          return this.advancedVizPanel.charts.sankey;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.sankey) {
+            const sankeyData = this.analyticsEngine.calculateSankeyData(data, 20); // Show top 20 symbols
+            this.advancedVizPanel.charts.sankey.update(sankeyData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'bubble',
+      'Win Rate Analysis',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.bubble = new BubbleChart(container.id);
+          return this.advancedVizPanel.charts.bubble;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.bubble) {
+            const bubbleData = this.analyticsEngine.calculateBubbleData(data);
+            this.advancedVizPanel.charts.bubble.update(bubbleData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'radial',
+      'Monthly Performance',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.radial = new RadialChart(container.id);
+          return this.advancedVizPanel.charts.radial;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.radial) {
+            const radialData = this.analyticsEngine.calculateRadialData(data);
+            this.advancedVizPanel.charts.radial.update(radialData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'waterfall',
+      'P/L Attribution',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.waterfall = new WaterfallChart(container.id);
+          return this.advancedVizPanel.charts.waterfall;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.waterfall) {
+            // Pass a high limit to get all symbols, let the chart handle filtering
+            const waterfallData = this.analyticsEngine.calculateWaterfallData(data, 999);
+            this.advancedVizPanel.charts.waterfall.update(waterfallData);
+          }
+        }
+      }
+    );
+    
+    this.advancedVizPanel.registerVisualization(
+      'horizon',
+      'Long-term Trends',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.horizon = new HorizonChart(container.id);
+          return this.advancedVizPanel.charts.horizon;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.horizon) {
+            const horizonData = this.analyticsEngine.calculateHorizonData(data);
+            this.advancedVizPanel.charts.horizon.update(horizonData);
+          }
+        }
+      }
+    );
+
+    // Initialize collapsible section for table (Requirements: 1.1, 1.2, 1.3)
+    this.collapsibleSection = new CollapsibleSection('symbol-strategy-section-container', {
+      title: 'P/L by Symbol & Strategy',
+      defaultExpanded: false, // Collapsed by default (Requirement 1.1)
+      animationDuration: 300, // Smooth animation (Requirement 1.4)
+      showSummary: true, // Show summary when collapsed (Requirement 1.5)
+      summaryText: 'Loading...', // Initial summary text
+      persistState: true, // Persist state to localStorage (Requirement 1.3)
+      storageKey: 'symbol_strategy_table_state'
+    });
+    this.collapsibleSection.initialize();
+
     // Load persisted trades from data store
     const storedTrades = this.dataStore.loadTrades();
     
@@ -289,6 +467,16 @@ class DashboardController {
     } catch (e) {
       console.error('✗ Table error:', e);
     }
+
+    // Update advanced visualization panel with filtered trades (Requirements: 12.1, 12.2)
+    if (this.advancedVizPanel) {
+      try {
+        this.advancedVizPanel.update(filteredTrades);
+        console.log('✓ Advanced Visualization Panel updated');
+      } catch (e) {
+        console.error('✗ Advanced Visualization Panel error:', e);
+      }
+    }
     
     console.log('=== refreshDashboard END ===');
   }
@@ -313,6 +501,11 @@ class DashboardController {
           </td>
         </tr>
       `;
+      
+      // Update collapsible section summary (Requirement 1.5)
+      if (this.collapsibleSection) {
+        this.collapsibleSection.updateSummary('No data available');
+      }
       return;
     }
 
@@ -333,6 +526,12 @@ class DashboardController {
       
       tbody.appendChild(row);
     });
+
+    // Update collapsible section summary with row count (Requirement 1.5)
+    if (this.collapsibleSection) {
+      const rowText = data.length === 1 ? 'row' : 'rows';
+      this.collapsibleSection.updateSummary(`${data.length} ${rowText} available`);
+    }
   }
 
   /**
@@ -521,6 +720,18 @@ class DashboardController {
     });
 
     this.visualizations = {};
+
+    // Destroy advanced visualization panel
+    if (this.advancedVizPanel && typeof this.advancedVizPanel.destroy === 'function') {
+      this.advancedVizPanel.destroy();
+      this.advancedVizPanel = null;
+    }
+
+    // Destroy collapsible section
+    if (this.collapsibleSection && typeof this.collapsibleSection.destroy === 'function') {
+      this.collapsibleSection.destroy();
+      this.collapsibleSection = null;
+    }
   }
 }
 

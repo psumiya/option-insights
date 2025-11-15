@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollapsibleSection Component Test</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--color-accent);
+        }
+        .test-content {
+            padding: 20px;
+            background: var(--color-background);
+            border-radius: 4px;
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+        }
+        .test-pass {
+            color: var(--color-profit);
+        }
+        .test-fail {
+            color: var(--color-loss);
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CollapsibleSection Component Tests</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Test 1: Basic Collapsible Section (Default Collapsed)</div>
+        <div id="test-section-1">
+            <div class="test-content">
+                <h3>Sample Content</h3>
+                <p>This is some sample content that should be collapsible.</p>
+                <p>It contains multiple paragraphs to test the height animation.</p>
+                <ul>
+                    <li>Item 1</li>
+                    <li>Item 2</li>
+                    <li>Item 3</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 2: Collapsible Section (Default Expanded)</div>
+        <div id="test-section-2">
+            <div class="test-content">
+                <h3>Expanded by Default</h3>
+                <p>This section starts in an expanded state.</p>
+                <p>Click the header to collapse it.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Test 3: Collapsible Section with Custom Summary</div>
+        <div id="test-section-3">
+            <div class="test-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Strategy</th>
+                            <th>P/L</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AAPL</td>
+                            <td>Iron Condor</td>
+                            <td class="pl-positive">+$250.00</td>
+                        </tr>
+                        <tr>
+                            <td>TSLA</td>
+                            <td>Credit Spread</td>
+                            <td class="pl-negative">-$150.00</td>
+                        </tr>
+                        <tr>
+                            <td>SPY</td>
+                            <td>Covered Call</td>
+                            <td class="pl-positive">+$180.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-buttons">
+        <button class="btn-primary" onclick="testProgrammaticControl()">Test Programmatic Control</button>
+        <button class="btn-secondary" onclick="testContentUpdate()">Test Content Update</button>
+        <button class="btn-secondary" onclick="testSummaryUpdate()">Test Summary Update</button>
+        <button class="btn-secondary" onclick="runAllTests()">Run All Tests</button>
+    </div>
+
+    <div class="test-results" id="test-results">
+        <h3>Test Results</h3>
+        <div id="results-content">Click "Run All Tests" to see results</div>
+    </div>
+
+    <script src="../js/collapsible-section.js"></script>
+    <script>
+        // Initialize collapsible sections
+        let section1, section2, section3;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Test 1: Default collapsed
+            section1 = new CollapsibleSection('test-section-1', {
+                title: 'Sample Collapsible Section',
+                defaultExpanded: false,
+                summaryText: 'Click to expand content',
+                storageKey: 'test_section_1'
+            });
+            section1.initialize();
+
+            // Test 2: Default expanded
+            section2 = new CollapsibleSection('test-section-2', {
+                title: 'Expanded Section',
+                defaultExpanded: true,
+                summaryText: 'Click to collapse',
+                storageKey: 'test_section_2'
+            });
+            section2.initialize();
+
+            // Test 3: With custom summary (simulating table rows)
+            section3 = new CollapsibleSection('test-section-3', {
+                title: 'P/L by Symbol & Strategy',
+                defaultExpanded: false,
+                summaryText: '3 rows available',
+                storageKey: 'test_section_3'
+            });
+            section3.initialize();
+        });
+
+        function testProgrammaticControl() {
+            console.log('Testing programmatic control...');
+            
+            // Toggle section 1
+            section1.toggle();
+            
+            setTimeout(() => {
+                // Expand section 2
+                section2.expand();
+                
+                setTimeout(() => {
+                    // Collapse section 3
+                    section3.collapse();
+                    
+                    alert('Programmatic control test complete! Check the sections.');
+                }, 500);
+            }, 500);
+        }
+
+        function testContentUpdate() {
+            const newContent = `
+                <div class="test-content">
+                    <h3>Updated Content</h3>
+                    <p>This content was dynamically updated at ${new Date().toLocaleTimeString()}</p>
+                </div>
+            `;
+            section1.updateContent(newContent);
+            alert('Content updated in Section 1!');
+        }
+
+        function testSummaryUpdate() {
+            const newSummary = `Updated at ${new Date().toLocaleTimeString()}`;
+            section3.updateSummary(newSummary);
+            alert('Summary updated in Section 3!');
+        }
+
+        function runAllTests() {
+            const results = [];
+            
+            // Test 1: Check if sections are initialized
+            results.push({
+                name: 'Sections Initialized',
+                pass: section1 && section2 && section3,
+                message: 'All three sections should be initialized'
+            });
+
+            // Test 2: Check initial states
+            results.push({
+                name: 'Initial States',
+                pass: !section1.isExpanded() && section2.isExpanded() && !section3.isExpanded(),
+                message: 'Section 1 and 3 should be collapsed, Section 2 should be expanded'
+            });
+
+            // Test 3: Test toggle functionality
+            const initialState = section1.isExpanded();
+            section1.toggle();
+            setTimeout(() => {
+                const toggledState = section1.isExpanded();
+                results.push({
+                    name: 'Toggle Functionality',
+                    pass: initialState !== toggledState,
+                    message: 'Section 1 state should change after toggle'
+                });
+
+                // Test 4: Test expand/collapse methods
+                section2.collapse();
+                setTimeout(() => {
+                    results.push({
+                        name: 'Collapse Method',
+                        pass: !section2.isExpanded(),
+                        message: 'Section 2 should be collapsed after calling collapse()'
+                    });
+
+                    section2.expand();
+                    setTimeout(() => {
+                        results.push({
+                            name: 'Expand Method',
+                            pass: section2.isExpanded(),
+                            message: 'Section 2 should be expanded after calling expand()'
+                        });
+
+                        // Display results
+                        displayResults(results);
+                    }, 400);
+                }, 400);
+            }, 400);
+        }
+
+        function displayResults(results) {
+            const resultsContent = document.getElementById('results-content');
+            let html = '<ul style="list-style: none; padding: 0;">';
+            
+            results.forEach(result => {
+                const icon = result.pass ? '✓' : '✗';
+                const className = result.pass ? 'test-pass' : 'test-fail';
+                html += `
+                    <li style="margin-bottom: 10px;">
+                        <span class="${className}" style="font-weight: bold; font-size: 18px;">${icon}</span>
+                        <strong>${result.name}:</strong> ${result.message}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            html += `<p style="margin-top: 15px; font-weight: bold;">Results: ${passCount}/${totalCount} tests passed</p>`;
+            
+            resultsContent.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

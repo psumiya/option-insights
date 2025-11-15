@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a0e27;
+            color: #e5e7eb;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #141b2d;
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #10b98144;
+            border-left: 4px solid #10b981;
+        }
+        .fail {
+            background: #ef444444;
+            border-left: 4px solid #ef4444;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Visualizations - Complete Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Tests</h2>
+        <p>Please verify the following manually:</p>
+        <ol>
+            <li>Upload a CSV file using the upload button</li>
+            <li>Verify all 8 advanced visualization tabs appear</li>
+            <li>Click through each tab and verify visualizations render</li>
+            <li>Change the date range filter and verify visualizations update</li>
+            <li>Change the position status filter and verify visualizations update</li>
+            <li>Click the export button and verify PNG downloads</li>
+            <li>Resize browser to mobile width and verify tabs scroll horizontally</li>
+            <li>Verify collapsible table section works</li>
+        </ol>
+    </div>
+    
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function addResult(test, passed, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `<strong>${passed ? '✓' : '✗'} ${test}</strong><br>${message}`;
+            results.appendChild(div);
+        }
+        
+        // Test 1: Check if all required files are loaded
+        addResult(
+            'Script Loading',
+            typeof CollapsibleSection !== 'undefined' &&
+            typeof AdvancedVisualizationPanel !== 'undefined' &&
+            typeof HeatmapCalendarChart !== 'undefined' &&
+            typeof ScatterPlotChart !== 'undefined' &&
+            typeof ViolinPlotChart !== 'undefined' &&
+            typeof SankeyDiagramChart !== 'undefined' &&
+            typeof BubbleChart !== 'undefined' &&
+            typeof RadialChart !== 'undefined' &&
+            typeof WaterfallChart !== 'undefined' &&
+            typeof HorizonChart !== 'undefined',
+            'All visualization classes are loaded'
+        );
+        
+        // Test 2: Check if html2canvas is loaded
+        addResult(
+            'Export Library',
+            typeof html2canvas !== 'undefined',
+            'html2canvas library is loaded for PNG export'
+        );
+        
+        // Test 3: Check if D3 and d3-sankey are loaded
+        addResult(
+            'D3 Libraries',
+            typeof d3 !== 'undefined' && typeof d3.sankey !== 'undefined',
+            'D3.js and d3-sankey are loaded'
+        );
+        
+        // Test 4: Check if DOM elements exist
+        const hasUploadBtn = document.getElementById('upload-btn') !== null;
+        const hasAdvancedVizPanel = document.getElementById('advanced-viz-panel') !== null;
+        const hasCollapsibleSection = document.getElementById('symbol-strategy-section-container') !== null;
+        
+        addResult(
+            'DOM Elements',
+            hasUploadBtn && hasAdvancedVizPanel && hasCollapsibleSection,
+            'All required DOM elements exist'
+        );
+        
+        // Test 5: Check CSS classes
+        const styles = getComputedStyle(document.body);
+        addResult(
+            'CSS Loaded',
+            styles.backgroundColor !== 'rgba(0, 0, 0, 0)',
+            'Custom CSS styles are applied'
+        );
+        
+        console.log('Integration test complete. Check results above.');
+    </script>
+    
+    <!-- Load all required scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    
+    <script src="../js/broker-adapters.js"></script>
+    <script src="../js/csv-parser.js"></script>
+    <script src="../js/strategy-detector.js"></script>
+    <script src="../js/analytics-engine.js"></script>
+    <script src="../js/data-store.js"></script>
+    
+    <script src="../js/collapsible-section.js"></script>
+    <script src="../js/advanced-visualization-panel.js"></script>
+    
+    <script src="../js/visualizations/summary-metrics-panel.js"></script>
+    <script src="../js/visualizations/pl-trend-chart.js"></script>
+    <script src="../js/visualizations/win-rate-chart.js"></script>
+    <script src="../js/visualizations/pl-breakdown-chart.js"></script>
+    <script src="../js/visualizations/symbol-pl-chart.js"></script>
+    <script src="../js/visualizations/win-loss-donut-chart.js"></script>
+    <script src="../js/visualizations/top-underlyings-chart.js"></script>
+    
+    <script src="../js/visualizations/heatmap-calendar-chart.js"></script>
+    <script src="../js/visualizations/scatter-plot-chart.js"></script>
+    <script src="../js/visualizations/violin-plot-chart.js"></script>
+    <script src="../js/visualizations/sankey-diagram-chart.js"></script>
+    <script src="../js/visualizations/bubble-chart.js"></script>
+    <script src="../js/visualizations/radial-chart.js"></script>
+    <script src="../js/visualizations/waterfall-chart.js"></script>
+    <script src="../js/visualizations/horizon-chart.js"></script>
+    
+    <script src="../js/dashboard-controller.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

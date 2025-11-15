@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Options View</title>
+    <title>My Options Insights</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- D3.js CDN -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="css/styles.css">
@@ -19,7 +20,8 @@
     <header class="bg-surface border-b border-border px-6 py-4">
         <div class="max-w-[1920px] mx-auto">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-semibold">Options Trading Analytics</h1>
+                <h1 class="text-2xl font-semibold">My Option Insights</h1>
+                <p>Your personal options trading analytics dashboard.</p>
                 <div class="flex gap-4">
                     <button id="upload-btn" class="btn-primary" aria-label="Upload CSV file">
                         Upload CSV
@@ -133,9 +135,13 @@
                 <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
             </section>
 
-            <!-- P/L by Symbol & Strategy Table (Full Width) -->
-            <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Symbol and Strategy">
-                <h2 class="text-lg font-semibold mb-4">P/L by Symbol & Strategy</h2>
+            <!-- Advanced Visualizations Panel (Full Width) -->
+            <section class="mb-6" role="region" aria-label="Advanced Analytics">
+                <div id="advanced-viz-panel"></div>
+            </section>
+
+            <!-- P/L by Symbol & Strategy Table (Full Width) - Collapsible -->
+            <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
                 <div class="overflow-x-auto">
                     <table id="symbol-strategy-table" class="data-table" role="table">
                         <thead>
@@ -149,7 +155,7 @@
                         <tbody></tbody>
                     </table>
                 </div>
-            </section>
+            </div>
         </div>
     </main>
 
@@ -161,6 +167,10 @@
     <script src="js/analytics-engine.js"></script>
     <script src="js/data-store.js"></script>
     
+    <!-- UI Components -->
+    <script src="js/collapsible-section.js"></script>
+    <script src="js/advanced-visualization-panel.js"></script>
+    
     <!-- Visualization Components -->
     <script src="js/visualizations/summary-metrics-panel.js"></script>
     <script src="js/visualizations/pl-trend-chart.js"></script>
@@ -169,6 +179,16 @@
     <script src="js/visualizations/symbol-pl-chart.js"></script>
     <script src="js/visualizations/win-loss-donut-chart.js"></script>
     <script src="js/visualizations/top-underlyings-chart.js"></script>
+    
+    <!-- Advanced Visualization Components -->
+    <script src="js/visualizations/heatmap-calendar-chart.js"></script>
+    <script src="js/visualizations/scatter-plot-chart.js"></script>
+    <script src="js/visualizations/violin-plot-chart.js"></script>
+    <script src="js/visualizations/sankey-diagram-chart.js"></script>
+    <script src="js/visualizations/bubble-chart.js"></script>
+    <script src="js/visualizations/radial-chart.js"></script>
+    <script src="js/visualizations/waterfall-chart.js"></script>
+    <script src="js/visualizations/horizon-chart.js"></script>
     
     <!-- Dashboard Controller -->
     <script src="js/dashboard-controller.js"></script>

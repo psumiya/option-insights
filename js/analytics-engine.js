@@ -413,6 +413,386 @@ class AnalyticsEngine {
                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   }
+
+  /**
+   * Calculate daily P/L for heatmap calendar visualization
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of {date, pl, tradeCount} objects
+   */
+  calculateDailyPL(trades) {
+    const dailyMap = new Map();
+
+    // Group closed trades by exit date
+    trades.forEach(trade => {
+      if (trade.Result === 'Open') return;
+
+      const exitDate = this._parseDate(trade.Exit);
+      if (!exitDate) return;
+
+      // Format as YYYY-MM-DD
+      const dateKey = exitDate.toISOString().split('T')[0];
+      
+      if (!dailyMap.has(dateKey)) {
+        dailyMap.set(dateKey, {
+          date: new Date(dateKey),
+          pl: 0,
+          tradeCount: 0
+        });
+      }
+      
+      const dayData = dailyMap.get(dateKey);
+      dayData.pl += trade.ProfitLoss;
+      dayData.tradeCount++;
+    });
+
+    // Convert to array and sort by date
+    return Array.from(dailyMap.values())
+      .sort((a, b) => a.date - b.date);
+  }
+
+  /**
+   * Calculate scatter plot data (Days Held vs P/L)
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of {symbol, strategy, daysHeld, pl, type} objects
+   */
+  calculateScatterData(trades) {
+    return trades
+      .filter(trade => trade.Result !== 'Open' && trade.DaysHeld !== null)
+      .map(trade => ({
+        symbol: trade.Symbol,
+        strategy: trade.Strategy,
+        daysHeld: trade.DaysHeld,
+        pl: trade.ProfitLoss,
+        type: trade.Type
+      }));
+  }
+
+  /**
+   * Calculate violin plot data (P/L distribution by strategy)
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of strategy distribution objects
+   */
+  calculateViolinData(trades) {
+    const strategyMap = new Map();
+
+    // Group P/L values by strategy
+    trades.forEach(trade => {
+      if (trade.Result === 'Open') return;
+
+      const strategy = trade.Strategy;
+      
+      if (!strategyMap.has(strategy)) {
+        strategyMap.set(strategy, []);
+      }
+      
+      strategyMap.get(strategy).push(trade.ProfitLoss);
+    });
+
+    // Calculate statistics for each strategy
+    return Array.from(strategyMap.entries()).map(([strategy, plValues]) => {
+      plValues.sort((a, b) => a - b);
+      
+      const mean = plValues.reduce((sum, val) => sum + val, 0) / plValues.length;
+      const median = this._calculateMedian(plValues);
+      const q1 = this._calculateQuantile(plValues, 0.25);
+      const q3 = this._calculateQuantile(plValues, 0.75);
+      const min = plValues[0];
+      const max = plValues[plValues.length - 1];
+      
+      // Calculate standard deviation
+      const variance = plValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / plValues.length;
+      const stdDev = Math.sqrt(variance);
+
+      return {
+        strategy,
+        plValues,
+        median,
+        mean,
+        q1,
+        q3,
+        min,
+        max,
+        stdDev
+      };
+    });
+  }
+
+  /**
+   * Calculate Sankey diagram data (Symbol -> Strategy -> Result flow)
+   * @param {Array} trades - Array of enriched trade records
+   * @param {number} topSymbolsLimit - Limit to top N symbols by trade count (default 10)
+   * @returns {Object} - Object with {nodes, links} arrays
+   */
+  calculateSankeyData(trades, topSymbolsLimit = 10) {
+    const closedTrades = trades.filter(trade => trade.Result !== 'Open');
+    
+    // Find top symbols by trade count
+    const symbolCounts = new Map();
+    closedTrades.forEach(trade => {
+      symbolCounts.set(trade.Symbol, (symbolCounts.get(trade.Symbol) || 0) + 1);
+    });
+    
+    const topSymbols = Array.from(symbolCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topSymbolsLimit)
+      .map(([symbol]) => symbol);
+    
+    // Filter to top symbols only
+    const filteredTrades = closedTrades.filter(trade => topSymbols.includes(trade.Symbol));
+    
+    // Build nodes and links
+    const nodes = [];
+    const links = [];
+    const nodeIds = new Set();
+    
+    // Create nodes for symbols (layer 0)
+    topSymbols.forEach(symbol => {
+      const nodeId = `symbol_${symbol}`;
+      if (!nodeIds.has(nodeId)) {
+        nodes.push({ id: nodeId, name: symbol, layer: 0 });
+        nodeIds.add(nodeId);
+      }
+    });
+    
+    // Create nodes for strategies (layer 1)
+    const strategies = [...new Set(filteredTrades.map(t => t.Strategy))];
+    strategies.forEach(strategy => {
+      const nodeId = `strategy_${strategy}`;
+      if (!nodeIds.has(nodeId)) {
+        nodes.push({ id: nodeId, name: strategy, layer: 1 });
+        nodeIds.add(nodeId);
+      }
+    });
+    
+    // Create nodes for results (layer 2)
+    ['Win', 'Loss'].forEach(result => {
+      const nodeId = `result_${result}`;
+      if (!nodeIds.has(nodeId)) {
+        nodes.push({ id: nodeId, name: result, layer: 2 });
+        nodeIds.add(nodeId);
+      }
+    });
+    
+    // Create links
+    const linkMap = new Map();
+    
+    filteredTrades.forEach(trade => {
+      // Symbol -> Strategy link
+      const link1Key = `symbol_${trade.Symbol}|strategy_${trade.Strategy}`;
+      if (!linkMap.has(link1Key)) {
+        linkMap.set(link1Key, {
+          source: `symbol_${trade.Symbol}`,
+          target: `strategy_${trade.Strategy}`,
+          value: 0,
+          tradeCount: 0,
+          result: null
+        });
+      }
+      const link1 = linkMap.get(link1Key);
+      link1.value += Math.abs(trade.ProfitLoss);
+      link1.tradeCount += 1;
+      
+      // Strategy -> Result link
+      const link2Key = `strategy_${trade.Strategy}|result_${trade.Result}`;
+      if (!linkMap.has(link2Key)) {
+        linkMap.set(link2Key, {
+          source: `strategy_${trade.Strategy}`,
+          target: `result_${trade.Result}`,
+          value: 0,
+          tradeCount: 0,
+          result: trade.Result
+        });
+      }
+      const link2 = linkMap.get(link2Key);
+      link2.value += Math.abs(trade.ProfitLoss);
+      link2.tradeCount += 1;
+    });
+    
+    links.push(...Array.from(linkMap.values()));
+    
+    return { nodes, links };
+  }
+
+  /**
+   * Calculate bubble chart data (Win Rate vs Average Win by Strategy)
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of {strategy, winRate, averageWin, tradeCount, netPL} objects
+   */
+  calculateBubbleData(trades) {
+    const strategyMap = new Map();
+
+    // Group trades by strategy
+    trades.forEach(trade => {
+      if (trade.Result === 'Open') return;
+
+      const strategy = trade.Strategy;
+      
+      if (!strategyMap.has(strategy)) {
+        strategyMap.set(strategy, {
+          strategy,
+          totalTrades: 0,
+          wins: 0,
+          totalWinAmount: 0,
+          totalPL: 0
+        });
+      }
+
+      const stats = strategyMap.get(strategy);
+      stats.totalTrades++;
+      stats.totalPL += trade.ProfitLoss;
+
+      if (trade.Result === 'Win') {
+        stats.wins++;
+        stats.totalWinAmount += trade.ProfitLoss;
+      }
+    });
+
+    // Calculate metrics
+    return Array.from(strategyMap.values()).map(stats => ({
+      strategy: stats.strategy,
+      winRate: stats.totalTrades > 0 ? (stats.wins / stats.totalTrades) * 100 : 0,
+      averageWin: stats.wins > 0 ? stats.totalWinAmount / stats.wins : 0,
+      tradeCount: stats.totalTrades,
+      netPL: stats.totalPL
+    }));
+  }
+
+  /**
+   * Calculate radial chart data (Strategy performance by month)
+   * @param {Array} trades - Array of enriched trade records
+   * @param {number} monthsLimit - Number of recent months to include (default 12)
+   * @returns {Array} - Array of {month, strategies: [{strategy, pl}]} objects
+   */
+  calculateRadialData(trades, monthsLimit = 12) {
+    const monthStrategyMap = new Map();
+
+    // Group trades by month and strategy
+    trades.forEach(trade => {
+      if (trade.Result === 'Open') return;
+
+      const exitDate = this._parseDate(trade.Exit);
+      if (!exitDate) return;
+
+      const monthKey = `${exitDate.getFullYear()}-${String(exitDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthStrategyMap.has(monthKey)) {
+        monthStrategyMap.set(monthKey, new Map());
+      }
+      
+      const strategyMap = monthStrategyMap.get(monthKey);
+      const strategy = trade.Strategy;
+      
+      if (!strategyMap.has(strategy)) {
+        strategyMap.set(strategy, 0);
+      }
+      
+      strategyMap.set(strategy, strategyMap.get(strategy) + trade.ProfitLoss);
+    });
+
+    // Convert to array format
+    const monthlyData = Array.from(monthStrategyMap.entries())
+      .map(([month, strategyMap]) => ({
+        month: this._formatMonthLabel(month),
+        monthKey: month,
+        strategies: Array.from(strategyMap.entries()).map(([strategy, pl]) => ({
+          strategy,
+          pl
+        }))
+      }))
+      .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+
+    // Return most recent N months
+    return monthlyData.slice(-monthsLimit);
+  }
+
+  /**
+   * Calculate waterfall chart data (P/L attribution by symbol)
+   * @param {Array} trades - Array of enriched trade records
+   * @param {number} topSymbolsLimit - Limit to top N symbols by absolute P/L (default 15)
+   * @returns {Array} - Array of {symbol, pl, cumulativePL} objects
+   */
+  calculateWaterfallData(trades, topSymbolsLimit = 15) {
+    const symbolMap = new Map();
+
+    // Group P/L by symbol
+    trades.forEach(trade => {
+      if (trade.Result === 'Open') return;
+
+      const symbol = trade.Symbol;
+      
+      if (!symbolMap.has(symbol)) {
+        symbolMap.set(symbol, 0);
+      }
+      
+      symbolMap.set(symbol, symbolMap.get(symbol) + trade.ProfitLoss);
+    });
+
+    // Convert to array and sort by absolute P/L
+    const symbolData = Array.from(symbolMap.entries())
+      .map(([symbol, pl]) => ({ symbol, pl }))
+      .sort((a, b) => Math.abs(b.pl) - Math.abs(a.pl))
+      .slice(0, topSymbolsLimit);
+
+    // Calculate cumulative P/L
+    let cumulative = 0;
+    symbolData.forEach(item => {
+      cumulative += item.pl;
+      item.cumulativePL = cumulative;
+    });
+
+    return symbolData;
+  }
+
+  /**
+   * Calculate horizon chart data (Daily cumulative P/L over time)
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of {date, cumulativePL} objects
+   */
+  calculateHorizonData(trades) {
+    const dailyPL = this.calculateDailyPL(trades);
+    
+    // Calculate cumulative P/L
+    let cumulative = 0;
+    return dailyPL.map(day => {
+      cumulative += day.pl;
+      return {
+        date: day.date,
+        cumulativePL: cumulative
+      };
+    });
+  }
+
+  /**
+   * Calculate median of an array
+   * @param {Array} values - Sorted array of numbers
+   * @returns {number} - Median value
+   * @private
+   */
+  _calculateMedian(values) {
+    const mid = Math.floor(values.length / 2);
+    return values.length % 2 === 0
+      ? (values[mid - 1] + values[mid]) / 2
+      : values[mid];
+  }
+
+  /**
+   * Calculate quantile of an array
+   * @param {Array} values - Sorted array of numbers
+   * @param {number} q - Quantile (0-1)
+   * @returns {number} - Quantile value
+   * @private
+   */
+  _calculateQuantile(values, q) {
+    const pos = (values.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    
+    if (values[base + 1] !== undefined) {
+      return values[base] + rest * (values[base + 1] - values[base]);
+    } else {
+      return values[base];
+    }
+  }
 }
 
 // Export for use in other modules

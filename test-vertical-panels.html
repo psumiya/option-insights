@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Vertical Panels</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-viz {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(59, 130, 246, 0.1);
+            border: 2px dashed rgba(59, 130, 246, 0.3);
+            border-radius: 4px;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bg-background text-text-primary">
+    <div class="test-container">
+        <h1 style="margin-bottom: 24px;">Advanced Visualizations - Vertical Layout Test</h1>
+        
+        <div id="test-panel"></div>
+    </div>
+
+    <script src="js/advanced-visualization-panel.js"></script>
+    <script>
+        // Mock visualization components
+        class MockVisualization {
+            constructor(name) {
+                this.name = name;
+                this.container = null;
+            }
+            
+            initialize(container) {
+                this.container = container;
+                this.render();
+            }
+            
+            update(data) {
+                console.log(`${this.name} updated with data:`, data);
+                if (this.container) {
+                    const content = this.container.querySelector('.test-viz');
+                    if (content) {
+                        content.textContent = `${this.name} - Data points: ${data?.length || 0}`;
+                    }
+                }
+            }
+            
+            render() {
+                if (this.container) {
+                    this.container.innerHTML = `
+                        <div class="test-viz">
+                            ${this.name} - Ready
+                        </div>
+                    `;
+                }
+            }
+            
+            destroy() {
+                if (this.container) {
+                    this.container.innerHTML = '';
+                }
+            }
+        }
+
+        // Initialize the panel
+        const panel = new AdvancedVisualizationPanel('test-panel');
+        panel.initialize();
+
+        // Register visualizations
+        const visualizations = [
+            { id: 'heatmap', label: 'Calendar Heatmap' },
+            { id: 'scatter', label: 'Days Held vs P/L' },
+            { id: 'violin', label: 'P/L Distribution' },
+            { id: 'sankey', label: 'Trade Flow' },
+            { id: 'bubble', label: 'Win Rate Analysis' },
+            { id: 'radial', label: 'Monthly Performance' },
+            { id: 'waterfall', label: 'P/L Attribution' },
+            { id: 'horizon', label: 'Long-term Trends' }
+        ];
+
+        visualizations.forEach(viz => {
+            const mockViz = new MockVisualization(viz.label);
+            panel.registerVisualization(viz.id, viz.label, mockViz);
+        });
+
+        // Simulate data update after 1 second
+        setTimeout(() => {
+            const mockData = Array.from({ length: 50 }, (_, i) => ({ id: i, value: Math.random() * 100 }));
+            panel.update(mockData);
+        }, 1000);
+
+        console.log('Test initialized. All visualizations should be visible in vertical panels.');
+    </script>
+</body>
+</html>

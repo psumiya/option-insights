@@ -47,9 +47,6 @@ class DashboardController {
 
     // Initialize Advanced Visualization Panel (Requirements: 2.1, 2.2)
     this.advancedVizPanel = new AdvancedVisualizationPanel('advanced-viz-panel', {
-      defaultTab: 'heatmap',
-      storageKey: 'advanced-viz-active-tab',
-      fadeTransitionDuration: 200, // Requirement 2.5
       showLoadingIndicator: true,
       loadingThreshold: 100 // Requirement 12.3
     });

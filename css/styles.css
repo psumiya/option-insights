@@ -533,116 +533,49 @@ button {
 }
 
 /* ============================================
-   Advanced Visualization Panel Component
+   Advanced Visualization Panel Component - Vertical Layout
    ============================================ */
-.advanced-viz-panel {
+.advanced-viz-panel-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.viz-panels-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.viz-panel {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    padding: 0;
+    padding: 24px;
     overflow: hidden;
 }
 
-.viz-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-    background: var(--color-background);
-    border-bottom: 2px solid var(--color-border);
-    padding: 8px;
+.viz-panel-header {
+    margin-bottom: 20px;
 }
 
-.viz-tab {
-    flex: 1 1 auto;
-    min-width: 140px;
-    padding: 10px 16px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.viz-tab:hover {
-    background: var(--color-surface);
+.viz-panel-title {
+    font-size: 18px;
+    font-weight: 600;
     color: var(--color-text-primary);
 }
 
-.viz-tab.active {
-    background: var(--color-surface);
-    border-color: var(--color-accent);
-    color: var(--color-text-primary);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.viz-tab:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-}
-
-.viz-tab-icon {
-    font-size: 16px;
-    flex-shrink: 0;
-}
-
-.viz-tab-label {
-    white-space: nowrap;
-}
-
-.viz-content {
-    padding: 24px;
-    min-height: 600px;
-    height: 600px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-.viz-content.loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.viz-content-inner {
+.viz-panel-content {
+    min-height: 500px;
+    height: 500px;
     width: 100%;
-    height: 100%;
-    flex: 1;
-    min-height: 0;
-    transition: opacity 0.2s ease;
     position: relative;
 }
 
-.viz-content-inner svg {
+.viz-panel-content svg {
     width: 100%;
     height: 100%;
     display: block;
-}
-
-/* Loading indicator */
-.viz-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 100;
-}
-
-.viz-loading span {
-    color: var(--color-text-secondary);
-    font-size: 14px;
 }
 
 /* Error state */
@@ -654,6 +587,7 @@ button {
     gap: 12px;
     padding: 40px 20px;
     text-align: center;
+    height: 100%;
 }
 
 .viz-error-icon {
@@ -666,57 +600,54 @@ button {
     max-width: 400px;
 }
 
-/* Mobile responsive tabs */
+/* Mobile responsive */
 @media (max-width: 767px) {
-    .viz-tabs {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        scrollbar-color: var(--color-border) transparent;
+    .advanced-viz-panel-vertical {
+        gap: 16px;
     }
     
-    .viz-tabs::-webkit-scrollbar {
-        height: 4px;
+    .viz-panels-container {
+        gap: 16px;
     }
     
-    .viz-tabs::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    
-    .viz-tabs::-webkit-scrollbar-thumb {
-        background: var(--color-border);
-        border-radius: 2px;
-    }
-    
-    .viz-tab {
-        flex-shrink: 0;
-        min-width: 120px;
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-    
-    .viz-tab-icon {
-        font-size: 14px;
-    }
-    
-    .viz-content {
+    .viz-panel {
         padding: 16px;
-        min-height: 500px;
-        height: 500px;
+    }
+    
+    .viz-panel-header {
+        margin-bottom: 16px;
+    }
+    
+    .viz-panel-title {
+        font-size: 16px;
+    }
+    
+    .viz-panel-content {
+        min-height: 350px;
+        height: 350px;
     }
 }
 
 /* Tablet responsive */
 @media (min-width: 768px) and (max-width: 1023px) {
-    .viz-tab {
-        min-width: 130px;
-        padding: 9px 14px;
+    .advanced-viz-panel-vertical {
+        gap: 20px;
     }
     
-    .viz-content {
+    .viz-panels-container {
+        gap: 20px;
+    }
+    
+    .viz-panel {
         padding: 20px;
-        min-height: 550px;
-        height: 550px;
+    }
+    
+    .viz-panel-title {
+        font-size: 17px;
+    }
+    
+    .viz-panel-content {
+        min-height: 450px;
+        height: 450px;
     }
 }

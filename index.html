@@ -55,8 +55,8 @@
             <div id="drop-zone" class="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent transition-colors cursor-pointer">
                 <p class="text-text-secondary mb-2">Drag and drop CSV file here</p>
                 <p class="text-sm text-text-secondary mb-4">or</p>
-                <input type="file" id="file-input" accept=".csv" class="hidden" aria-label="Select CSV file">
-                <button id="browse-btn" class="btn-secondary">Browse Files</button>
+                <label for="file-input" id="browse-btn" class="btn-secondary inline-block cursor-pointer">Browse Files</label>
+                <input type="file" id="file-input" accept=".csv" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" aria-label="Select CSV file">
             </div>
             <button id="close-upload-btn" class="btn-secondary w-full mt-4">Cancel</button>
         </div>

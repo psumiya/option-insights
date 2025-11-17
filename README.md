@@ -4,13 +4,13 @@ A personal options trading analytics dashboard that helps you visualize and anal
 
 ## Features
 
-- 📊 **Comprehensive Analytics** - Track P/L, win rates, and performance metrics
-- 📈 **Interactive Visualizations** - Multiple chart types including trends, breakdowns, and distributions
-- 🎯 **Strategy Detection** - Automatically identifies trading strategies from your data
-- 📅 **Flexible Filtering** - Filter by date range and position status
-- 💾 **Data Persistence** - Your data is saved locally in your browser
-- 🎨 **Modern UI** - Clean, responsive design with dark mode
-- 🎭 **Demo Mode** - Try it out with sample data before uploading your own
+- **Comprehensive Analytics** - Track P/L, win rates, and performance metrics
+- **Interactive Visualizations** - Multiple chart types including trends, breakdowns, and distributions
+- **Strategy Detection** - Automatically identifies trading strategies from your data
+- **Flexible Filtering** - Filter by date range and position status
+- **Data Persistence** - Your data is saved locally in your browser
+- **Modern UI** - Clean, responsive design with dark mode
+- **Demo Mode** - Try it out with sample data before uploading your own
 
 ## Quick Start
 
@@ -150,7 +150,8 @@ Requires JavaScript enabled and localStorage support.
 │   ├── demo-data-generator.js # Demo data generation
 │   └── visualizations/       # Chart components
 ├── tests/                    # Test suite
-└── sample-data-messy.csv     # Sample data file
+├── sample-data/              # Sample CSV files for testing
+└── docs/                     # Documentation
 ```
 
 ## License
@@ -195,4 +196,4 @@ Future enhancements:
 
 ---
 
-**Made with ❤️ for options traders**
+**Made with ❤️ for retail options traders.**

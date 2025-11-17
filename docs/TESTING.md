@@ -97,7 +97,7 @@ If tests fail, check the browser console (F12) for:
    ```
    HTTP 404: Hood.csv not found
    ```
-   → Make sure CSV files are in the root directory
+   → Make sure CSV files are in the sample-data/ directory
 
 3. **Parsing errors**
    ```

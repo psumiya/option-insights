@@ -21,10 +21,18 @@ class BrokerAdapter {
       return 'robinhood';
     }
     
-    // Tasty detection
-    if (headerStr.includes('marketorfill') && 
-        headerStr.includes('timestampattype') && 
-        headerStr.includes('order #')) {
+    // TastyTrade detection
+    // Look for distinctive TastyTrade columns
+    if (headerStr.includes('sub type') && 
+        headerStr.includes('underlying symbol') && 
+        headerStr.includes('call or put')) {
+      return 'tasty';
+    }
+    
+    // Alternative TastyTrade detection (older format)
+    if (headerStr.includes('action') && 
+        headerStr.includes('instrument type') && 
+        headerStr.includes('expiration date')) {
       return 'tasty';
     }
     
@@ -73,17 +81,9 @@ class GenericAdapter {
 /**
  * Robinhood Adapter
  * Converts Robinhood transaction-level data to trade-level data
+ * Simple approach: Group by Description and sum amounts
  */
 class RobinhoodAdapter {
-  constructor() {
-    this.transactionCodes = {
-      'STO': 'Sell to Open',
-      'BTO': 'Buy to Open',
-      'STC': 'Sell to Close',
-      'BTC': 'Buy to Close'
-    };
-  }
-
   /**
    * Parse Robinhood description to extract option details
    * Format: "SYMBOL MM/DD/YYYY Type $Strike"
@@ -120,7 +120,6 @@ class RobinhoodAdapter {
   _parseDate(dateStr) {
     if (!dateStr) return null;
     
-    // Try standard date parsing first
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
       return date;
@@ -136,10 +135,8 @@ class RobinhoodAdapter {
   _parseAmount(amountStr) {
     if (!amountStr) return 0;
     
-    // Remove $ and commas
     let cleaned = amountStr.replace(/[$,]/g, '');
     
-    // Check for parentheses (negative)
     if (cleaned.includes('(') || cleaned.includes(')')) {
       cleaned = cleaned.replace(/[()]/g, '');
       return -parseFloat(cleaned);
@@ -150,113 +147,150 @@ class RobinhoodAdapter {
 
   /**
    * Group Robinhood transactions into complete trades
-   * Matches opening and closing transactions
+   * Simple approach: Group by Description (each unique option) and sum amounts
    */
   groupTransactions(rows) {
     const trades = [];
-    const openPositions = new Map();
     
-    // Filter out non-option transactions
-    const optionRows = rows.filter(row => {
-      return row.Instrument && 
-             row.Description && 
-             row['Trans Code'] &&
-             (row['Trans Code'] === 'STO' || 
-              row['Trans Code'] === 'BTO' || 
-              row['Trans Code'] === 'STC' || 
-              row['Trans Code'] === 'BTC');
+    // Filter out non-trading transactions
+    const excludedDescriptions = [
+      'ACH Deposit',
+      'ACH Withdrawal',
+      'Cash reward',
+      'Interest Payment',
+      'Gold Deposit Boost Payment',
+      'Gold Plan Credit',
+      'Gold Subscription Fee',
+      'Option Expiration' // OEXP transactions
+    ];
+    
+    const tradingRows = rows.filter(row => {
+      const desc = row['Description'] || '';
+      // Exclude non-trading transactions
+      if (excludedDescriptions.some(excluded => desc.includes(excluded))) {
+        return false;
+      }
+      // Must have an instrument (symbol)
+      if (!row.Instrument) {
+        return false;
+      }
+      return true;
     });
     
-    // Robinhood CSV is in reverse chronological order (newest first)
-    // Reverse it so we process opens before closes
-    optionRows.reverse();
+    console.log(`Filtered ${rows.length} rows to ${tradingRows.length} trading rows`);
     
-    // Process transactions in chronological order
-    optionRows.forEach(row => {
-      const details = this.parseDescription(row.Description);
-      if (!details) return;
-      
-      const transCode = row['Trans Code'];
-      const quantity = Math.abs(parseInt(row.Quantity) || 1);
-      const amount = this._parseAmount(row.Amount);
-      const activityDate = this._parseDate(row['Activity Date']);
-      
-      // Create position key
-      const posKey = `${details.symbol}_${details.strike}_${details.type}_${details.expiry?.getTime()}`;
-      
-      // Opening transaction
-      if (transCode === 'STO' || transCode === 'BTO') {
-        if (!openPositions.has(posKey)) {
-          openPositions.set(posKey, []);
-        }
-        
-        openPositions.get(posKey).push({
-          openDate: activityDate,
-          openAmount: amount,
-          openAction: transCode,
-          quantity: quantity,
-          details: details
-        });
+    // Group by Instrument, then by Description
+    const byInstrument = new Map();
+    tradingRows.forEach(row => {
+      const instrument = row['Instrument'];
+      if (!byInstrument.has(instrument)) {
+        byInstrument.set(instrument, new Map());
       }
       
-      // Closing transaction
-      if (transCode === 'STC' || transCode === 'BTC') {
-        const positions = openPositions.get(posKey);
-        if (positions && positions.length > 0) {
-          // Match with oldest open position (FIFO)
-          const openPos = positions.shift();
+      const desc = row['Description'];
+      const byDesc = byInstrument.get(instrument);
+      
+      if (!byDesc.has(desc)) {
+        byDesc.set(desc, []);
+      }
+      byDesc.get(desc).push(row);
+    });
+    
+    // Process each unique option (Description) as a single trade
+    byInstrument.forEach((byDesc, instrument) => {
+      byDesc.forEach((transRows, description) => {
+        // Parse option details from description
+        const details = this.parseDescription(description);
+        if (!details) {
+          console.warn('Could not parse option details from:', description);
+          return;
+        }
+        
+        // Sum all amounts for this option
+        let totalAmount = 0;
+        let earliestDate = null;
+        let latestDate = null;
+        let hasOpen = false;
+        let hasClose = false;
+        let firstTransCode = null;
+        
+        transRows.forEach(row => {
+          const transCode = row['Trans Code'];
+          const amount = this._parseAmount(row['Amount']);
+          const activityDate = this._parseDate(row['Activity Date']);
           
-          // Create completed trade
-          const credit = transCode === 'STC' ? amount : openPos.openAmount;
-          const debit = transCode === 'BTC' ? Math.abs(amount) : Math.abs(openPos.openAmount);
+          totalAmount += amount;
           
-          const trade = {
-            Symbol: details.symbol,
-            Type: details.type,
-            Strategy: this._detectStrategy(openPos.openAction, transCode),
-            Strike: details.strike,
-            Expiry: details.expiry,
-            Volume: quantity,
-            Entry: openPos.openDate,
-            Delta: 0, // Not provided by Robinhood
-            Exit: activityDate,
-            Debit: debit,
-            Credit: credit,
-            Account: 'Robinhood'
-          };
-          
-          trades.push(trade);
-          
-          // Remove key if no more open positions
-          if (positions.length === 0) {
-            openPositions.delete(posKey);
+          if (!firstTransCode) {
+            firstTransCode = transCode;
           }
-        } else {
-          console.warn('Closing transaction without open position:', transCode, details.symbol, details.strike);
-        }
-      }
-    });
-    
-    // Add remaining open positions as open trades
-    openPositions.forEach((positions, key) => {
-      positions.forEach(openPos => {
-        const credit = openPos.openAction === 'STO' ? openPos.openAmount : 0;
-        const debit = openPos.openAction === 'BTO' ? Math.abs(openPos.openAmount) : 0;
+          
+          // Track dates
+          if (!earliestDate || activityDate < earliestDate) {
+            earliestDate = activityDate;
+          }
+          if (!latestDate || activityDate > latestDate) {
+            latestDate = activityDate;
+          }
+          
+          // Track if we have opens and closes
+          if (transCode === 'STO' || transCode === 'BTO') {
+            hasOpen = true;
+          }
+          if (transCode === 'STC' || transCode === 'BTC') {
+            hasClose = true;
+          }
+        });
         
-        trades.push({
-          Symbol: openPos.details.symbol,
-          Type: openPos.details.type,
-          Strategy: this._detectStrategy(openPos.openAction, null),
-          Strike: openPos.details.strike,
-          Expiry: openPos.details.expiry,
-          Volume: openPos.quantity,
-          Entry: openPos.openDate,
-          Delta: 0,
-          Exit: null, // Still open
+        // Determine if position is closed or open
+        const isClosed = hasOpen && hasClose;
+        
+        // Determine credit and debit based on the sign of totalAmount
+        // Positive totalAmount = net credit (we received money)
+        // Negative totalAmount = net debit (we paid money)
+        let credit = 0;
+        let debit = 0;
+        
+        if (totalAmount > 0) {
+          credit = totalAmount;
+        } else {
+          debit = Math.abs(totalAmount);
+        }
+        
+        // Determine strategy from first transaction code
+        let strategy = 'Unknown';
+        if (firstTransCode === 'STO') {
+          strategy = 'Short Option';
+        } else if (firstTransCode === 'BTO') {
+          strategy = 'Long Option';
+        } else if (firstTransCode === 'STC') {
+          strategy = 'Long Option';
+        } else if (firstTransCode === 'BTC') {
+          strategy = 'Short Option';
+        }
+        
+        // Get average quantity
+        const totalQty = transRows.reduce((sum, row) => {
+          return sum + Math.abs(parseInt(row['Quantity']) || 1);
+        }, 0);
+        const avgQty = Math.floor(totalQty / transRows.length);
+        
+        const trade = {
+          Symbol: details.symbol,
+          Type: details.type,
+          Strategy: strategy,
+          Strike: details.strike,
+          Expiry: details.expiry,
+          Volume: avgQty,
+          Entry: earliestDate,
+          Delta: 0, // Not provided by Robinhood
+          Exit: isClosed ? latestDate : null,
           Debit: debit,
           Credit: credit,
           Account: 'Robinhood'
-        });
+        };
+        
+        trades.push(trade);
       });
     });
     
@@ -264,209 +298,277 @@ class RobinhoodAdapter {
   }
 
   /**
-   * Detect strategy from transaction codes
-   */
-  _detectStrategy(openAction, closeAction) {
-    if (openAction === 'STO') {
-      return closeAction === 'BTC' ? 'Short Option' : 'Short Option';
-    }
-    if (openAction === 'BTO') {
-      return closeAction === 'STC' ? 'Long Option' : 'Long Option';
-    }
-    return 'Unknown';
-  }
-
-  /**
    * Convert Robinhood CSV to internal format
    */
   convert(rows) {
-    console.log('Robinhood adapter: Converting', rows.length, 'rows');
+    console.log('=== Robinhood Adapter Processing ===');
+    console.log('Total CSV rows:', rows.length);
+    
+    // Log transaction types for debugging
+    const transTypes = new Map();
+    rows.forEach(row => {
+      const code = row['Trans Code'] || 'UNKNOWN';
+      transTypes.set(code, (transTypes.get(code) || 0) + 1);
+    });
+    console.log('Transaction types found:', Object.fromEntries(transTypes));
+    
     const trades = this.groupTransactions(rows);
-    console.log('Robinhood adapter: Produced', trades.length, 'trades');
+    console.log('\n=== Results ===');
+    console.log('Total trades created:', trades.length);
     
     const closedTrades = trades.filter(t => t.Exit !== null);
     const openTrades = trades.filter(t => t.Exit === null);
+    
     console.log('  - Closed trades:', closedTrades.length);
     console.log('  - Open trades:', openTrades.length);
     
+    // Calculate total P/L for verification
+    const totalPL = closedTrades.reduce((sum, t) => sum + (t.Credit - t.Debit), 0);
+    console.log('\n=== P/L Summary ===');
+    console.log('Total P/L from closed trades: $' + totalPL.toFixed(2));
+    
     if (trades.length > 0) {
-      console.log('Sample Robinhood trade:', trades[0]);
+      console.log('\nSample trade:', trades[0]);
     }
+    
+    console.log('=================================\n');
     return trades;
   }
 }
 
 /**
  * Tasty Adapter
- * Converts Tasty order-level data to trade-level data
+ * Converts TastyTrade CSV to internal trade format
+ * Simple approach: Filter Type=Trade, group by Symbol, sum Total
  */
 class TastyAdapter {
   /**
-   * Parse Tasty description
-   * Format: "quantity expiry dte strike type action"
-   * Example: "-1 Nov 21 10d 210 Call STO"
-   * Multi-leg: separated by newlines
-   */
-  parseDescription(description) {
-    if (!description) return [];
-    
-    const legs = description.split('\n').map(leg => leg.trim()).filter(leg => leg);
-    
-    return legs.map(leg => {
-      const parts = leg.split(' ').filter(p => p);
-      if (parts.length < 6) return null;
-      
-      const quantity = parseInt(parts[0]);
-      const month = parts[1];
-      const day = parts[2];
-      const dte = parts[3]; // Days to expiration (not used)
-      const strike = parseFloat(parts[4]);
-      const type = parts[5]; // Call or Put
-      const action = parts[6]; // STO, BTO, STC, BTC
-      
-      // Parse expiry date
-      const currentYear = new Date().getFullYear();
-      const expiry = new Date(`${month} ${day}, ${currentYear}`);
-      
-      // If expiry is in the past, assume next year
-      if (expiry < new Date()) {
-        expiry.setFullYear(currentYear + 1);
-      }
-      
-      return {
-        quantity: Math.abs(quantity),
-        expiry,
-        strike,
-        type,
-        action,
-        isShort: quantity < 0
-      };
-    }).filter(leg => leg !== null);
-  }
-
-  /**
-   * Parse Tasty price format
-   * Example: "1.22 cr" -> 1.22, "0.37 db" -> -0.37
-   */
-  _parsePrice(priceStr) {
-    if (!priceStr) return 0;
-    
-    const parts = priceStr.trim().split(' ');
-    const value = parseFloat(parts[0]);
-    const type = parts[1]; // 'cr' or 'db'
-    
-    return type === 'db' ? -value : value;
-  }
-
-  /**
    * Parse Tasty date format
-   * Example: "11/07, 8:20a"
    */
   _parseDate(dateStr) {
     if (!dateStr) return null;
     
-    const parts = dateStr.split(',')[0].trim();
-    const [month, day] = parts.split('/');
-    const currentYear = new Date().getFullYear();
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
     
-    return new Date(`${currentYear}-${month}-${day}`);
+    return null;
   }
 
   /**
-   * Detect strategy from legs
+   * Parse amount (remove $ and commas)
    */
-  _detectStrategy(legs) {
-    if (legs.length === 1) {
-      const leg = legs[0];
-      if (leg.action === 'STO') return 'Short Option';
-      if (leg.action === 'BTO') return 'Long Option';
-      if (leg.action === 'STC') return 'Long Option';
-      if (leg.action === 'BTC') return 'Short Option';
+  _parseAmount(amountStr) {
+    if (!amountStr) return 0;
+    
+    let cleaned = amountStr.replace(/[$,]/g, '');
+    
+    if (cleaned.includes('(') || cleaned.includes(')')) {
+      cleaned = cleaned.replace(/[()]/g, '');
+      return -parseFloat(cleaned);
     }
     
-    if (legs.length === 2) {
-      const types = legs.map(l => l.type).sort().join('-');
-      const strikes = legs.map(l => l.strike).sort((a, b) => a - b);
+    return parseFloat(cleaned);
+  }
+
+  /**
+   * Parse option details from TastyTrade Symbol
+   * Format: "SYMBOL  YYMMDDCPPPPPPPP" (e.g., "META  251219C00715000")
+   */
+  parseSymbol(symbol) {
+    if (!symbol) return null;
+    
+    // Extract underlying symbol (before spaces)
+    const parts = symbol.trim().split(/\s+/);
+    const underlying = parts[0];
+    
+    // Try to extract expiry, strike, type from the option code
+    // Format: YYMMDD C/P STRIKE (e.g., 251219C00715000)
+    const optionCode = parts[1] || '';
+    
+    let expiry = null;
+    let type = 'Unknown';
+    let strike = 0;
+    
+    if (optionCode.length >= 15) {
+      // Parse date: YYMMDD
+      const yy = optionCode.substring(0, 2);
+      const mm = optionCode.substring(2, 4);
+      const dd = optionCode.substring(4, 6);
+      expiry = new Date(`20${yy}-${mm}-${dd}`);
       
-      if (types === 'Call-Call') {
-        return strikes[0] < strikes[1] ? 'Bull Call Spread' : 'Bear Call Spread';
-      }
-      if (types === 'Put-Put') {
-        return strikes[0] < strikes[1] ? 'Bull Put Spread' : 'Bear Put Spread';
-      }
-      if (types === 'Call-Put') {
-        return 'Strangle';
-      }
+      // Parse type: C or P
+      type = optionCode.charAt(6) === 'C' ? 'Call' : 'Put';
+      
+      // Parse strike: remaining digits / 1000
+      const strikeStr = optionCode.substring(7);
+      strike = parseInt(strikeStr) / 1000;
     }
     
-    if (legs.length === 4) {
-      return 'Iron Condor';
-    }
-    
-    return 'Multi-Leg';
+    return {
+      symbol: underlying,
+      expiry,
+      type,
+      strike
+    };
   }
 
   /**
-   * Convert Tasty CSV to internal format
+   * Group TastyTrade transactions into trades
+   * Simple approach: Filter Type=Trade, group by Symbol, sum Total
    */
-  convert(rows) {
+  groupTransactions(rows) {
     const trades = [];
     
-    rows.forEach(row => {
-      if (row.Status !== 'Filled') return;
-      
-      const legs = this.parseDescription(row.Description);
-      if (legs.length === 0) return;
-      
-      const fillDate = this._parseDate(row.Time);
-      const fillPrice = this._parsePrice(row.MarketOrFill);
-      
-      // For single-leg trades
-      if (legs.length === 1) {
-        const leg = legs[0];
-        const isOpening = leg.action === 'STO' || leg.action === 'BTO';
-        const isClosing = leg.action === 'STC' || leg.action === 'BTC';
-        
-        const credit = fillPrice > 0 ? fillPrice * 100 : 0; // Convert to dollars
-        const debit = fillPrice < 0 ? Math.abs(fillPrice) * 100 : 0;
-        
-        trades.push({
-          Symbol: row.Symbol,
-          Type: leg.type,
-          Strategy: this._detectStrategy(legs),
-          Strike: leg.strike,
-          Expiry: leg.expiry,
-          Volume: leg.quantity,
-          Entry: fillDate,
-          Delta: 0, // Not provided
-          Exit: isClosing ? fillDate : null,
-          Debit: debit,
-          Credit: credit,
-          Account: 'Tasty'
-        });
-      } else {
-        // Multi-leg trade - create as single trade with primary leg
-        const primaryLeg = legs[0];
-        const totalCredit = fillPrice > 0 ? fillPrice * 100 : 0;
-        const totalDebit = fillPrice < 0 ? Math.abs(fillPrice) * 100 : 0;
-        
-        trades.push({
-          Symbol: row.Symbol,
-          Type: primaryLeg.type,
-          Strategy: this._detectStrategy(legs),
-          Strike: primaryLeg.strike,
-          Expiry: primaryLeg.expiry,
-          Volume: primaryLeg.quantity,
-          Entry: fillDate,
-          Delta: 0,
-          Exit: null, // Assume opening for multi-leg
-          Debit: totalDebit,
-          Credit: totalCredit,
-          Account: 'Tasty'
-        });
-      }
+    // Step 2: Filter to Type = Trade
+    const tradeRows = rows.filter(row => {
+      const type = row['Type'] || '';
+      return type === 'Trade' || type === 'Receive Deliver';
     });
     
+    console.log(`Filtered ${rows.length} rows to ${tradeRows.length} trade rows`);
+    
+    // Step 3: Group by Symbol (the full option symbol)
+    const bySymbol = new Map();
+    tradeRows.forEach(row => {
+      const symbol = row['Symbol'] || 'UNKNOWN';
+      
+      if (!bySymbol.has(symbol)) {
+        bySymbol.set(symbol, []);
+      }
+      bySymbol.get(symbol).push(row);
+    });
+    
+    console.log(`Unique symbols: ${bySymbol.size}`);
+    
+    // Step 4: For each symbol, sum the Total
+    bySymbol.forEach((transRows, symbol) => {
+      let totalAmount = 0;
+      let earliestDate = null;
+      let latestDate = null;
+      let firstAction = null;
+      
+      transRows.forEach(row => {
+        const totalStr = row['Total'] || '0';
+        const amount = this._parseAmount(totalStr);
+        const date = this._parseDate(row['Date']);
+        const action = row['Action'] || row['Sub Type'] || '';
+        
+        if (!firstAction) {
+          firstAction = action;
+        }
+        
+        totalAmount += amount;
+        
+        if (!earliestDate || (date && date < earliestDate)) {
+          earliestDate = date;
+        }
+        if (!latestDate || (date && date > latestDate)) {
+          latestDate = date;
+        }
+      });
+      
+      // Parse symbol details
+      const details = this.parseSymbol(symbol);
+      
+      // Determine credit/debit
+      let credit = 0;
+      let debit = 0;
+      
+      if (totalAmount > 0) {
+        credit = totalAmount;
+      } else {
+        debit = Math.abs(totalAmount);
+      }
+      
+      // Determine strategy from first action
+      let strategy = 'Unknown';
+      if (firstAction && firstAction.includes('Sell to Open')) {
+        strategy = 'Short Option';
+      } else if (firstAction && firstAction.includes('Buy to Open')) {
+        strategy = 'Long Option';
+      } else if (firstAction && firstAction.includes('Sell to Close')) {
+        strategy = 'Long Option';
+      } else if (firstAction && firstAction.includes('Buy to Close')) {
+        strategy = 'Short Option';
+      }
+      
+      // Determine if closed (has both open and close actions)
+      // Check both 'Action' and 'Sub Type' columns
+      const hasOpen = transRows.some(r => {
+        const action = r['Action'] || '';
+        const subType = r['Sub Type'] || '';
+        return action.includes('OPEN') || subType.includes('Open');
+      });
+      const hasClose = transRows.some(r => {
+        const action = r['Action'] || '';
+        const subType = r['Sub Type'] || '';
+        return action.includes('CLOSE') || subType.includes('Close') || subType.includes('Assignment');
+      });
+      const isClosed = hasOpen && hasClose;
+      
+      // Debug: log detection for first few trades
+      if (bySymbol.size <= 5) {
+        console.log(`${symbol}: hasOpen=${hasOpen}, hasClose=${hasClose}, isClosed=${isClosed}, transactions=${transRows.length}`);
+      }
+      
+      const trade = {
+        Symbol: details.symbol,
+        Type: details.type,
+        Strategy: strategy,
+        Strike: details.strike,
+        Expiry: details.expiry,
+        Volume: Math.abs(parseInt(transRows[0]['Quantity']) || 1),
+        Entry: earliestDate,
+        Delta: 0,
+        Exit: isClosed ? latestDate : null,
+        Debit: debit,
+        Credit: credit,
+        Account: 'TastyTrade'
+      };
+      
+      trades.push(trade);
+    });
+    
+    return trades;
+  }
+
+  /**
+   * Convert TastyTrade CSV to internal format
+   */
+  convert(rows) {
+    console.log('=== TastyTrade Adapter Processing ===');
+    console.log('Total CSV rows:', rows.length);
+    
+    const trades = this.groupTransactions(rows);
+    console.log('\n=== Results ===');
+    console.log('Total trades created:', trades.length);
+    
+    const closedTrades = trades.filter(t => t.Exit !== null);
+    const openTrades = trades.filter(t => t.Exit === null);
+    
+    console.log('  - Closed trades:', closedTrades.length);
+    console.log('  - Open trades:', openTrades.length);
+    
+    // Log open trades for debugging
+    if (openTrades.length > 0) {
+      console.log('\n=== Open Trades ===');
+      openTrades.forEach(t => {
+        console.log(`${t.Symbol} ${t.Type} $${t.Strike} exp ${t.Expiry?.toLocaleDateString()} - Entry: ${t.Entry?.toLocaleDateString()}, Credit: $${t.Credit.toFixed(2)}, Debit: $${t.Debit.toFixed(2)}`);
+      });
+    }
+    
+    // Calculate total P/L
+    const totalPL = closedTrades.reduce((sum, t) => sum + (t.Credit - t.Debit), 0);
+    console.log('\n=== P/L Summary ===');
+    console.log('Total P/L from closed trades: $' + totalPL.toFixed(2));
+    
+    if (trades.length > 0) {
+      console.log('\nSample trade:', trades[0]);
+    }
+    
+    console.log('=================================\n');
     return trades;
   }
 }

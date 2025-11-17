@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test LIFO Matching with Real Data</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .error { color: red; }
+    .success { color: green; }
+    .warning { color: orange; }
+  </style>
+</head>
+<body>
+  <h1>Robinhood P/L Test</h1>
+  <div id="output"></div>
+  
+  <script src="js/broker-adapters.js"></script>
+  <script src="js/csv-parser.js"></script>
+  <script src="js/analytics-engine.js"></script>
+  
+  <script>
+    async function test() {
+      const output = document.getElementById('output');
+      
+      try {
+        // Fetch the CSV
+        const response = await fetch('../sample-data/Hood.csv');
+        const csvText = await response.text();
+        
+        // Parse
+        const parser = new CSVParser();
+        const trades = parser.parseCSVString(csvText);
+        
+        output.innerHTML += `<p>Parsed ${trades.length} trades</p>`;
+        
+        // Enrich
+        const analytics = new AnalyticsEngine();
+        const enrichedTrades = trades.map(t => analytics.enrichTrade(t));
+        
+        // Calculate P/L
+        const closedTrades = enrichedTrades.filter(t => t.Result !== 'Open');
+        const totalPL = closedTrades.reduce((sum, t) => sum + t.ProfitLoss, 0);
+        
+        output.innerHTML += `<p class="success">Calculated P/L: $${totalPL.toFixed(2)}</p>`;
+        output.innerHTML += `<p>Expected P/L: $-3,859.00</p>`;
+        output.innerHTML += `<p class="${Math.abs(totalPL - (-3859)) < 10 ? 'success' : 'error'}">Difference: $${(totalPL - (-3859)).toFixed(2)}</p>`;
+        
+        // Show partial trades
+        const partialTrades = enrichedTrades.filter(t => t.Note && t.Note.includes('incomplete'));
+        if (partialTrades.length > 0) {
+          output.innerHTML += `<p class="warning">Partial trades: ${partialTrades.length}</p>`;
+        }
+        
+      } catch (error) {
+        output.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+        console.error(error);
+      }
+    }
+    
+    test();
+  </script>
+</body>
+</html>

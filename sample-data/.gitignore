@@ -1,0 +1,7 @@
+# Ignore personal CSV files
+*.csv
+
+# Keep the sample files for testing
+!Hood.csv
+!Tasty.csv
+!sample-data-messy.csv

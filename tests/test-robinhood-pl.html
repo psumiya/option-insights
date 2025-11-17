@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robinhood P/L Verification Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .upload-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .metric {
+      padding: 15px;
+      margin: 10px 0;
+      background: #f0f0f0;
+      border-radius: 4px;
+      border-left: 4px solid #4CAF50;
+    }
+    .metric.negative {
+      border-left-color: #f44336;
+    }
+    .metric-label {
+      font-weight: bold;
+      color: #666;
+      font-size: 14px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    .trade-list {
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+    .positive {
+      color: #4CAF50;
+    }
+    .negative {
+      color: #f44336;
+    }
+    .log-section {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Robinhood P/L Verification Test</h1>
+    
+    <div class="upload-section">
+      <p><strong>Instructions:</strong> Upload your Robinhood CSV file to verify P/L calculations.</p>
+      <input type="file" id="fileInput" accept=".csv">
+      <button onclick="processFile()">Process File</button>
+    </div>
+
+    <div class="results" id="results" style="display: none;">
+      <h2>Results</h2>
+      
+      <div class="metric" id="totalPLMetric">
+        <div class="metric-label">Total P/L (Closed Trades)</div>
+        <div class="metric-value" id="totalPL">$0.00</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Total Trades Processed</div>
+        <div class="metric-value" id="totalTrades">0</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Closed Trades</div>
+        <div class="metric-value" id="closedTrades">0</div>
+      </div>
+
+      <div class="metric">
+        <div class="metric-label">Open Trades</div>
+        <div class="metric-value" id="openTrades">0</div>
+      </div>
+
+      <div class="metric" id="partialTradesMetric" style="display: none; border-left-color: #ff9800;">
+        <div class="metric-label">⚠️ Partial Trades (Unmatched Closes)</div>
+        <div class="metric-value" id="partialTrades">0</div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          These closing transactions don't have matching opens in your CSV.
+          The P/L may be incomplete.
+        </div>
+      </div>
+
+      <h3>Trade Details</h3>
+      <div class="trade-list">
+        <table id="tradeTable">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Type</th>
+              <th>Strategy</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th>Credit</th>
+              <th>Debit</th>
+              <th>P/L</th>
+            </tr>
+          </thead>
+          <tbody id="tradeTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="log-section" id="logSection">
+      <strong>Processing Log:</strong>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script src="js/broker-adapters.js"></script>
+  <script src="js/csv-parser.js"></script>
+  <script src="js/analytics-engine.js"></script>
+
+  <script>
+    const log = [];
+    
+    // Override console.log to capture logs
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    
+    console.log = function(...args) {
+      log.push('[LOG] ' + args.join(' '));
+      updateLog();
+      originalLog.apply(console, args);
+    };
+    
+    console.warn = function(...args) {
+      log.push('[WARN] ' + args.join(' '));
+      updateLog();
+      originalWarn.apply(console, args);
+    };
+
+    function updateLog() {
+      document.getElementById('log').innerHTML = log.join('<br>');
+      document.getElementById('logSection').scrollTop = document.getElementById('logSection').scrollHeight;
+    }
+
+    async function processFile() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('Please select a file first');
+        return;
+      }
+
+      log.length = 0;
+      console.log('Processing file:', file.name);
+
+      try {
+        const parser = new CSVParser();
+        const trades = await parser.parse(file);
+        
+        console.log('Parsed', trades.length, 'trades');
+
+        // Enrich trades
+        const analytics = new AnalyticsEngine();
+        const enrichedTrades = trades.map(trade => analytics.enrichTrade(trade));
+        
+        // Calculate metrics
+        const closedTrades = enrichedTrades.filter(t => t.Result !== 'Open');
+        const openTrades = enrichedTrades.filter(t => t.Result === 'Open');
+        const partialTrades = enrichedTrades.filter(t => t.Note && t.Note.includes('incomplete'));
+        const totalPL = closedTrades.reduce((sum, t) => sum + t.ProfitLoss, 0);
+
+        // Display results
+        document.getElementById('results').style.display = 'block';
+        document.getElementById('totalPL').textContent = '$' + totalPL.toFixed(2);
+        document.getElementById('totalTrades').textContent = enrichedTrades.length;
+        document.getElementById('closedTrades').textContent = closedTrades.length;
+        document.getElementById('openTrades').textContent = openTrades.length;
+        
+        // Show partial trades warning if any
+        if (partialTrades.length > 0) {
+          document.getElementById('partialTradesMetric').style.display = 'block';
+          document.getElementById('partialTrades').textContent = partialTrades.length;
+        } else {
+          document.getElementById('partialTradesMetric').style.display = 'none';
+        }
+
+        // Update metric styling
+        const totalPLMetric = document.getElementById('totalPLMetric');
+        if (totalPL < 0) {
+          totalPLMetric.classList.add('negative');
+        } else {
+          totalPLMetric.classList.remove('negative');
+        }
+
+        // Display trade table
+        const tbody = document.getElementById('tradeTableBody');
+        tbody.innerHTML = '';
+        
+        enrichedTrades.forEach(trade => {
+          const row = tbody.insertRow();
+          const isPartial = trade.Note && trade.Note.includes('incomplete');
+          
+          row.innerHTML = `
+            <td>${trade.Symbol}${isPartial ? ' ⚠️' : ''}</td>
+            <td>${trade.Type}</td>
+            <td>${trade.Strategy}</td>
+            <td>${trade.Entry ? new Date(trade.Entry).toLocaleDateString() : '-'}</td>
+            <td>${trade.Exit ? new Date(trade.Exit).toLocaleDateString() : 'Open'}</td>
+            <td>$${trade.Credit.toFixed(2)}</td>
+            <td>$${trade.Debit.toFixed(2)}</td>
+            <td class="${trade.ProfitLoss >= 0 ? 'positive' : 'negative'}">
+              $${trade.ProfitLoss.toFixed(2)}${isPartial ? ' *' : ''}
+            </td>
+          `;
+          
+          if (isPartial) {
+            row.style.backgroundColor = '#fff3cd';
+            row.title = trade.Note;
+          }
+        });
+
+        console.log('Processing complete!');
+        console.log('Expected P/L from Robinhood: (enter your value here)');
+        console.log('Calculated P/L: $' + totalPL.toFixed(2));
+        console.log('Difference: Check if these match!');
+
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert('Error: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

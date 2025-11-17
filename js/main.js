@@ -20,8 +20,6 @@ let currentSortDirection = 'desc'; // Descending by default
  * Initialize application on page load
  */
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Options Trading Journal - Initializing...');
-  
   // Initialize core components
   dataStore = new DataStore();
   analyticsEngine = new AnalyticsEngine();
@@ -45,8 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Load and apply persisted filters (Requirement 3.2)
   loadFilters();
-  
-  console.log('Options Trading Journal - Ready');
 });
 
 /**
@@ -77,83 +73,51 @@ function setupEventListeners() {
   const tableHeaders = document.querySelectorAll('#symbol-strategy-table th.sortable');
   
   // Upload button click - show upload zone
-  if (uploadBtn) {
+  if (uploadBtn && uploadZone) {
     uploadBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       uploadZone.classList.remove('hidden');
     });
-    // Add touchend for iOS compatibility
-    uploadBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      uploadZone.classList.remove('hidden');
-    }, { passive: false });
   }
   
   // Empty state upload button
-  if (emptyStateUploadBtn) {
+  if (emptyStateUploadBtn && uploadZone) {
     emptyStateUploadBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       uploadZone.classList.remove('hidden');
     });
-    // Add touchend for iOS compatibility
-    emptyStateUploadBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      uploadZone.classList.remove('hidden');
-    }, { passive: false });
   }
   
   // Demo data button handlers
   if (demoDataBtn) {
-    // Add both click and touchend for iOS compatibility
     demoDataBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleDemoDataLoad();
     });
-    demoDataBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      handleDemoDataLoad();
-    }, { passive: false });
   }
   
   if (emptyStateDemoBtn) {
-    // Add both click and touchend for iOS compatibility
     emptyStateDemoBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleDemoDataLoad();
     });
-    emptyStateDemoBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      handleDemoDataLoad();
-    }, { passive: false });
   }
   
   // Close upload zone
-  if (closeUploadBtn) {
+  if (closeUploadBtn && uploadZone) {
     closeUploadBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       uploadZone.classList.add('hidden');
     });
-    // Add touchend for iOS compatibility
-    closeUploadBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      uploadZone.classList.add('hidden');
-    }, { passive: false });
   }
   
-  // Browse files button
-  if (browseBtn) {
-    browseBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      fileInput.click();
-    });
-    // Add touchend for iOS compatibility
-    browseBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      fileInput.click();
-    }, { passive: false });
-  }
+  // Browse files button - now handled by label for="file-input"
+  // No JavaScript needed - native HTML label behavior
   
   // File input change - handle file upload (Requirement 1.5)
   if (fileInput) {
@@ -192,40 +156,26 @@ function setupEventListeners() {
     
     // Add click handler for mobile devices (iOS doesn't support drag/drop well)
     dropZone.addEventListener('click', (e) => {
-      // Only trigger if not clicking the browse button
-      if (e.target !== browseBtn && !browseBtn.contains(e.target)) {
-        e.preventDefault();
-        fileInput.click();
+      // Only trigger if not clicking the browse button/label
+      if (e.target !== browseBtn && !browseBtn.contains(e.target) && e.target.id !== 'browse-btn') {
+        // Trigger the label click which will open file picker
+        if (browseBtn) {
+          browseBtn.click();
+        }
       }
     });
-    
-    // Add touchend for iOS
-    dropZone.addEventListener('touchend', (e) => {
-      // Only trigger if not clicking the browse button
-      if (e.target !== browseBtn && !browseBtn.contains(e.target)) {
-        e.preventDefault();
-        fileInput.click();
-      }
-    }, { passive: false });
   }
   
   // Reload data button - clear data and show upload (Requirement 1.5)
-  if (reloadBtn) {
+  if (reloadBtn && uploadZone) {
     reloadBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (confirm('This will clear all current data. Are you sure?')) {
         dashboardController.clearData();
         uploadZone.classList.remove('hidden');
       }
     });
-    // Add touchend for iOS compatibility
-    reloadBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      if (confirm('This will clear all current data. Are you sure?')) {
-        dashboardController.clearData();
-        uploadZone.classList.remove('hidden');
-      }
-    }, { passive: false });
   }
   
   // Date range filter - immediate update (Requirements 8.1, 8.2, 8.3, 8.4)
@@ -430,8 +380,6 @@ function formatCurrency(value) {
  * Generates and loads sample trading data
  */
 function handleDemoDataLoad() {
-  console.log('Loading demo data...');
-  
   // Generate demo trades (100 trades over the past year)
   const demoTrades = demoDataGenerator.generate(100, 365);
   
@@ -448,9 +396,8 @@ function handleDemoDataLoad() {
   // Save to data store
   try {
     dataStore.saveTrades(enrichedTrades);
-    console.log('✓ Demo data saved to localStorage');
   } catch (storageError) {
-    console.warn('✗ Failed to save demo data to localStorage:', storageError);
+    console.warn('Failed to save demo data to localStorage:', storageError);
   }
   
   // Update dashboard controller

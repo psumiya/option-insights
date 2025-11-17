@@ -49,11 +49,9 @@ class HeatmapCalendarChart {
     // Clear any existing content
     this.container.innerHTML = '';
 
-    // Create SVG
+    // Create SVG (dimensions will be set during render)
     this.svg = d3.select(`#${this.containerId}`)
       .append('svg')
-      .attr('width', '100%')
-      .attr('height', '100%')
       .attr('class', 'heatmap-calendar-svg');
 
     // Create main group for chart content
@@ -125,8 +123,7 @@ class HeatmapCalendarChart {
   _render() {
     // Get container dimensions
     const containerRect = this.container.getBoundingClientRect();
-    this.width = Math.max(containerRect.width - this.margin.left - this.margin.right, 200);
-    this.height = Math.max(containerRect.height - this.margin.top - this.margin.bottom, 200);
+    const containerHeight = Math.max(containerRect.height - this.margin.top - this.margin.bottom, 200);
 
     // Process data and calculate date range (Requirement 3.6)
     this._processData();
@@ -138,23 +135,27 @@ class HeatmapCalendarChart {
       d3.timeWeek.ceil(this.endDate)
     ));
     
-    // Calculate cell size to fit the container
-    // Prioritize using available height to make calendar taller
-    const availableHeightPerCell = this.height / 5;
-    const availableWidthPerCell = this.width / numWeeks;
-    
-    // Use height-based sizing, but cap it if it would overflow width
+    // Use height-based sizing to maximize cell size
+    const availableHeightPerCell = containerHeight / 5;
     let targetCellSize = Math.floor(availableHeightPerCell - this.cellGap);
-    
-    // Check if this would overflow the width
-    const totalWidth = numWeeks * (targetCellSize + this.cellGap);
-    if (totalWidth > this.width) {
-      // Fall back to width-based sizing
-      targetCellSize = Math.floor(availableWidthPerCell - this.cellGap);
-    }
     
     // Apply min/max constraints - increased for text visibility
     this.cellSize = Math.min(Math.max(targetCellSize, 60), 120);
+    
+    // Calculate actual width needed for the calendar
+    const calendarWidth = numWeeks * (this.cellSize + this.cellGap);
+    
+    // Set width to the larger of container width or calendar width (allows horizontal scroll)
+    this.width = Math.max(calendarWidth, containerRect.width - this.margin.left - this.margin.right);
+    this.height = containerHeight;
+    
+    // Update SVG dimensions to accommodate full calendar
+    const totalSvgWidth = this.width + this.margin.left + this.margin.right;
+    const totalSvgHeight = this.height + this.margin.top + this.margin.bottom;
+    
+    this.svg
+      .attr('width', totalSvgWidth)
+      .attr('height', totalSvgHeight);
 
     // Update color scale domain based on P/L range
     const plValues = this.processedData.map(d => d.pl);

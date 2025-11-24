@@ -12,8 +12,7 @@ class BrokerAdapter {
    * @returns {string} - Broker name: 'robinhood', 'tasty', 'generic'
    */
   static detectBroker(headers, firstRow) {
-    const headerStr = headers.join(',').toLowerCase();
-    console.log('detectBroker ' + headerStr);
+    const headerStr = headers.join(',').toLowerCase();    
     
     // Robinhood detection
     if (headerStr.includes('activity date') && 

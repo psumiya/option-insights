@@ -13,6 +13,7 @@ class BrokerAdapter {
    */
   static detectBroker(headers, firstRow) {
     const headerStr = headers.join(',').toLowerCase();
+    console.log('detectBroker ' + headerStr);
     
     // Robinhood detection
     if (headerStr.includes('activity date') && 
@@ -339,241 +340,34 @@ class RobinhoodAdapter {
 /**
  * Tasty Adapter
  * Converts TastyTrade CSV to internal trade format
- * Simple approach: Filter Type=Trade, group by Symbol, sum Total
+ * Uses advanced strategy inference logic from tastyAdapter.js
  */
 class TastyAdapter {
   /**
-   * Parse Tasty date format
-   */
-  _parseDate(dateStr) {
-    if (!dateStr) return null;
-    
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      return date;
-    }
-    
-    return null;
-  }
-
-  /**
-   * Parse amount (remove $ and commas)
-   */
-  _parseAmount(amountStr) {
-    if (!amountStr) return 0;
-    
-    let cleaned = amountStr.replace(/[$,]/g, '');
-    
-    if (cleaned.includes('(') || cleaned.includes(')')) {
-      cleaned = cleaned.replace(/[()]/g, '');
-      return -parseFloat(cleaned);
-    }
-    
-    return parseFloat(cleaned);
-  }
-
-  /**
-   * Parse option details from TastyTrade Symbol
-   * Format: "SYMBOL  YYMMDDCPPPPPPPP" (e.g., "META  251219C00715000")
-   */
-  parseSymbol(symbol) {
-    if (!symbol) return null;
-    
-    // Extract underlying symbol (before spaces)
-    const parts = symbol.trim().split(/\s+/);
-    const underlying = parts[0];
-    
-    // Try to extract expiry, strike, type from the option code
-    // Format: YYMMDD C/P STRIKE (e.g., 251219C00715000)
-    const optionCode = parts[1] || '';
-    
-    let expiry = null;
-    let type = 'Unknown';
-    let strike = 0;
-    
-    if (optionCode.length >= 15) {
-      // Parse date: YYMMDD
-      const yy = optionCode.substring(0, 2);
-      const mm = optionCode.substring(2, 4);
-      const dd = optionCode.substring(4, 6);
-      expiry = new Date(`20${yy}-${mm}-${dd}`);
-      
-      // Parse type: C or P
-      type = optionCode.charAt(6) === 'C' ? 'Call' : 'Put';
-      
-      // Parse strike: remaining digits / 1000
-      const strikeStr = optionCode.substring(7);
-      strike = parseInt(strikeStr) / 1000;
-    }
-    
-    return {
-      symbol: underlying,
-      expiry,
-      type,
-      strike
-    };
-  }
-
-  /**
-   * Group TastyTrade transactions into trades
-   * Simple approach: Filter Type=Trade, group by Symbol, sum Total
-   */
-  groupTransactions(rows) {
-    const trades = [];
-    
-    // Step 2: Filter to Type = Trade
-    const tradeRows = rows.filter(row => {
-      const type = row['Type'] || '';
-      return type === 'Trade' || type === 'Receive Deliver';
-    });
-    
-    console.log(`Filtered ${rows.length} rows to ${tradeRows.length} trade rows`);
-    
-    // Step 3: Group by Symbol (the full option symbol)
-    const bySymbol = new Map();
-    tradeRows.forEach(row => {
-      const symbol = row['Symbol'] || 'UNKNOWN';
-      
-      if (!bySymbol.has(symbol)) {
-        bySymbol.set(symbol, []);
-      }
-      bySymbol.get(symbol).push(row);
-    });
-    
-    console.log(`Unique symbols: ${bySymbol.size}`);
-    
-    // Step 4: For each symbol, sum the Total
-    bySymbol.forEach((transRows, symbol) => {
-      let totalAmount = 0;
-      let earliestDate = null;
-      let latestDate = null;
-      let firstAction = null;
-      
-      transRows.forEach(row => {
-        const totalStr = row['Total'] || '0';
-        const amount = this._parseAmount(totalStr);
-        const date = this._parseDate(row['Date']);
-        const action = row['Action'] || row['Sub Type'] || '';
-        
-        if (!firstAction) {
-          firstAction = action;
-        }
-        
-        totalAmount += amount;
-        
-        if (!earliestDate || (date && date < earliestDate)) {
-          earliestDate = date;
-        }
-        if (!latestDate || (date && date > latestDate)) {
-          latestDate = date;
-        }
-      });
-      
-      // Parse symbol details
-      const details = this.parseSymbol(symbol);
-      
-      // Determine credit/debit
-      let credit = 0;
-      let debit = 0;
-      
-      if (totalAmount > 0) {
-        credit = totalAmount;
-      } else {
-        debit = Math.abs(totalAmount);
-      }
-      
-      // Determine strategy from first action
-      let strategy = 'Unknown';
-      if (firstAction && firstAction.includes('Sell to Open')) {
-        strategy = 'Short Option';
-      } else if (firstAction && firstAction.includes('Buy to Open')) {
-        strategy = 'Long Option';
-      } else if (firstAction && firstAction.includes('Sell to Close')) {
-        strategy = 'Long Option';
-      } else if (firstAction && firstAction.includes('Buy to Close')) {
-        strategy = 'Short Option';
-      }
-      
-      // Determine if closed (has both open and close actions)
-      // Check both 'Action' and 'Sub Type' columns
-      const hasOpen = transRows.some(r => {
-        const action = r['Action'] || '';
-        const subType = r['Sub Type'] || '';
-        return action.includes('OPEN') || subType.includes('Open');
-      });
-      const hasClose = transRows.some(r => {
-        const action = r['Action'] || '';
-        const subType = r['Sub Type'] || '';
-        return action.includes('CLOSE') || subType.includes('Close') || subType.includes('Assignment');
-      });
-      const isClosed = hasOpen && hasClose;
-      
-      // Debug: log detection for first few trades
-      if (bySymbol.size <= 5) {
-        console.log(`${symbol}: hasOpen=${hasOpen}, hasClose=${hasClose}, isClosed=${isClosed}, transactions=${transRows.length}`);
-      }
-      
-      const trade = {
-        Symbol: details.symbol,
-        Type: details.type,
-        Strategy: strategy,
-        Strike: details.strike,
-        Expiry: details.expiry,
-        Volume: Math.abs(parseInt(transRows[0]['Quantity']) || 1),
-        Entry: earliestDate,
-        Delta: 0,
-        Exit: isClosed ? latestDate : null,
-        Debit: debit,
-        Credit: credit,
-        Account: 'TastyTrade'
-      };
-      
-      trades.push(trade);
-    });
-    
-    return trades;
-  }
-
-  /**
    * Convert TastyTrade CSV to internal format
+   * Uses strategy inference logic to properly identify multi-leg strategies
    */
   convert(rows) {
-    console.log('=== TastyTrade Adapter Processing ===');
-    console.log('Total CSV rows:', rows.length);
-    
-    const trades = this.groupTransactions(rows);
-    console.log('\n=== Results ===');
-    console.log('Total trades created:', trades.length);
-    
-    const closedTrades = trades.filter(t => t.Exit !== null);
-    const openTrades = trades.filter(t => t.Exit === null);
-    
-    console.log('  - Closed trades:', closedTrades.length);
-    console.log('  - Open trades:', openTrades.length);
-    
-    // Log open trades for debugging
-    if (openTrades.length > 0) {
-      console.log('\n=== Open Trades ===');
-      openTrades.forEach(t => {
-        console.log(`${t.Symbol} ${t.Type} $${t.Strike} exp ${t.Expiry?.toLocaleDateString()} - Entry: ${t.Entry?.toLocaleDateString()}, Credit: $${t.Credit.toFixed(2)}, Debit: $${t.Debit.toFixed(2)}`);
-      });
+    // Check if the strategy mapper is available (loaded via script tag)
+    if (typeof TastyStrategyMapper !== 'undefined' && TastyStrategyMapper.convertTastyWithStrategyInference) {
+      return TastyStrategyMapper.convertTastyWithStrategyInference(rows);
     }
     
-    // Calculate total P/L
-    const totalPL = closedTrades.reduce((sum, t) => sum + (t.Credit - t.Debit), 0);
-    console.log('\n=== P/L Summary ===');
-    console.log('Total P/L from closed trades: $' + totalPL.toFixed(2));
-    
-    if (trades.length > 0) {
-      console.log('\nSample trade:', trades[0]);
-    }
-    
-    console.log('=================================\n');
-    return trades;
+    // Fallback: if mapper not available, return empty array with warning
+    console.error('TastyStrategyMapper not loaded. Please ensure tasty-strategy-mapper.js is included before broker-adapters.js');
+    return [];
   }
 }
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { BrokerAdapter, RobinhoodAdapter, TastyAdapter, GenericAdapter };
+}
+
+// Make available globally for browser usage
+if (typeof window !== 'undefined') {
+  window.BrokerAdapter = BrokerAdapter;
+  window.RobinhoodAdapter = RobinhoodAdapter;
+  window.TastyAdapter = TastyAdapter;
+  window.GenericAdapter = GenericAdapter;
 }

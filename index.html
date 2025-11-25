@@ -6,7 +6,7 @@
     <title>My Options Insights</title>
     
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="lib/tailwind.min.css">
+    <script src="lib/tailwind.min.js"></script>
     
     <!-- D3.js -->
     <script src="lib/d3.v7.min.js"></script>
@@ -117,15 +117,19 @@
             </section>
 
             <!-- Trade Flow (Sankey Diagram) - Full Width -->
-            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
+            <section id="trade-flow-chart-section" class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
                 <h2 class="text-lg font-semibold mb-4">Trade Flow</h2>
-                <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
+                <div class="chart-container-scrollable">
+                    <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
+                </div>
             </section>
 
             <!-- P/L Trend Chart (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
                 <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
-                <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
+                <div class="chart-container-scrollable">
+                    <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
+                </div>
             </section>
 
             <!-- Win Rate and P/L by Strategy (2 Column Grid) -->
@@ -155,7 +159,9 @@
             <!-- P/L by Symbol (Full Width) -->
             <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
                 <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
-                <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
+                <div class="chart-container-scrollable">
+                    <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
+                </div>
             </section>
 
             <!-- Advanced Visualizations Panel (Full Width) -->

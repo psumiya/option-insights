@@ -253,6 +253,33 @@ input[type="file"] {
     position: relative;
 }
 
+/* Scrollable chart containers for mobile */
+.chart-container-scrollable {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* On mobile, set minimum width to enable horizontal scrolling */
+@media (max-width: 767px) {
+    .chart-container-scrollable {
+        min-width: 100%;
+    }
+    
+    .chart-container-scrollable .chart-container {
+        min-width: 800px; /* Ensures charts are wide enough to scroll */
+    }
+    
+    /* Larger minimum width for complex visualizations */
+    #trade-flow-chart {
+        min-width: 1000px;
+    }
+    
+    #symbol-pl-chart {
+        min-width: 900px;
+    }
+}
+
 /* Larger chart for P/L trend */
 #pl-trend-chart {
     min-height: 400px;
@@ -270,6 +297,21 @@ input[type="file"] {
 #symbol-pl-chart {
     height: 600px;
     min-height: 600px;
+}
+
+/* Add this new rule for the trade flow chart specifically */
+#trade-flow-chart-section {
+    width: 100%;
+    min-width: 800px; /* Ensures chart is wide enough to scroll on mobile */
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* On mobile, allow the section to scroll */
+@media (max-width: 767px) {
+    #trade-flow-chart-section {
+        min-width: 1000px; /* Even wider on mobile for better visualization */
+    }
 }
 
 /* ============================================

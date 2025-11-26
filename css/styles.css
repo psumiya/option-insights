@@ -266,7 +266,8 @@ button {
     color: var(--color-text-secondary);
     background-color: transparent;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
+    border-bottom: 2px solid transparent;
+    border-radius: 6px 6px 0 0;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
@@ -286,9 +287,16 @@ button {
 }
 
 .filter-btn.active {
-    background-color: var(--color-accent);
-    border-color: var(--color-accent);
-    color: #ffffff;
+    color: var(--color-text-primary);
+    border-bottom-color: var(--color-accent);
+}
+
+[data-theme="dark"] .filter-btn.active {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="light"] .filter-btn.active {
+    background-color: rgba(37, 99, 235, 0.08);
 }
 
 .filter-btn:active {
@@ -900,7 +908,8 @@ input[type="file"] {
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 4px;
+    border-bottom: 2px solid transparent;
+    border-radius: 4px 4px 0 0;
     background: transparent;
     color: var(--color-text-secondary);
     transition: all 0.2s ease;
@@ -912,13 +921,28 @@ input[type="file"] {
 }
 
 .theme-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
     color: var(--color-text-primary);
 }
 
+[data-theme="dark"] .theme-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .theme-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .theme-btn.active {
-    background: var(--color-accent);
-    color: #ffffff;
+    color: var(--color-text-primary);
+    border-bottom-color: var(--color-accent);
+}
+
+[data-theme="dark"] .theme-btn.active {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="light"] .theme-btn.active {
+    background: rgba(37, 99, 235, 0.08);
 }
 
 .theme-btn:active {

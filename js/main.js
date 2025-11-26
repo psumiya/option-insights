@@ -73,9 +73,6 @@ function setupEventListeners() {
   const demoDataBtn = document.getElementById('demo-data-btn');
   const emptyStateDemoBtn = document.getElementById('empty-state-demo-btn');
   
-  // Reload data button
-  const reloadBtn = document.getElementById('reload-btn');
-  
   // Filter button groups
   const filterButtons = document.querySelectorAll('.filter-btn');
   
@@ -193,18 +190,6 @@ function setupEventListeners() {
         if (browseBtn) {
           browseBtn.click();
         }
-      }
-    });
-  }
-  
-  // Reload data button - clear data and show upload (Requirement 1.5)
-  if (reloadBtn && uploadZone) {
-    reloadBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (confirm('This will clear all current data. Are you sure?')) {
-        dashboardController.clearData();
-        uploadZone.classList.remove('hidden');
       }
     });
   }
@@ -566,7 +551,6 @@ function setupActionsMenu() {
   const menu = document.getElementById('actions-menu');
   const menuDemoBtn = document.getElementById('menu-demo-data-btn');
   const menuUploadBtn = document.getElementById('menu-upload-btn');
-  const menuReloadBtn = document.getElementById('menu-reload-btn');
   const uploadZone = document.getElementById('upload-zone');
   
   if (!menuBtn || !menu) return;
@@ -601,17 +585,6 @@ function setupActionsMenu() {
       menu.classList.add('hidden');
       menuBtn.setAttribute('aria-expanded', 'false');
       uploadZone.classList.remove('hidden');
-    });
-  }
-  
-  if (menuReloadBtn && uploadZone) {
-    menuReloadBtn.addEventListener('click', () => {
-      menu.classList.add('hidden');
-      menuBtn.setAttribute('aria-expanded', 'false');
-      if (confirm('This will clear all current data. Are you sure?')) {
-        dashboardController.clearData();
-        uploadZone.classList.remove('hidden');
-      }
     });
   }
 }

@@ -76,9 +76,8 @@ function setupEventListeners() {
   // Reload data button
   const reloadBtn = document.getElementById('reload-btn');
   
-  // Filter controls
-  const dateRangeFilter = document.getElementById('date-range-filter');
-  const positionStatusFilter = document.getElementById('position-status-filter');
+  // Filter button groups
+  const filterButtons = document.querySelectorAll('.filter-btn');
   
   // Table headers for sorting
   const tableHeaders = document.querySelectorAll('#symbol-strategy-table th.sortable');
@@ -189,19 +188,29 @@ function setupEventListeners() {
     });
   }
   
-  // Date range filter - immediate update (Requirements 8.1, 8.2, 8.3, 8.4)
-  if (dateRangeFilter) {
-    dateRangeFilter.addEventListener('change', () => {
+  // Filter button clicks - immediate update (Requirements 8.1, 8.2, 8.3, 8.4, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6)
+  filterButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const filterType = button.getAttribute('data-filter');
+      const filterValue = button.getAttribute('data-value');
+      
+      // Update active state for buttons in the same group
+      const groupButtons = document.querySelectorAll(`[data-filter="${filterType}"]`);
+      groupButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-checked', 'false');
+      });
+      
+      button.classList.add('active');
+      button.setAttribute('aria-checked', 'true');
+      
+      // Trigger filter change
       handleFilterChange();
     });
-  }
-  
-  // Position status filter - immediate update (Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6)
-  if (positionStatusFilter) {
-    positionStatusFilter.addEventListener('change', () => {
-      handleFilterChange();
-    });
-  }
+  });
   
   // Table header sorting (Requirements 7.3, 7.4)
   tableHeaders.forEach(header => {
@@ -250,16 +259,17 @@ async function handleFileUpload(file) {
  * Requirements: 8.3, 9.6
  */
 function handleFilterChange() {
-  const dateRangeFilter = document.getElementById('date-range-filter');
-  const positionStatusFilter = document.getElementById('position-status-filter');
+  // Get active filter values from buttons
+  const activeDateRangeBtn = document.querySelector('[data-filter="date-range"].active');
+  const activePositionStatusBtn = document.querySelector('[data-filter="position-status"].active');
   
   const filters = {
     dateRange: {
-      type: dateRangeFilter.value,
+      type: activeDateRangeBtn ? activeDateRangeBtn.getAttribute('data-value') : 'alltime',
       startDate: null, // Calculated by analytics engine
       endDate: null
     },
-    positionStatus: positionStatusFilter.value
+    positionStatus: activePositionStatusBtn ? activePositionStatusBtn.getAttribute('data-value') : 'all'
   };
   
   // Pass to dashboard controller (with debouncing)
@@ -273,15 +283,31 @@ function handleFilterChange() {
 function loadFilters() {
   const filters = dataStore.getFilters();
   
-  const dateRangeFilter = document.getElementById('date-range-filter');
-  const positionStatusFilter = document.getElementById('position-status-filter');
-  
-  if (dateRangeFilter && filters.dateRange) {
-    dateRangeFilter.value = filters.dateRange.type;
+  // Set active state on filter buttons based on persisted values
+  if (filters.dateRange && filters.dateRange.type) {
+    const dateRangeButtons = document.querySelectorAll('[data-filter="date-range"]');
+    dateRangeButtons.forEach(btn => {
+      if (btn.getAttribute('data-value') === filters.dateRange.type) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-checked', 'true');
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-checked', 'false');
+      }
+    });
   }
   
-  if (positionStatusFilter && filters.positionStatus) {
-    positionStatusFilter.value = filters.positionStatus;
+  if (filters.positionStatus) {
+    const positionStatusButtons = document.querySelectorAll('[data-filter="position-status"]');
+    positionStatusButtons.forEach(btn => {
+      if (btn.getAttribute('data-value') === filters.positionStatus) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-checked', 'true');
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-checked', 'false');
+      }
+    });
   }
 }
 

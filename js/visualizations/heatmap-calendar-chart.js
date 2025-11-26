@@ -21,7 +21,7 @@ class HeatmapCalendarChart {
 
     // Chart configuration
     this.margin = { top: 80, right: 120, bottom: 20, left: 120 };
-    this.cellSize = 80; // Increased for text visibility
+    this.cellSize = 100; // Increased for text visibility on desktop
     this.cellGap = 4;
     this.options = {
       monthsToShow: 12,
@@ -142,7 +142,9 @@ class HeatmapCalendarChart {
     let targetCellSize = Math.floor(availableHeightForCells / 5);
     
     // Apply min/max constraints - increased for text visibility
-    this.cellSize = Math.min(Math.max(targetCellSize, 60), 120);
+    // Use larger minimum on desktop (80px) vs mobile (60px)
+    const minCellSize = window.innerWidth >= 768 ? 80 : 60;
+    this.cellSize = Math.min(Math.max(targetCellSize, minCellSize), 140);
     
     // Calculate actual width needed for the calendar
     const calendarWidth = numWeeks * (this.cellSize + this.cellGap);
@@ -183,11 +185,24 @@ class HeatmapCalendarChart {
    */
   _processData() {
     // Convert dates to Date objects and sort
-    this.processedData = this.data.map(d => ({
-      date: d.date instanceof Date ? d.date : new Date(d.date),
-      pl: d.pl,
-      tradeCount: d.tradeCount
-    })).sort((a, b) => a.date - b.date);
+    // Ensure dates are parsed in local timezone to avoid day-of-week shifts
+    this.processedData = this.data.map(d => {
+      let date;
+      if (d.date instanceof Date) {
+        date = d.date;
+      } else if (typeof d.date === 'string') {
+        // Parse YYYY-MM-DD in local timezone
+        const parts = d.date.split('-');
+        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+      } else {
+        date = new Date(d.date);
+      }
+      return {
+        date: date,
+        pl: d.pl,
+        tradeCount: d.tradeCount
+      };
+    }).sort((a, b) => a.date - b.date);
 
     // Filter to last N months (Requirement 3.6)
     const endDate = new Date(Math.max(...this.processedData.map(d => d.date)));
@@ -207,10 +222,14 @@ class HeatmapCalendarChart {
       this.startDate.setMonth(this.startDate.getMonth() - this.options.monthsToShow);
     }
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup using local timezone
     this.dataMap = new Map();
     this.processedData.forEach(d => {
-      const dateKey = d3.timeFormat('%Y-%m-%d')(d.date);
+      // Format date in local timezone
+      const year = d.date.getFullYear();
+      const month = String(d.date.getMonth() + 1).padStart(2, '0');
+      const day = String(d.date.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
       this.dataMap.set(dateKey, d);
     });
   }
@@ -234,7 +253,11 @@ class HeatmapCalendarChart {
         return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday and Saturday
       })
       .map(date => {
-        const dateKey = d3.timeFormat('%Y-%m-%d')(date);
+        // Format date in local timezone for lookup
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${day}`;
         const data = this.dataMap.get(dateKey);
         
         // Calculate week-based position
@@ -320,7 +343,11 @@ class HeatmapCalendarChart {
         return dayOfWeek !== 0 && dayOfWeek !== 6;
       })
       .map(date => {
-        const dateKey = d3.timeFormat('%Y-%m-%d')(date);
+        // Format date in local timezone for lookup
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateKey = `${year}-${month}-${day}`;
         const data = this.dataMap.get(dateKey);
         
         const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), date);

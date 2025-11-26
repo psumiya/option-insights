@@ -236,6 +236,92 @@ button {
     border-color: var(--color-accent);
 }
 
+/* ============================================
+   Filter Button Groups
+   ============================================ */
+.filter-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filter-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-right: 4px;
+}
+
+.filter-button-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    /* iOS Safari fixes */
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.filter-btn:hover {
+    background-color: var(--color-surface);
+    border-color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+}
+
+.filter-btn.active {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+}
+
+.filter-btn:active {
+    transform: scale(0.97);
+}
+
+.filter-btn:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* Mobile responsive */
+@media (max-width: 767px) {
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .filter-label {
+        font-size: 13px;
+    }
+    
+    .filter-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .filter-button-group {
+        gap: 4px;
+    }
+}
+
 /* File input styling for iOS */
 input[type="file"] {
     /* iOS Safari fixes */

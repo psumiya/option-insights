@@ -8,6 +8,7 @@ This file contains standards and guidelines that Kiro will follow when working i
 - Follow language-specific best practices
 
 ## Testing
+- Ensure there is no regression when a change is proposed.
 - Write tests for core functionality
 - Focus on unit tests for critical business logic
 - Keep tests maintainable and focused

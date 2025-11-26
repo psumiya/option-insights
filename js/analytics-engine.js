@@ -429,12 +429,16 @@ class AnalyticsEngine {
       const exitDate = this._parseDate(trade.Exit);
       if (!exitDate) return;
 
-      // Format as YYYY-MM-DD
-      const dateKey = exitDate.toISOString().split('T')[0];
+      // Format as YYYY-MM-DD using local timezone
+      const year = exitDate.getFullYear();
+      const month = String(exitDate.getMonth() + 1).padStart(2, '0');
+      const day = String(exitDate.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${day}`;
       
       if (!dailyMap.has(dateKey)) {
+        // Create date in local timezone at noon to avoid timezone shifts
         dailyMap.set(dateKey, {
-          date: new Date(dateKey),
+          date: new Date(year, exitDate.getMonth(), exitDate.getDate(), 12, 0, 0),
           pl: 0,
           tradeCount: 0
         });

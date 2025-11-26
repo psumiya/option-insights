@@ -82,6 +82,27 @@ function setupEventListeners() {
   // Table headers for sorting
   const tableHeaders = document.querySelectorAll('#symbol-strategy-table th.sortable');
   
+  // Filters toggle
+  const filtersToggle = document.getElementById('filters-toggle');
+  const filtersContent = document.getElementById('filters-content');
+  const filtersIcon = document.getElementById('filters-icon');
+  
+  // Set up filters toggle
+  if (filtersToggle && filtersContent && filtersIcon) {
+    filtersToggle.addEventListener('click', () => {
+      const isExpanded = filtersToggle.getAttribute('aria-expanded') === 'true';
+      filtersToggle.setAttribute('aria-expanded', !isExpanded);
+      filtersContent.classList.toggle('expanded');
+      filtersIcon.classList.toggle('expanded');
+    });
+  }
+  
+  // Set up compact header on scroll
+  setupCompactHeader();
+  
+  // Set up actions menu
+  setupActionsMenu();
+  
   // Upload button click - show upload zone
   if (uploadBtn && uploadZone) {
     uploadBtn.addEventListener('click', (e) => {
@@ -207,6 +228,9 @@ function setupEventListeners() {
       button.classList.add('active');
       button.setAttribute('aria-checked', 'true');
       
+      // Update filter summary
+      updateFilterSummary();
+      
       // Trigger filter change
       handleFilterChange();
     });
@@ -252,6 +276,12 @@ async function handleFileUpload(file) {
   
   // Pass to dashboard controller
   await dashboardController.handleFileUpload(file);
+  
+  // Enable compact header after data loads
+  enableCompactHeader();
+  
+  // Initialize filter summary
+  updateFilterSummary();
 }
 
 /**
@@ -452,4 +482,136 @@ function handleDemoDataLoad() {
     `Successfully loaded ${enrichedTrades.length} demo trades`,
     'success'
   );
+  
+  // Enable compact header after data loads
+  enableCompactHeader();
+}
+
+/**
+ * Set up compact header behavior on scroll
+ */
+function setupCompactHeader() {
+  const header = document.getElementById('main-header');
+  const dashboard = document.getElementById('dashboard');
+  
+  if (!header || !dashboard) return;
+  
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  
+  const updateHeader = () => {
+    const scrollY = window.scrollY;
+    const isDashboardVisible = !dashboard.classList.contains('hidden');
+    
+    if (isDashboardVisible && scrollY > 100) {
+      header.classList.add('compact');
+    } else if (scrollY < 50) {
+      header.classList.remove('compact');
+    }
+    
+    lastScrollY = scrollY;
+    ticking = false;
+  };
+  
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeader);
+      ticking = true;
+    }
+  });
+}
+
+/**
+ * Enable compact header immediately after data loads
+ */
+function enableCompactHeader() {
+  const header = document.getElementById('main-header');
+  if (header) {
+    // Add compact class after a short delay to allow for smooth transition
+    setTimeout(() => {
+      header.classList.add('compact');
+    }, 300);
+  }
+}
+
+/**
+ * Update filter summary text
+ */
+function updateFilterSummary() {
+  const filtersSummary = document.getElementById('filters-summary');
+  if (!filtersSummary) return;
+  
+  const activeDateRangeBtn = document.querySelector('[data-filter="date-range"].active');
+  const activePositionStatusBtn = document.querySelector('[data-filter="position-status"].active');
+  
+  const dateRangeText = activeDateRangeBtn ? activeDateRangeBtn.textContent : 'All';
+  const positionStatusText = activePositionStatusBtn ? activePositionStatusBtn.textContent : 'All';
+  
+  const dateRangeMap = {
+    '1W': 'Last 7 Days',
+    '1M': 'Last 30 Days',
+    '1Y': 'Last 12 Months',
+    'YTD': 'Year to Date',
+    'All': 'All Time'
+  };
+  
+  filtersSummary.textContent = `${dateRangeMap[dateRangeText] || dateRangeText} • ${positionStatusText} Positions`;
+}
+
+/**
+ * Set up actions menu toggle and handlers
+ */
+function setupActionsMenu() {
+  const menuBtn = document.getElementById('actions-menu-btn');
+  const menu = document.getElementById('actions-menu');
+  const menuDemoBtn = document.getElementById('menu-demo-data-btn');
+  const menuUploadBtn = document.getElementById('menu-upload-btn');
+  const menuReloadBtn = document.getElementById('menu-reload-btn');
+  const uploadZone = document.getElementById('upload-zone');
+  
+  if (!menuBtn || !menu) return;
+  
+  // Toggle menu
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+    menuBtn.setAttribute('aria-expanded', !isExpanded);
+    menu.classList.toggle('hidden');
+  });
+  
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
+      menu.classList.add('hidden');
+      menuBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Menu item handlers
+  if (menuDemoBtn) {
+    menuDemoBtn.addEventListener('click', () => {
+      menu.classList.add('hidden');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      handleDemoDataLoad();
+    });
+  }
+  
+  if (menuUploadBtn && uploadZone) {
+    menuUploadBtn.addEventListener('click', () => {
+      menu.classList.add('hidden');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      uploadZone.classList.remove('hidden');
+    });
+  }
+  
+  if (menuReloadBtn && uploadZone) {
+    menuReloadBtn.addEventListener('click', () => {
+      menu.classList.add('hidden');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      if (confirm('This will clear all current data. Are you sure?')) {
+        dashboardController.clearData();
+        uploadZone.classList.remove('hidden');
+      }
+    });
+  }
 }

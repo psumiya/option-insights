@@ -17,34 +17,49 @@
 </head>
 <body class="bg-background text-text-primary font-sans">
     <!-- Header -->
-    <header class="bg-surface border-b border-border px-6 py-4">
+    <header id="main-header" class="bg-surface border-b border-border px-6 py-4 transition-all duration-300">
         <div class="max-w-[1920px] mx-auto">
             <div class="flex items-center justify-between">
-                <div>
+                <div id="header-title-section">
                     <h1 class="text-2xl font-semibold">My Option Insights</h1>
-                    <p>Your personal options trading insights dashboard. Fully Private. No Tracking or Cookies.</p>
+                    <p id="header-subtitle" class="transition-all duration-300">Your personal options trading insights dashboard. Fully Private. Your data stays on your system. No Tracking or Cookies.</p>
                 </div>
-                <div class="flex gap-2 items-center">
-                    <div id="theme-toggle" class="theme-toggle" role="radiogroup" aria-label="Theme selection">
-                        <button id="theme-light" class="theme-btn" data-theme="light" aria-label="Light mode" role="radio" aria-checked="false">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <div class="flex gap-2 items-center justify-end">
+                    <!-- Theme Toggle Button -->
+                    <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle theme">
+                        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                    
+                    <!-- Actions Menu -->
+                    <div class="relative">
+                        <button id="actions-menu-btn" class="icon-btn" aria-label="Actions menu" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+                            </svg>
                         </button>
-                        <button id="theme-system" class="theme-btn active" data-theme="system" aria-label="System theme" role="radio" aria-checked="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                        </button>
-                        <button id="theme-dark" class="theme-btn" data-theme="dark" aria-label="Dark mode" role="radio" aria-checked="false">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                        </button>
+                        <div id="actions-menu" class="actions-menu hidden">
+                            <button id="menu-demo-data-btn" class="menu-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                Load Demo Data
+                            </button>
+                            <button id="menu-upload-btn" class="menu-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                                Upload CSV
+                            </button>
+                            <button id="menu-reload-btn" class="menu-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                                </svg>
+                                Reload Data
+                            </button>
+                        </div>
                     </div>
-                    <button id="demo-data-btn" class="btn-secondary" aria-label="Load demo data">
-                        Load Demo Data
-                    </button>
-                    <button id="upload-btn" class="btn-primary" aria-label="Upload CSV file">
-                        Upload CSV
-                    </button>
-                    <button id="reload-btn" class="btn-secondary" aria-label="Reload data">
-                        Reload Data
-                    </button>
                 </div>
             </div>
         </div>
@@ -107,28 +122,41 @@
                 </nav>
             </div>
 
-            <!-- Filters Section -->
-            <section class="bg-surface border border-border rounded-lg p-4 mb-6" role="region" aria-label="Filters">
-                <div class="flex flex-wrap gap-6 items-center">
-                    <!-- Date Range Filter -->
-                    <div class="filter-group">
-                        <span class="filter-label">Date Range:</span>
-                        <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
-                            <button class="filter-btn" data-filter="date-range" data-value="last7days" role="radio" aria-checked="false">1W</button>
-                            <button class="filter-btn" data-filter="date-range" data-value="last30days" role="radio" aria-checked="false">1M</button>
-                            <button class="filter-btn" data-filter="date-range" data-value="last12months" role="radio" aria-checked="false">1Y</button>
-                            <button class="filter-btn" data-filter="date-range" data-value="ytd" role="radio" aria-checked="false">YTD</button>
-                            <button class="filter-btn active" data-filter="date-range" data-value="alltime" role="radio" aria-checked="true">All</button>
-                        </div>
+            <!-- Filters Section - Collapsible -->
+            <section class="bg-surface border border-border rounded-lg mb-6 overflow-hidden" role="region" aria-label="Filters">
+                <button id="filters-toggle" class="w-full flex items-center justify-between p-4 hover:bg-opacity-50 transition-colors" aria-expanded="false" aria-controls="filters-content">
+                    <div class="flex items-center gap-2">
+                        <svg id="filters-icon" class="w-5 h-5 transition-transform duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="font-semibold">Filters</span>
+                        <span id="filters-summary" class="text-sm text-text-secondary">All Time • All Positions</span>
                     </div>
-                    
-                    <!-- Position Status Filter -->
-                    <div class="filter-group">
-                        <span class="filter-label">Position Status:</span>
-                        <div class="filter-button-group" role="radiogroup" aria-label="Position status selection">
-                            <button class="filter-btn" data-filter="position-status" data-value="closed" role="radio" aria-checked="false">Closed</button>
-                            <button class="filter-btn" data-filter="position-status" data-value="open" role="radio" aria-checked="false">Open</button>
-                            <button class="filter-btn active" data-filter="position-status" data-value="all" role="radio" aria-checked="true">All</button>
+                </button>
+                <div id="filters-content" class="filters-collapsible">
+                    <div class="p-4 pt-0">
+                        <div class="flex flex-wrap gap-6 items-center">
+                            <!-- Date Range Filter -->
+                            <div class="filter-group">
+                                <span class="filter-label">Date Range:</span>
+                                <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
+                                    <button class="filter-btn" data-filter="date-range" data-value="last7days" role="radio" aria-checked="false">1W</button>
+                                    <button class="filter-btn" data-filter="date-range" data-value="last30days" role="radio" aria-checked="false">1M</button>
+                                    <button class="filter-btn" data-filter="date-range" data-value="last12months" role="radio" aria-checked="false">1Y</button>
+                                    <button class="filter-btn" data-filter="date-range" data-value="ytd" role="radio" aria-checked="false">YTD</button>
+                                    <button class="filter-btn active" data-filter="date-range" data-value="alltime" role="radio" aria-checked="true">All</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Position Status Filter -->
+                            <div class="filter-group">
+                                <span class="filter-label">Position Status:</span>
+                                <div class="filter-button-group" role="radiogroup" aria-label="Position status selection">
+                                    <button class="filter-btn" data-filter="position-status" data-value="closed" role="radio" aria-checked="false">Closed</button>
+                                    <button class="filter-btn" data-filter="position-status" data-value="open" role="radio" aria-checked="false">Open</button>
+                                    <button class="filter-btn active" data-filter="position-status" data-value="all" role="radio" aria-checked="true">All</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -136,8 +136,10 @@ class HeatmapCalendarChart {
     ));
     
     // Use height-based sizing to maximize cell size
-    const availableHeightPerCell = containerHeight / 5;
-    let targetCellSize = Math.floor(availableHeightPerCell - this.cellGap);
+    // Account for gaps: 5 cells need 4 gaps between them
+    const totalGapHeight = this.cellGap * 4;
+    const availableHeightForCells = containerHeight - totalGapHeight;
+    let targetCellSize = Math.floor(availableHeightForCells / 5);
     
     // Apply min/max constraints - increased for text visibility
     this.cellSize = Math.min(Math.max(targetCellSize, 60), 120);

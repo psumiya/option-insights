@@ -165,9 +165,12 @@ class TopUnderlyingsChart {
    * @private
    */
   _renderAxes() {
+    // Determine if we're on mobile
+    const isMobile = this.width < 500;
+    
     // X-axis
     const xAxis = d3.axisBottom(this.xScale)
-      .ticks(5)
+      .ticks(isMobile ? 3 : 5) // Fewer ticks on mobile
       .tickSize(0)
       .tickPadding(10)
       .tickFormat(d => this._formatCurrency(d, false)); // No sign for x-axis
@@ -177,10 +180,10 @@ class TopUnderlyingsChart {
       .call(xAxis)
       .call(g => g.select('.domain').attr('stroke', '#1f2937'));
 
-    // Style x-axis labels
+    // Style x-axis labels with responsive font size
     this.xAxisGroup.selectAll('text')
       .attr('fill', '#9ca3af')
-      .attr('font-size', '12px');
+      .attr('font-size', isMobile ? '10px' : '12px');
 
     // Y-axis
     const yAxis = d3.axisLeft(this.yScale)
@@ -191,10 +194,10 @@ class TopUnderlyingsChart {
       .call(yAxis)
       .call(g => g.select('.domain').attr('stroke', '#1f2937'));
 
-    // Style y-axis labels
+    // Style y-axis labels with responsive font size
     this.yAxisGroup.selectAll('text')
       .attr('fill', '#9ca3af')
-      .attr('font-size', '13px')
+      .attr('font-size', isMobile ? '11px' : '13px')
       .attr('font-family', 'monospace')
       .attr('font-weight', '700');
 
@@ -210,26 +213,29 @@ class TopUnderlyingsChart {
     // Remove existing labels
     this.chartGroup.selectAll('.axis-label').remove();
 
+    // Determine if we're on mobile
+    const isMobile = this.width < 500;
+
     // X-axis label
     this.chartGroup.append('text')
       .attr('class', 'axis-label')
       .attr('x', this.width / 2)
-      .attr('y', this.height + 40)
+      .attr('y', this.height + (isMobile ? 35 : 40))
       .attr('text-anchor', 'middle')
       .attr('fill', '#e5e7eb')
-      .attr('font-size', '14px')
+      .attr('font-size', isMobile ? '11px' : '14px')
       .attr('font-weight', '600')
-      .text('Winning Dollars ($)');
+      .text(isMobile ? 'Win $ ($)' : 'Winning Dollars ($)');
 
     // Y-axis label
     this.chartGroup.append('text')
       .attr('class', 'axis-label')
       .attr('transform', 'rotate(-90)')
       .attr('x', -this.height / 2)
-      .attr('y', -85)
+      .attr('y', isMobile ? -60 : -85)
       .attr('text-anchor', 'middle')
       .attr('fill', '#e5e7eb')
-      .attr('font-size', '14px')
+      .attr('font-size', isMobile ? '11px' : '14px')
       .attr('font-weight', '600')
       .text('Symbol');
   }

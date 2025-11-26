@@ -11,6 +11,8 @@ let strategyDetector;
 let csvParser;
 let dashboardController;
 let demoDataGenerator;
+let tabManager;
+let csvDataViewer;
 
 // Table sorting state
 let currentSortColumn = 'pl'; // Default sort by P/L
@@ -34,6 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
     strategyDetector,
     csvParser
   );
+  
+  // Initialize tab manager
+  tabManager = new TabManager();
+  
+  // Initialize CSV data viewer
+  csvDataViewer = new CSVDataViewer();
+  
+  // Make csvDataViewer available globally
+  window.csvDataViewer = csvDataViewer;
   
   // Set up UI event listeners
   setupEventListeners();
@@ -223,6 +234,11 @@ async function handleFileUpload(file) {
   const uploadZone = document.getElementById('upload-zone');
   if (uploadZone) {
     uploadZone.classList.add('hidden');
+  }
+  
+  // Load raw CSV into data viewer
+  if (csvDataViewer) {
+    await csvDataViewer.loadCSVFile(file);
   }
   
   // Pass to dashboard controller

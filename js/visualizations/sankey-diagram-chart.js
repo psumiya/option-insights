@@ -19,15 +19,18 @@ class SankeyDiagramChart {
       return;
     }
 
-    // Chart configuration
-    this.margin = { top: 60, right: 80, bottom: 60, left: 80 };
+    // Chart configuration - responsive margins
+    const isMobile = window.innerWidth < 768;
+    this.margin = isMobile 
+      ? { top: 40, right: 20, bottom: 40, left: 20 }
+      : { top: 60, right: 80, bottom: 60, left: 80 };
     this.options = {
       animationDuration: 750,
       maxSymbols: 10, // Requirement 6.6
-      nodeWidth: 30, // Increased from 20
-      nodePadding: 30, // Increased from 20
-      minLinkWidth: 3, // Increased from 2
-      resultNodeWidth: 50, // Special width for Win/Loss nodes
+      nodeWidth: isMobile ? 20 : 30,
+      nodePadding: isMobile ? 15 : 30,
+      minLinkWidth: isMobile ? 2 : 3,
+      resultNodeWidth: isMobile ? 35 : 50, // Special width for Win/Loss nodes
       ...options
     };
 
@@ -129,9 +132,28 @@ class SankeyDiagramChart {
     const width = containerRect.width;
     const height = containerRect.height;
 
+    // Detect mobile and update margins/options
+    const isMobile = width < 768;
+    if (isMobile) {
+      this.margin = { top: 40, right: 20, bottom: 40, left: 20 };
+      this.options.nodeWidth = 20;
+      this.options.nodePadding = 15;
+      this.options.minLinkWidth = 2;
+      this.options.resultNodeWidth = 35;
+    } else {
+      this.margin = { top: 60, right: 80, bottom: 60, left: 80 };
+      this.options.nodeWidth = 30;
+      this.options.nodePadding = 30;
+      this.options.minLinkWidth = 3;
+      this.options.resultNodeWidth = 50;
+    }
+
     // Calculate chart dimensions
     const chartWidth = Math.max(width - this.margin.left - this.margin.right, 200);
     const chartHeight = Math.max(height - this.margin.top - this.margin.bottom, 200);
+
+    // Update chart group transform
+    this.chartGroup.attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
     // Update SVG size
     this.svg
@@ -155,7 +177,7 @@ class SankeyDiagramChart {
     this._renderLinks(links);
 
     // Render nodes (Requirement 6.1)
-    this._renderNodes(nodes);
+    this._renderNodes(nodes, isMobile);
   }
 
   /**
@@ -222,7 +244,7 @@ class SankeyDiagramChart {
    * Render Sankey nodes
    * @private
    */
-  _renderNodes(nodes) {
+  _renderNodes(nodes, isMobile = false) {
     // Clear existing nodes
     this.nodesGroup.selectAll('*').remove();
 
@@ -283,11 +305,11 @@ class SankeyDiagramChart {
         // Position text based on layer
         if (d.layer === 0) {
           // Symbol - left side, text to the left
-          return d.x0 - 10;
+          return d.x0 - (isMobile ? 5 : 10);
         } else if (d.layer === 2) {
           // Result - right side, text to the right (account for larger node)
           const extraWidth = (this.options.resultNodeWidth - (d.x1 - d.x0)) / 2;
-          return d.x1 + extraWidth + 10;
+          return d.x1 + extraWidth + (isMobile ? 5 : 10);
         } else {
           // Strategy - middle, text centered
           return (d.x0 + d.x1) / 2;
@@ -304,15 +326,16 @@ class SankeyDiagramChart {
       .attr('font-size', d => {
         // Scale font size based on layer and node height
         const nodeHeight = d.y1 - d.y0;
+        const mobileFactor = isMobile ? 0.8 : 1;
         if (d.layer === 2) {
           // Win/Loss nodes - larger font
-          return Math.min(Math.max(nodeHeight * 0.3, 18), 24) + 'px';
+          return Math.min(Math.max(nodeHeight * 0.3 * mobileFactor, isMobile ? 14 : 18), isMobile ? 20 : 24) + 'px';
         } else if (d.layer === 1) {
           // Strategy nodes - medium font
-          return Math.min(Math.max(nodeHeight * 0.25, 14), 18) + 'px';
+          return Math.min(Math.max(nodeHeight * 0.25 * mobileFactor, isMobile ? 10 : 14), isMobile ? 14 : 18) + 'px';
         } else {
           // Symbol nodes - standard font
-          return Math.min(Math.max(nodeHeight * 0.2, 13), 16) + 'px';
+          return Math.min(Math.max(nodeHeight * 0.2 * mobileFactor, isMobile ? 9 : 13), isMobile ? 12 : 16) + 'px';
         }
       })
       .attr('font-weight', d => d.layer === 2 ? '700' : '600')
@@ -324,14 +347,14 @@ class SankeyDiagramChart {
       .attr('opacity', 1);
 
     // Add column headers
-    this._renderColumnHeaders();
+    this._renderColumnHeaders(isMobile);
   }
 
   /**
    * Render column headers for the three layers
    * @private
    */
-  _renderColumnHeaders() {
+  _renderColumnHeaders(isMobile = false) {
     const containerRect = this.container.getBoundingClientRect();
     const chartWidth = containerRect.width - this.margin.left - this.margin.right;
 
@@ -352,14 +375,14 @@ class SankeyDiagramChart {
       .append('text')
       .attr('class', 'column-header')
       .attr('x', d => d.x)
-      .attr('y', -25)
+      .attr('y', isMobile ? -15 : -25)
       .attr('text-anchor', d => {
         if (d.label === 'Symbol') return 'start';
         if (d.label === 'Result') return 'end';
         return 'middle';
       })
       .attr('fill', this.colors.textPrimary)
-      .attr('font-size', '18px')
+      .attr('font-size', isMobile ? '12px' : '18px')
       .attr('font-weight', '700')
       .attr('text-transform', 'uppercase')
       .attr('letter-spacing', '0.1em')

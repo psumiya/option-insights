@@ -111,79 +111,127 @@
 
         <!-- Dashboard Container (Hidden until data loaded) -->
         <div id="dashboard" class="hidden">
-            <!-- Summary Metrics Panel (Full Width) -->
-            <section class="mb-6" role="region" aria-label="Summary Metrics">
-                <div id="summary-metrics-panel"></div>
-            </section>
+            <!-- Tab Navigation -->
+            <div class="bg-surface border border-border rounded-lg mb-6">
+                <nav class="flex border-b border-border" role="tablist" aria-label="Dashboard sections">
+                    <button id="tab-overview" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-overview">
+                        Overview
+                    </button>
+                    <button id="tab-analysis" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-analysis">
+                        Analysis
+                    </button>
+                    <button id="tab-strategies" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-strategies">
+                        Strategies
+                    </button>
+                    <button id="tab-data" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-data">
+                        Data
+                    </button>
+                </nav>
+            </div>
 
-            <!-- Trade Flow (Sankey Diagram) - Full Width -->
-            <section id="trade-flow-chart-section" class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
-                <h2 class="text-lg font-semibold mb-4">Trade Flow</h2>
-                <div class="chart-container-scrollable">
-                    <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
-                </div>
-            </section>
-
-            <!-- P/L Trend Chart (Full Width) -->
-            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
-                <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
-                <div class="chart-container-scrollable">
-                    <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
-                </div>
-            </section>
-
-            <!-- Win Rate and P/L by Strategy (2 Column Grid) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Rate by Strategy">
-                    <h2 class="text-lg font-semibold mb-4">Win Rate by Strategy</h2>
-                    <div id="win-rate-chart" class="chart-container" aria-label="Bar chart showing win rate by strategy"></div>
+            <!-- Tab Panel: Overview -->
+            <div id="tab-panel-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-overview">
+                <!-- Summary Metrics Panel (Full Width) -->
+                <section class="mb-6" role="region" aria-label="Summary Metrics">
+                    <div id="summary-metrics-panel"></div>
                 </section>
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Strategy">
-                    <h2 class="text-lg font-semibold mb-4">P/L by Strategy</h2>
-                    <div id="pl-breakdown-chart" class="chart-container" aria-label="Bar chart showing profit and loss by strategy"></div>
+
+                <!-- Win/Loss Distribution and Top Underlyings (2 Column Grid) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Loss Distribution">
+                        <h2 class="text-lg font-semibold mb-4">Win/Loss Distribution</h2>
+                        <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
+                    </section>
+                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Top Performing Underlyings">
+                        <h2 class="text-lg font-semibold mb-4">Top 5 Underlyings by Win $</h2>
+                        <div id="top-underlyings-chart" class="chart-container" aria-label="Bar chart showing top 5 symbols by winning dollars"></div>
+                    </section>
+                </div>
+
+                <!-- P/L Trend Chart (Full Width) -->
+                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
+                    <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
+                    <div class="chart-container-scrollable">
+                        <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Tab Panel: Analysis -->
+            <div id="tab-panel-analysis" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-analysis">
+                <!-- Trade Flow (Sankey Diagram) - Full Width -->
+                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
+                    <h2 class="text-lg font-semibold mb-4">Trade Flow</h2>
+                    <div class="chart-container-scrollable">
+                        <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
+                    </div>
+                </section>
+
+                <!-- P/L by Symbol (Full Width) -->
+                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
+                    <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
+                    <div class="chart-container-scrollable">
+                        <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
+                    </div>
+                </section>
+
+                <!-- Advanced Visualizations Panel (Full Width) -->
+                <section class="mb-6" role="region" aria-label="Advanced Analytics">
+                    <div id="advanced-viz-panel"></div>
                 </section>
             </div>
 
-            <!-- Win/Loss Distribution and Top Underlyings (2 Column Grid) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Loss Distribution">
-                    <h2 class="text-lg font-semibold mb-4">Win/Loss Distribution</h2>
-                    <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
-                </section>
-                <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Top Performing Underlyings">
-                    <h2 class="text-lg font-semibold mb-4">Top 5 Underlyings by Win $</h2>
-                    <div id="top-underlyings-chart" class="chart-container" aria-label="Bar chart showing top 5 symbols by winning dollars"></div>
-                </section>
+            <!-- Tab Panel: Strategies -->
+            <div id="tab-panel-strategies" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-strategies">
+                <!-- Win Rate and P/L by Strategy (2 Column Grid) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Rate by Strategy">
+                        <h2 class="text-lg font-semibold mb-4">Win Rate by Strategy</h2>
+                        <div id="win-rate-chart" class="chart-container" aria-label="Bar chart showing win rate by strategy"></div>
+                    </section>
+                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Strategy">
+                        <h2 class="text-lg font-semibold mb-4">P/L by Strategy</h2>
+                        <div id="pl-breakdown-chart" class="chart-container" aria-label="Bar chart showing profit and loss by strategy"></div>
+                    </section>
+                </div>
+
+                <!-- P/L by Symbol & Strategy Table (Full Width) -->
+                <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
+                    <div class="bg-surface border border-border rounded-lg p-6">
+                        <h2 class="text-lg font-semibold mb-4">P/L by Symbol & Strategy</h2>
+                        <div class="overflow-x-auto">
+                            <table id="symbol-strategy-table" class="data-table" role="table">
+                                <thead>
+                                    <tr>
+                                        <th role="columnheader" tabindex="0" class="sortable">Symbol</th>
+                                        <th role="columnheader" tabindex="0" class="sortable">Strategy</th>
+                                        <th role="columnheader" tabindex="0" class="sortable">Trades</th>
+                                        <th role="columnheader" tabindex="0" class="sortable">P/L</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- P/L by Symbol (Full Width) -->
-            <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
-                <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
-                <div class="chart-container-scrollable">
-                    <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
-                </div>
-            </section>
-
-            <!-- Advanced Visualizations Panel (Full Width) -->
-            <section class="mb-6" role="region" aria-label="Advanced Analytics">
-                <div id="advanced-viz-panel"></div>
-            </section>
-
-            <!-- P/L by Symbol & Strategy Table (Full Width) - Collapsible -->
-            <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
-                <div class="overflow-x-auto">
-                    <table id="symbol-strategy-table" class="data-table" role="table">
-                        <thead>
-                            <tr>
-                                <th role="columnheader" tabindex="0" class="sortable">Symbol</th>
-                                <th role="columnheader" tabindex="0" class="sortable">Strategy</th>
-                                <th role="columnheader" tabindex="0" class="sortable">Trades</th>
-                                <th role="columnheader" tabindex="0" class="sortable">P/L</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+            <!-- Tab Panel: Data -->
+            <div id="tab-panel-data" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-data">
+                <section class="bg-surface border border-border rounded-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">Raw Trade Data</h2>
+                    <p class="text-text-secondary mb-4">View all imported trades and their details</p>
+                    <div class="overflow-x-auto">
+                        <table class="data-table" role="table">
+                            <tbody>
+                                <tr>
+                                    <td class="text-center text-text-secondary py-8">No data available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
     </main>
@@ -203,6 +251,8 @@
     <script src="js/demo-data-generator.js"></script>
     
     <!-- UI Components -->
+    <script src="js/tab-manager.js"></script>
+    <script src="js/csv-data-viewer.js"></script>
     <script src="js/collapsible-section.js"></script>
     <script src="js/advanced-visualization-panel.js"></script>
     

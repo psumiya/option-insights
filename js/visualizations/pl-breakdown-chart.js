@@ -197,9 +197,12 @@ class PLBreakdownChart {
    * @private
    */
   _renderAxes() {
+    // Determine if we're on mobile
+    const isMobile = this.width < 500;
+    
     // X-axis
     const xAxis = d3.axisBottom(this.xScale)
-      .ticks(6)
+      .ticks(isMobile ? 3 : 6)
       .tickSize(0)
       .tickPadding(10)
       .tickFormat(d => this._formatCurrency(d));
@@ -209,10 +212,10 @@ class PLBreakdownChart {
       .call(xAxis)
       .call(g => g.select('.domain').attr('stroke', '#1f2937'));
 
-    // Style x-axis labels
+    // Style x-axis labels with responsive font size
     this.xAxisGroup.selectAll('text')
       .attr('fill', '#9ca3af')
-      .attr('font-size', '12px');
+      .attr('font-size', isMobile ? '10px' : '12px');
 
     // Y-axis
     const yAxis = d3.axisLeft(this.yScale)
@@ -223,10 +226,10 @@ class PLBreakdownChart {
       .call(yAxis)
       .call(g => g.select('.domain').attr('stroke', '#1f2937'));
 
-    // Style y-axis labels
+    // Style y-axis labels with responsive font size
     this.yAxisGroup.selectAll('text')
       .attr('fill', '#9ca3af')
-      .attr('font-size', '12px');
+      .attr('font-size', isMobile ? '10px' : '12px');
 
     // Add axis labels
     this._addAxisLabels();

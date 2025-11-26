@@ -423,7 +423,7 @@ class DashboardController {
         console.error('✗ Advanced Visualization Panel error:', e);
       }
     }
-    
+
     console.log('=== refreshDashboard END ===');
   }
 

@@ -146,8 +146,81 @@ class RobinhoodAdapter {
   }
 
   /**
-   * Group Robinhood transactions into complete trades
-   * Simple approach: Group by Description (each unique option) and sum amounts
+   * Determine if a transaction is an opening trade
+   */
+  _isOpenTrade(transCode) {
+    return transCode === 'STO' || transCode === 'BTO';
+  }
+
+  /**
+   * Determine if a transaction is a closing trade
+   */
+  _isCloseTrade(transCode) {
+    return transCode === 'STC' || transCode === 'BTC' || transCode === 'OEXP';
+  }
+
+  /**
+   * Infer strategy from a group of opening legs on the same date and instrument
+   */
+  _inferStrategy(legs) {
+    if (legs.length === 0) return 'Custom';
+    if (legs.length === 1) {
+      const leg = legs[0];
+      // Single leg strategies
+      if (leg.transCode === 'STO' && leg.type === 'Put') return 'Short Put';
+      if (leg.transCode === 'BTO' && leg.type === 'Call') return 'Long Call';
+      if (leg.transCode === 'BTO' && leg.type === 'Put') return 'Short Put'; // Buy Put is bearish
+      if (leg.transCode === 'STO' && leg.type === 'Call') return 'Short Call';
+      return 'Long Option';
+    }
+
+    // Multi-leg strategies
+    const puts = legs.filter(l => l.type === 'Put');
+    const calls = legs.filter(l => l.type === 'Call');
+    const sellPuts = puts.filter(l => l.transCode === 'STO');
+    const buyPuts = puts.filter(l => l.transCode === 'BTO');
+    const sellCalls = calls.filter(l => l.transCode === 'STO');
+    const buyCalls = calls.filter(l => l.transCode === 'BTO');
+
+    // Strangle: Sell Put AND Sell Call
+    if (sellPuts.length === 1 && sellCalls.length === 1 && legs.length === 2) {
+      return 'Strangle';
+    }
+
+    // Straddle: Buy Put AND Buy Call
+    if (buyPuts.length === 1 && buyCalls.length === 1 && legs.length === 2) {
+      return 'Straddle';
+    }
+
+    // Put Credit Spread: Sell Put AND Buy Put (same expiry)
+    if (sellPuts.length === 1 && buyPuts.length === 1 && legs.length === 2) {
+      const expiry1 = sellPuts[0].expiry;
+      const expiry2 = buyPuts[0].expiry;
+      if (expiry1 && expiry2 && expiry1.getTime() === expiry2.getTime()) {
+        return 'Put Credit Spread';
+      }
+    }
+
+    // Call Credit Spread: Sell Call AND Buy Call (same expiry)
+    if (sellCalls.length === 1 && buyCalls.length === 1 && legs.length === 2) {
+      const expiry1 = sellCalls[0].expiry;
+      const expiry2 = buyCalls[0].expiry;
+      if (expiry1 && expiry2 && expiry1.getTime() === expiry2.getTime()) {
+        return 'Call Credit Spread';
+      }
+    }
+
+    // Iron Condor: Sell Put, Buy Put, Sell Call, Buy Call
+    if (sellPuts.length === 1 && buyPuts.length === 1 && 
+        sellCalls.length === 1 && buyCalls.length === 1 && legs.length === 4) {
+      return 'Iron Condor';
+    }
+
+    return 'Custom';
+  }
+
+  /**
+   * Group Robinhood transactions into complete trades with proper strategy inference
    */
   groupTransactions(rows) {
     const trades = [];
@@ -179,119 +252,144 @@ class RobinhoodAdapter {
     
     console.log(`Filtered ${rows.length} rows to ${tradingRows.length} trading rows`);
     
-    // Group by Instrument, then by Description
-    const byInstrument = new Map();
+    // Step 1: Parse all rows and separate opens from closes
+    const openTrades = [];
+    const closeTrades = [];
+    
     tradingRows.forEach(row => {
-      const instrument = row['Instrument'];
-      if (!byInstrument.has(instrument)) {
-        byInstrument.set(instrument, new Map());
-      }
+      const transCode = row['Trans Code'];
+      const details = this.parseDescription(row['Description']);
+      if (!details) return;
       
-      const desc = row['Description'];
-      const byDesc = byInstrument.get(instrument);
+      const parsedRow = {
+        ...row,
+        transCode,
+        instrument: row['Instrument'],
+        activityDate: this._parseDate(row['Activity Date']),
+        amount: this._parseAmount(row['Amount']),
+        quantity: Math.abs(parseInt(row['Quantity']) || 1),
+        ...details
+      };
       
-      if (!byDesc.has(desc)) {
-        byDesc.set(desc, []);
+      if (this._isOpenTrade(transCode)) {
+        openTrades.push(parsedRow);
+      } else if (this._isCloseTrade(transCode)) {
+        closeTrades.push(parsedRow);
       }
-      byDesc.get(desc).push(row);
     });
     
-    // Process each unique option (Description) as a single trade
-    byInstrument.forEach((byDesc, instrument) => {
-      byDesc.forEach((transRows, description) => {
-        // Parse option details from description
-        const details = this.parseDescription(description);
-        if (!details) {
-          console.warn('Could not parse option details from:', description);
-          return;
-        }
-        
-        // Sum all amounts for this option
-        let totalAmount = 0;
-        let earliestDate = null;
-        let latestDate = null;
-        let hasOpen = false;
-        let hasClose = false;
-        let firstTransCode = null;
-        
-        transRows.forEach(row => {
-          const transCode = row['Trans Code'];
-          const amount = this._parseAmount(row['Amount']);
-          const activityDate = this._parseDate(row['Activity Date']);
-          
-          totalAmount += amount;
-          
-          if (!firstTransCode) {
-            firstTransCode = transCode;
-          }
-          
-          // Track dates
-          if (!earliestDate || activityDate < earliestDate) {
-            earliestDate = activityDate;
-          }
-          if (!latestDate || activityDate > latestDate) {
-            latestDate = activityDate;
-          }
-          
-          // Track if we have opens and closes
-          if (transCode === 'STO' || transCode === 'BTO') {
-            hasOpen = true;
-          }
-          if (transCode === 'STC' || transCode === 'BTC') {
-            hasClose = true;
-          }
-        });
-        
-        // Determine if position is closed or open
-        const isClosed = hasOpen && hasClose;
-        
-        // Determine credit and debit based on the sign of totalAmount
-        // Positive totalAmount = net credit (we received money)
-        // Negative totalAmount = net debit (we paid money)
-        let credit = 0;
-        let debit = 0;
-        
-        if (totalAmount > 0) {
-          credit = totalAmount;
-        } else {
-          debit = Math.abs(totalAmount);
-        }
-        
-        // Determine strategy from first transaction code
-        let strategy = 'Unknown';
-        if (firstTransCode === 'STO') {
-          strategy = 'Short Option';
-        } else if (firstTransCode === 'BTO') {
-          strategy = 'Long Option';
-        } else if (firstTransCode === 'STC') {
-          strategy = 'Long Option';
-        } else if (firstTransCode === 'BTC') {
-          strategy = 'Short Option';
-        }
-        
-        // Get average quantity
-        const totalQty = transRows.reduce((sum, row) => {
-          return sum + Math.abs(parseInt(row['Quantity']) || 1);
-        }, 0);
-        const avgQty = Math.floor(totalQty / transRows.length);
-        
-        const trade = {
-          Symbol: details.symbol,
-          Type: details.type,
-          Strategy: strategy,
-          Strike: details.strike,
-          Expiry: details.expiry,
-          Volume: avgQty,
-          Entry: earliestDate,
-          Delta: 0, // Not provided by Robinhood
-          Exit: isClosed ? latestDate : null,
-          Debit: debit,
-          Credit: credit,
-          Account: 'Robinhood'
-        };
-        
-        trades.push(trade);
+    // Step 2: Group open trades by Instrument and Activity Date
+    const openTradeGroups = new Map();
+    openTrades.forEach(trade => {
+      const dateKey = trade.activityDate ? trade.activityDate.toISOString().split('T')[0] : 'unknown';
+      const key = `${trade.instrument}_${dateKey}`;
+      
+      if (!openTradeGroups.has(key)) {
+        openTradeGroups.set(key, []);
+      }
+      openTradeGroups.get(key).push(trade);
+    });
+    
+    // Step 3: Infer strategy for each group of open trades
+    const strategyMap = new Map(); // Maps description -> strategy
+    
+    openTradeGroups.forEach((legs, groupKey) => {
+      const strategy = this._inferStrategy(legs);
+      
+      // Assign this strategy to all legs in the group
+      legs.forEach(leg => {
+        strategyMap.set(leg.Description, strategy);
       });
+    });
+    
+    // Step 4: Build trades from individual legs
+    // Group by Description to aggregate all transactions for each option
+    const byDescription = new Map();
+    tradingRows.forEach(row => {
+      const desc = row['Description'];
+      if (!byDescription.has(desc)) {
+        byDescription.set(desc, []);
+      }
+      byDescription.get(desc).push(row);
+    });
+    
+    // Process each unique option
+    byDescription.forEach((transRows, description) => {
+      const details = this.parseDescription(description);
+      if (!details) {
+        console.warn('Could not parse option details from:', description);
+        return;
+      }
+      
+      // Sum all amounts for this option
+      let totalAmount = 0;
+      let earliestDate = null;
+      let latestDate = null;
+      let hasOpen = false;
+      let hasClose = false;
+      
+      transRows.forEach(row => {
+        const transCode = row['Trans Code'];
+        const amount = this._parseAmount(row['Amount']);
+        const activityDate = this._parseDate(row['Activity Date']);
+        
+        totalAmount += amount;
+        
+        // Track dates
+        if (!earliestDate || activityDate < earliestDate) {
+          earliestDate = activityDate;
+        }
+        if (!latestDate || activityDate > latestDate) {
+          latestDate = activityDate;
+        }
+        
+        // Track if we have opens and closes
+        if (this._isOpenTrade(transCode)) {
+          hasOpen = true;
+        }
+        if (this._isCloseTrade(transCode)) {
+          hasClose = true;
+        }
+      });
+      
+      // Determine if position is closed or open
+      const isClosed = hasOpen && hasClose;
+      
+      // Determine credit and debit based on the sign of totalAmount
+      let credit = 0;
+      let debit = 0;
+      
+      if (totalAmount > 0) {
+        credit = totalAmount;
+      } else {
+        debit = Math.abs(totalAmount);
+      }
+      
+      // Get strategy from strategyMap (inferred from open trades)
+      let strategy = strategyMap.get(description) || 'Custom';
+      
+      // Get average quantity
+      const totalQty = transRows.reduce((sum, row) => {
+        return sum + Math.abs(parseInt(row['Quantity']) || 1);
+      }, 0);
+      const avgQty = Math.floor(totalQty / transRows.length);
+      
+      const trade = {
+        Symbol: details.symbol,
+        Type: details.type,
+        Strategy: strategy,
+        Strike: details.strike,
+        Expiry: details.expiry,
+        Volume: avgQty,
+        Entry: earliestDate,
+        Delta: 0, // Not provided by Robinhood
+        Exit: isClosed ? latestDate : null,
+        Debit: debit,
+        Credit: credit,
+        Account: 'Robinhood'
+      };
+      
+      trades.push(trade);
     });
     
     return trades;

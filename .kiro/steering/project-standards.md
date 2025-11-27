@@ -32,3 +32,4 @@ This file contains standards and guidelines that Kiro will follow when working i
 - Use parameters when creating Cloudformation templates.
 - Provide a deployment script to deploy the Cloudformation template.
 - Add a README specific to the deployment scripts in the infrastructure directory.
+- When executing a changeset against production or applying any changes to production infrastructure, always prompt the user and ask for confirmation before proceeding.

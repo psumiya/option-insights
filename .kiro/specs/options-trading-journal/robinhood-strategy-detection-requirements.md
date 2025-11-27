@@ -32,17 +32,11 @@ If it is an open trade, look for `Instrument` and `Activity Date` columns. Then,
 Then apply inferring strategy logic such as:
 
 - A Sell Put or a Buy Call is a Long Option
-
 - A Buy Put or a Sell Call is a Short Option
-
 - A Sell Put AND a Sell Call is a Strangle
-
 - A Buy Put AND a Buy Call is a Straddle
-
 - A Sell Put AND a Buy Put both for same expiry is a Put Credit Spread
-
 - A Sell Call AND a Buy Call both for same expiry is a Call Credit Spread
-
 - A Sell Put AND Buy Put with a Sell Call and a Buy Call is an Iron Condor
 
 Classiy others as custom.

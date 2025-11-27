@@ -17,8 +17,18 @@ This file contains standards and guidelines that Kiro will follow when working i
 - Document public APIs and interfaces
 - Keep README files up to date
 - Add inline comments where code intent isn't obvious
+- Review documentation and propose updates when the docs differ from the actual implementation.
 
 ## Git Practices
 - Write clear, descriptive commit messages
 - Keep commits focused on single changes
 - Review changes before committing
+
+## Infrastructure
+- All infrastructure should be created in an infrastructure directory.
+- For AWS infrastructure, use CloudFormation template for Infrastructure as Code.
+- For any other infrastructure, use Terraform.
+- Ensure no secrets are accidentally committed.
+- Use parameters when creating Cloudformation templates.
+- Provide a deployment script to deploy the Cloudformation template.
+- Add a README specific to the deployment scripts in the infrastructure directory.

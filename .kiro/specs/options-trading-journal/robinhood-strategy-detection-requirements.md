@@ -45,4 +45,4 @@ Then apply inferring strategy logic such as:
 
 - A Sell Put AND Buy Put with a Sell Call and a Buy Call is an Iron Condor
 
-Classiy others as unknown.
+Classiy others as custom.

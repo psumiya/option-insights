@@ -17,7 +17,7 @@ This file contains standards and guidelines that Kiro will follow when working i
 - Document public APIs and interfaces
 - Keep README files up to date
 - Add inline comments where code intent isn't obvious
-- Review documentation and propose updates when the docs differ from the actual implementation.
+- Update documentation when any changes are made.
 
 ## Git Practices
 - Write clear, descriptive commit messages

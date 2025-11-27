@@ -3,6 +3,21 @@
 ## Overview
 Deploy the options trading journal as a static website using AWS S3 + CloudFront with custom subdomain routing.
 
+## Deployment Configuration Decisions
+
+Based on requirements gathering:
+- **Route 53**: CloudFormation will create the hosted zone
+- **Subdomain**: Parameterized via environment variable (e.g., `trading`, `journal`)
+- **Domain Support**: Subdomain only (not root domain)
+- **ACM Certificate**: CloudFormation will create and validate specific subdomain certificate (requires manual DNS validation step)
+- **S3 Versioning**: Enabled for rollback capability
+- **S3 Logging**: Disabled
+- **CloudFront Logging**: Disabled
+- **CloudFront Price Class**: Fixed to `PriceClass_All` (not parameterized)
+- **Sample Data**: Excluded from production deployments (deployment script will explicitly include only necessary files)
+- **Deployment Automation**: Single script that syncs files to S3 and invalidates CloudFront cache
+- **Environments**: Support for 2 environments (dev and production) using separate buckets in the same AWS account
+
 ## Architecture Components
 
 ### 1. S3 Bucket
@@ -14,6 +29,8 @@ Deploy the options trading journal as a static website using AWS S3 + CloudFront
   - Set error document: `index.html` (for SPA-like behavior)
   - Block public access: OFF (CloudFront will access it)
   - Bucket policy: Allow CloudFront OAI (Origin Access Identity) to read objects
+  - **Versioning**: Enabled for rollback capability
+  - **Access Logging**: Disabled
 
 ### 2. CloudFront Distribution
 - **Purpose**: CDN for fast global delivery, HTTPS support, custom domain
@@ -23,28 +40,31 @@ Deploy the options trading journal as a static website using AWS S3 + CloudFront
   - Viewer protocol policy: Redirect HTTP to HTTPS
   - Allowed HTTP methods: GET, HEAD, OPTIONS
   - Compress objects automatically: Yes
-  - Price class: Use all edge locations (or parameterize)
+  - Price class: `PriceClass_All` (all edge locations)
   - Alternate domain names (CNAMEs): Parameterized subdomain
   - SSL certificate: ACM certificate for custom domain (must be in us-east-1)
   - Default TTL: 86400 (1 day) - adjust as needed
   - Custom error responses:
     - 403 → 200 with `/index.html` (for SPA routing)
     - 404 → 200 with `/index.html` (for SPA routing)
+  - **Access Logging**: Disabled
 
 ### 3. Route 53 DNS
 - **Purpose**: Route subdomain traffic to CloudFront
 - **Configuration**:
-  - Hosted zone: Existing domain (parameterized)
+  - Hosted zone: Created by CloudFormation (parameterized domain name)
   - Record type: A record (Alias)
   - Alias target: CloudFront distribution
   - Subdomain name: Parameterized
+  - **Note**: After hosted zone creation, you'll need to update your domain registrar's nameservers to point to the Route 53 nameservers
 
 ### 4. ACM Certificate
 - **Purpose**: Enable HTTPS for custom domain
 - **Configuration**:
   - Region: us-east-1 (required for CloudFront)
-  - Domain: Parameterized subdomain (e.g., `*.yourdomain.com` or specific subdomain)
+  - Domain: Specific subdomain certificate (e.g., `trading.example.com`)
   - Validation: DNS validation via Route 53
+  - **Note**: Certificate creation requires manual validation step - you'll need to add DNS records to validate domain ownership
 
 ## Parameters (Environment Variables / Config)
 
@@ -53,35 +73,32 @@ All sensitive and environment-specific values should be externalized:
 ```bash
 # Domain Configuration
 DOMAIN_NAME=example.com                    # Your root domain
-SUBDOMAIN=trading                          # Subdomain prefix
+SUBDOMAIN=trading                          # Subdomain prefix (e.g., 'trading' or 'trading-dev')
 FULL_DOMAIN=${SUBDOMAIN}.${DOMAIN_NAME}   # e.g., trading.example.com
 
 # AWS Configuration
-AWS_REGION=us-east-1                       # Primary region
+AWS_REGION=us-east-1                       # Primary region (required for ACM certificates)
 S3_BUCKET_NAME=${FULL_DOMAIN}             # Bucket name matches subdomain
-CLOUDFRONT_PRICE_CLASS=PriceClass_All     # or PriceClass_100, PriceClass_200
 
-# Optional
-ENVIRONMENT=production                     # production, staging, dev
+# Environment
+ENVIRONMENT=production                     # production or dev
 ```
 
 ## Deployment Steps
 
 ### Prerequisites
-1. AWS account with appropriate permissions
+1. AWS account with appropriate permissions (CloudFormation, S3, CloudFront, Route53, ACM)
 2. AWS CLI configured with credentials
-3. Domain registered and Route 53 hosted zone created
-4. ACM certificate requested and validated for subdomain
+3. Domain registered (you'll update nameservers after deployment)
+4. Environment variables configured in `.env` file
 
 ### Deployment Process
-1. **Create S3 bucket** with parameterized name
-2. **Configure bucket** for static website hosting
-3. **Upload website files** to S3 bucket
-4. **Create CloudFront OAI** for secure S3 access
-5. **Update S3 bucket policy** to allow OAI access
-6. **Create CloudFront distribution** with custom domain
-7. **Create/update Route 53 record** pointing to CloudFront
-8. **Test deployment** via subdomain URL
+1. **Deploy CloudFormation stack** - creates all infrastructure (S3, CloudFront, Route53, ACM)
+2. **Validate ACM certificate** - add DNS validation records (manual step, guided by deployment script)
+3. **Update domain nameservers** - point to Route 53 nameservers (manual step, one-time)
+4. **Upload website files** - deployment script syncs files to S3 (excludes sample-data/)
+5. **Invalidate CloudFront cache** - deployment script triggers cache invalidation
+6. **Test deployment** - verify site is accessible via subdomain URL
 
 ### Deployment Automation
 Per project standards:
@@ -92,6 +109,8 @@ Per project standards:
 
 ## File Structure for Deployment
 
+Files to be deployed (sample-data/ excluded):
+
 ```
 /
 ├── index.html
@@ -101,23 +120,27 @@ Per project standards:
 │   ├── *.js
 │   └── visualizations/
 ├── lib/
-├── assets/
-└── sample-data/ (optional - may exclude from production)
+│   ├── d3.v7.min.js
+│   ├── d3-sankey.min.js
+│   └── tailwind.min.js
+└── assets/
 ```
+
+**Excluded from deployment**: `sample-data/`, `tests/`, `.git/`, `.kiro/`, `node_modules/`, `.env`
 
 ## Security Considerations
 
 1. **S3 Bucket**:
    - Not publicly accessible (CloudFront OAI only)
    - No sensitive data in bucket (all params externalized)
-   - Enable versioning for rollback capability
-   - Enable server access logging
+   - Versioning enabled for rollback capability
+   - Access logging disabled (cost optimization)
 
 2. **CloudFront**:
    - Force HTTPS (redirect HTTP)
    - Use security headers (via Lambda@Edge if needed)
    - Enable AWS WAF if needed for additional protection
-   - Enable access logging
+   - Access logging disabled (cost optimization)
 
 3. **Secrets Management**:
    - Store parameters in AWS Systems Manager Parameter Store or Secrets Manager
@@ -134,14 +157,13 @@ Per project standards:
 
 ## Monitoring & Maintenance
 
-- Enable CloudFront access logs
-- Enable S3 access logs
-- Set up CloudWatch alarms for:
+- CloudFront and S3 access logs disabled for cost optimization
+- Optional: Set up CloudWatch alarms for:
   - 4xx/5xx error rates
   - Request counts
   - Data transfer anomalies
 - Regular security audits
-- Certificate renewal monitoring (ACM auto-renews, but monitor)
+- Certificate renewal monitoring (ACM auto-renews, but monitor via AWS console)
 
 ## Rollback Strategy
 
@@ -158,12 +180,17 @@ Create a `.env.example` file (not committed with real values):
 # AWS Deployment Configuration
 # Copy to .env and fill in your values
 
+# Domain Configuration
 DOMAIN_NAME=example.com
-SUBDOMAIN=trading
+SUBDOMAIN=trading              # Use 'trading' for production, 'trading-dev' for dev
+ENVIRONMENT=production         # 'production' or 'dev'
+
+# AWS Configuration
 AWS_REGION=us-east-1
 AWS_PROFILE=default
-CLOUDFRONT_PRICE_CLASS=PriceClass_All
-ENVIRONMENT=production
+
+# CloudFormation Stack Name (auto-generated from subdomain)
+STACK_NAME=static-website-${SUBDOMAIN}
 ```
 
 Add `.env` to `.gitignore` to prevent accidental commits.
@@ -173,26 +200,40 @@ Add `.env` to `.gitignore` to prevent accidental commits.
 Per project standards, the following will be created in the `infrastructure/` directory:
 
 1. **CloudFormation Template** (`infrastructure/cloudformation.yaml`):
-   - Define all AWS resources (S3, CloudFront, Route53, ACM)
-   - Use parameters for all environment-specific values
-   - Include outputs for resource ARNs and URLs
+   - Define all AWS resources (S3, CloudFront, Route53 Hosted Zone, ACM Certificate)
+   - Use parameters for domain name and subdomain
+   - Include outputs for:
+     - S3 bucket name
+     - CloudFront distribution ID and domain
+     - Route 53 nameservers (for domain registrar update)
+     - ACM certificate ARN and validation records
+     - Website URL
 
 2. **Deployment Script** (`infrastructure/deploy.sh`):
+   - Load environment variables from `.env`
    - Validate CloudFormation template
    - Deploy/update stack with parameters
-   - Handle stack creation vs. update
-   - Upload website files to S3
+   - Wait for stack creation/update
+   - Display ACM certificate validation instructions
+   - Wait for certificate validation (with timeout)
+   - Sync website files to S3 (explicitly include only necessary files, exclude sample-data/)
    - Invalidate CloudFront cache
+   - Display deployment summary and next steps
 
 3. **Infrastructure README** (`infrastructure/README.md`):
    - Prerequisites and setup instructions
-   - Parameter configuration guide
-   - Deployment commands
+   - Environment variable configuration guide
+   - Step-by-step deployment process
+   - ACM certificate validation instructions
+   - Domain nameserver update instructions
+   - Multi-environment setup (dev vs production)
    - Troubleshooting guide
+   - Rollback procedures
 
 4. **Parameter Configuration** (`.env` - gitignored):
    - Environment-specific values
    - Never committed to repository
+   - Template provided as `.env.example`
 
 ## Next Steps
 

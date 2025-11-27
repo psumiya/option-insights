@@ -77,7 +77,7 @@ See [BROKER_SUPPORT.md](BROKER_SUPPORT.md) for detailed format specifications.
 Run the test suite to verify everything works:
 
 ```bash
-node run-tests.js
+node tests/run-tests.js
 ```
 
 Or open the test pages in your browser:

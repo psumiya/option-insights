@@ -101,7 +101,7 @@
         async function testRobinhood() {
             try {
                 console.log('Testing Robinhood...');
-                const response = await fetch('../sample-data/Hood.csv');
+                const response = await fetch('sample-data/Hood.csv');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -129,7 +129,7 @@
         async function testTasty() {
             try {
                 console.log('Testing Tasty...');
-                const response = await fetch('../sample-data/Tasty.csv');
+                const response = await fetch('sample-data/Tasty.csv');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -157,7 +157,7 @@
         async function testGeneric() {
             try {
                 console.log('Testing Generic...');
-                const response = await fetch('../sample-data/sample-data-messy.csv');
+                const response = await fetch('sample-data/sample-data-messy.csv');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }

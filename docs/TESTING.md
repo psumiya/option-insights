@@ -13,7 +13,7 @@ I've created a comprehensive automated test suite that verifies everything works
 
 2. **Run the automated tests:**
    ```bash
-   node run-tests.js
+   node tests/run-tests.js
    ```
 
 3. **Open the test page in your browser:**
@@ -97,7 +97,7 @@ If tests fail, check the browser console (F12) for:
    ```
    HTTP 404: Hood.csv not found
    ```
-   → Make sure CSV files are in the sample-data/ directory
+   → Make sure CSV files are in the tests/sample-data/ directory
 
 3. **Parsing errors**
    ```
@@ -126,7 +126,9 @@ The automated test suite runs:
 | `tests/test-broker-adapters.html` | Manual broker testing |
 | `tests/test-simple.html` | Basic component verification |
 | `tests/test-demo-data.html` | Demo data generator testing |
-| `run-tests.js` | CLI test runner |
+| `tests/run-tests.js` | CLI test runner |
+| `tests/test-robinhood-strategy.js` | Robinhood strategy detection tests |
+| `tests/sample-data/` | Sample CSV files for testing |
 
 ## Expected Results
 
@@ -148,7 +150,7 @@ python3 -m http.server 8000 &
 SERVER_PID=$!
 
 # Run tests
-node run-tests.js
+node tests/run-tests.js
 
 # Stop server
 kill $SERVER_PID

@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import { parseTasty } from '../js/tastyAdapter.js';
 
 test('parseTasty converts CSV rows using TastyAdapter', () => {
-  const trades = parseTasty('sample-data/Tasty.csv');
+  const trades = parseTasty('tests/sample-data/Tasty.csv');
   
   // Verify we got trades back
   assert.ok(trades.length > 0, 'Should have converted at least one trade');

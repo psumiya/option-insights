@@ -248,14 +248,14 @@
     - Complete disaster recovery steps
     - _Requirements: 9.7_
 
-- [ ] 6. Create multi-environment support
-  - [ ] 6.1 Create .env.production example
+- [x] 6. Create multi-environment support
+  - [x] 6.1 Create .env.production example
     - Configure production subdomain
     - Configure production bucket name
     - Set environment to production
     - _Requirements: 7.1, 7.3_
 
-  - [ ] 6.2 Create .env.dev example
+  - [x] 6.2 Create .env.dev example
     - Configure dev subdomain (e.g., trading-dev)
     - Configure dev bucket name
     - Set environment to dev

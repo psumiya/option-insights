@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the requirements for deploying the options trading journal as a static website using AWS infrastructure. The deployment system shall provide a secure, scalable, and automated solution for hosting static web content with custom subdomain routing, HTTPS support, and global content delivery.
+This document specifies the requirements for deploying the option trading insights as a static website using AWS infrastructure. The deployment system shall provide a secure, scalable, and automated solution for hosting static web content with custom subdomain routing, HTTPS support, and global content delivery.
 
 ## Glossary
 

@@ -2,18 +2,42 @@
 
 Deploy the Options Trading Journal as a static website using CloudFormation, S3, CloudFront, Route 53, and ACM.
 
+## Quick Start - Repeat Deployments
+
+**Already set up? Just run:**
+
+```bash
+cd infrastructure
+
+# Deploy to development
+./scripts/deploy-dev.sh
+
+# Deploy to production
+./scripts/deploy-prod.sh
+```
+
+The script will sync your latest files to S3 and invalidate the CloudFront cache. Changes are live in 1-2 minutes.
+
+---
+
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Environment Setup](#environment-setup)
-- [Deployment](#deployment)
-- [ACM Certificate Validation](#acm-certificate-validation)
-- [Domain Configuration](#domain-configuration)
+- [Quick Start - Repeat Deployments](#quick-start---repeat-deployments)
+- [First Time Setup](#first-time-setup)
+  - [Prerequisites](#prerequisites)
+  - [Environment Setup](#environment-setup)
+  - [Initial Deployment](#initial-deployment)
+  - [ACM Certificate Validation](#acm-certificate-validation)
+  - [Domain Configuration](#domain-configuration)
 - [Multi-Environment Setup](#multi-environment-setup)
 - [Troubleshooting](#troubleshooting)
 - [Rollback](#rollback)
 
-## Prerequisites
+---
+
+## First Time Setup
+
+### Prerequisites
 
 **Required:**
 - AWS CLI installed and configured (`aws configure`)
@@ -27,55 +51,64 @@ aws --version
 bash --version
 ```
 
-## Environment Setup
+### Environment Setup
 
-1. **Create environment file:**
-   ```bash
-   cd infrastructure
-   cp .env.example .env
-   ```
+Environment-specific configuration files are pre-configured:
+- `.env.dev` - Development environment settings
+- `.env.production` - Production environment settings
 
-2. **Configure variables in `.env`:**
-   ```bash
-   DOMAIN_NAME=example.com              # Root domain
-   SUBDOMAIN=trading                    # Subdomain prefix
-   S3_BUCKET_NAME=trading-example-com   # Globally unique bucket name
-   ENVIRONMENT=production               # 'production' or 'dev'
-   AWS_REGION=us-east-1                 # Must be us-east-1 for ACM
-   AWS_PROFILE=default                  # AWS CLI profile
-   STACK_NAME=static-website-trading    # CloudFormation stack name
-   ```
+**Configure your domain and bucket names:**
 
-3. **Verify:**
-   ```bash
-   grep -q "\.env" ../.gitignore && echo "✓ .env is ignored"
-   ```
+Edit `.env.production` for production:
+```bash
+DOMAIN_NAME=example.com              # Root domain
+SUBDOMAIN=trading                    # Subdomain prefix
+S3_BUCKET_NAME=trading-example-com   # Globally unique bucket name
+```
 
+Edit `.env.dev` for development:
+```bash
+DOMAIN_NAME=example.com              # Root domain
+SUBDOMAIN=trading-dev                # Subdomain prefix
+S3_BUCKET_NAME=trading-example-com-dev   # Globally unique bucket name
+```
 
-## Deployment
+### Initial Deployment
 
-1. **Run deployment script:**
-   ```bash
-   chmod +x scripts/deploy.sh
-   ./scripts/deploy.sh
-   ```
+**One-shot deployment - choose your environment:**
 
-2. **Script performs:**
-   - Validates environment and CloudFormation template
-   - Creates/updates CloudFormation stack (5-15 min)
-   - Displays ACM certificate validation instructions
-   - Waits for certificate validation
-   - Syncs files to S3
-   - Invalidates CloudFront cache
-   - Shows deployment summary
+**For Development:**
+```bash
+cd infrastructure
+./scripts/deploy-dev.sh
+```
 
-3. **Verify deployment:**
-   ```bash
-   # After DNS propagates
-   https://trading.example.com
-   ```
+**For Production:**
+```bash
+cd infrastructure
+./scripts/deploy-prod.sh
+```
 
-## ACM Certificate Validation
+The script will:
+- Load environment-specific configuration
+- Validate CloudFormation template
+- Create/update CloudFormation stack (5-15 min)
+- Display ACM certificate validation instructions
+- Wait for certificate validation
+- Sync files to S3
+- Invalidate CloudFront cache
+- Show deployment summary
+
+**Production Safety:** The production script includes a confirmation prompt before proceeding.
+
+**Verify deployment:**
+```bash
+# After DNS propagates
+https://trading.example.com        # Production
+https://trading-dev.example.com    # Development
+```
+
+### ACM Certificate Validation
 
 **Process:**
 1. Script displays CNAME record after stack creation:
@@ -103,7 +136,7 @@ aws acm describe-certificate --certificate-arn <arn> --region us-east-1
 ```
 
 
-## Domain Configuration
+### Domain Configuration
 
 **Update nameservers at your domain registrar:**
 
@@ -134,45 +167,38 @@ https://d1234567890abc.cloudfront.net
 
 ## Multi-Environment Setup
 
-**Separate dev and production:**
+Development and production environments are managed through separate configuration files and deployment scripts.
 
-```bash
-# .env.production
-SUBDOMAIN=trading
-S3_BUCKET_NAME=trading-example-com-prod
-ENVIRONMENT=production
-STACK_NAME=static-website-trading-prod
+**Environment files:**
+- `.env.dev` - Development configuration
+- `.env.production` - Production configuration
 
-# .env.dev
-SUBDOMAIN=trading-dev
-S3_BUCKET_NAME=trading-example-com-dev
-ENVIRONMENT=dev
-STACK_NAME=static-website-trading-dev
-```
-
-**Deploy:**
-```bash
-cp .env.dev .env && ./scripts/deploy.sh      # Dev
-cp .env.production .env && ./scripts/deploy.sh  # Production
-```
+**Deployment scripts:**
+- `./scripts/deploy-dev.sh` - Deploy to development
+- `./scripts/deploy-prod.sh` - Deploy to production
 
 **Naming conventions:**
 - Production: `trading.example.com`
 - Development: `trading-dev.example.com`
-- Staging: `trading-staging.example.com`
+
+Each environment maintains its own:
+- CloudFormation stack
+- S3 bucket
+- CloudFront distribution
+- ACM certificate
+- Route 53 DNS records
 
 
 ## Troubleshooting
 
 ### Environment Errors
 
-**Missing .env file:**
-```bash
-cp .env.example .env  # Then configure values
-```
+**Missing environment file:**
+- Ensure `.env.dev` or `.env.production` exists
+- Copy from `.env.example` if needed
 
 **Missing variables:**
-- Ensure all variables in `.env` have values
+- Ensure all variables in environment files have values
 - No comments on same line as assignments
 
 **Invalid ENVIRONMENT value:**

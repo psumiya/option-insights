@@ -29,35 +29,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRASTRUCTURE_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_ROOT="$(dirname "$INFRASTRUCTURE_DIR")"
 
-# Function to load and validate environment variables
-load_env() {
-    echo -e "${BLUE}Loading environment configuration...${NC}"
-    
-    local env_file="${INFRASTRUCTURE_DIR}/.env"
-    
-    # Check if .env file exists
-    if [ ! -f "$env_file" ]; then
-        echo -e "${RED}Error: .env file not found at ${env_file}${NC}"
-        echo -e "${YELLOW}Please copy .env.example to .env and configure your values:${NC}"
-        echo -e "  cp ${INFRASTRUCTURE_DIR}/.env.example ${INFRASTRUCTURE_DIR}/.env"
-        exit 1
-    fi
-    
-    # Load environment variables from .env file
-    # This reads each line, ignores comments and empty lines, and exports variables
-    while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        if [[ $key =~ ^#.*$ ]] || [[ -z $key ]]; then
-            continue
-        fi
-        
-        # Remove leading/trailing whitespace
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
-        
-        # Export the variable
-        export "$key=$value"
-    done < "$env_file"
+# Function to validate environment variables
+validate_env() {
+    echo -e "${BLUE}Validating environment configuration...${NC}"
     
     # Define required environment variables
     local required_vars=(
@@ -84,7 +58,6 @@ load_env() {
         for var in "${missing_vars[@]}"; do
             echo -e "  - ${var}"
         done
-        echo -e "${YELLOW}Please configure these variables in ${env_file}${NC}"
         exit 1
     fi
     
@@ -95,11 +68,7 @@ load_env() {
         exit 1
     fi
     
-    echo -e "${GREEN}✓ Environment configuration loaded successfully${NC}"
-    echo -e "  Domain: ${SUBDOMAIN}.${DOMAIN_NAME}"
-    echo -e "  Environment: ${ENVIRONMENT}"
-    echo -e "  Stack: ${STACK_NAME}"
-    echo -e "  Region: ${AWS_REGION}"
+    echo -e "${GREEN}✓ Environment configuration validated${NC}"
     echo ""
 }
 
@@ -578,13 +547,8 @@ display_summary() {
 
 # Main script execution
 main() {
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}AWS Static Website Deployment${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-    
-    # Load environment variables
-    load_env
+    # Validate environment variables (loaded by calling script)
+    validate_env
     
     # Validate CloudFormation template
     validate_template

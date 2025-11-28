@@ -70,16 +70,6 @@ Resources:
               CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
             Action: 's3:GetObject'
             Resource: !Sub '${S3Bucket.Arn}/*'
-          - Sid: DenyAllOtherAccess
-            Effect: Deny
-            Principal: '*'
-            Action: 's3:*'
-            Resource:
-              - !GetAtt S3Bucket.Arn
-              - !Sub '${S3Bucket.Arn}/*'
-            Condition:
-              StringNotEquals:
-                aws:PrincipalAccount: !Ref AWS::AccountId
 
   # Route 53 Hosted Zone
   Route53HostedZone:

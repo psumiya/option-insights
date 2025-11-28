@@ -261,11 +261,30 @@
     - Set environment to dev
     - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 7. Checkpoint - Validate infrastructure deployment
+- [x] 7. Checkpoint - Validate infrastructure deployment
   - Ensure all tests pass, ask the user if questions arise
   - Manually verify CloudFormation template validates successfully
   - Manually verify deployment script functions work correctly
   - Test deployment to a test AWS account (if available)
+
+- [x] 7.5 Simplify deployment process
+  - [x] 7.5.1 Create environment-specific deployment scripts
+    - Create deploy-dev.sh for development deployments
+    - Create deploy-prod.sh for production deployments
+    - Add production safety confirmation prompt
+    - _Requirements: 6.1, 9.4_
+
+  - [x] 7.5.2 Refactor common deployment logic
+    - Rename deploy.sh to deploy-common.sh
+    - Remove environment file selection logic
+    - Simplify environment variable validation
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+
+  - [x] 7.5.3 Update documentation
+    - Update README with one-shot deployment instructions
+    - Document deploy-dev.sh and deploy-prod.sh usage
+    - Remove complex environment file management steps
+    - _Requirements: 9.2, 9.4_
 
 - [ ] 8. Create integration tests
   - [ ] 8.1 Test complete deployment workflow

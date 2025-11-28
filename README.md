@@ -1,10 +1,12 @@
 # Option Insights
 
-A personal options trading analytics dashboard that helps you visualize and analyze your trading performance.
+A personal options trading insights dashboard that helps you visualize and analyze your trading performance.
 
 Your trades. Your browser. Your insights. No Tracking or Cookies.
 
-https://insights.sumiya.page/
+Try it here: https://insights.sumiya.page/
+
+Or build locally as described below.
 
 ## Quick Start
 

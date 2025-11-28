@@ -15,7 +15,9 @@ The Options Trading Journal now supports multiple broker CSV formats with automa
   - Includes open positions (not yet closed)
 
 ### 2. **Tasty (tastytrade)**
-- **Auto-detected** by headers: "MarketOrFill", "TimeStampAtType", "Order #"
+- **Auto-detected** by headers: 
+  - Primary format: "Sub Type", "Underlying Symbol", "Call or Put"
+  - Alternative format: "Action", "Instrument Type", "Expiration Date"
 - **Format**: Order-level data (can include multi-leg orders)
 - **Features**:
   - Handles single and multi-leg orders

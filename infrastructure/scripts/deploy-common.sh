@@ -411,11 +411,13 @@ sync_files() {
         --exclude "tests/sample-data/*" \
         --exclude ".git/*" \
         --exclude ".kiro/*" \
+        --exclude ".vscode/*" \
         --exclude "infrastructure/*" \
         --exclude "node_modules/*" \
         --exclude ".env" \
         --exclude ".gitignore" \
         --exclude "README.md" \
+        --exclude "LICENSE" \
         --exclude ".DS_Store" \
         --exclude "package.json" \
         --exclude "package-lock.json" \

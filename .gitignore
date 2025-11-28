@@ -28,6 +28,8 @@ build/
 .env.local
 .env.*.local
 infrastructure/.env
+infrastructure/.env.dev
+infrastructure/.env.production
 
 # Test coverage
 coverage/

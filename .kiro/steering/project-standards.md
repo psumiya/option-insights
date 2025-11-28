@@ -18,6 +18,7 @@ This file contains standards and guidelines that Kiro will follow when working i
 - Keep README files up to date
 - Add inline comments where code intent isn't obvious
 - Update documentation when any changes are made.
+- Keep documentation pithy. Avoid verbosity.
 
 ## Git Practices
 - Write clear, descriptive commit messages

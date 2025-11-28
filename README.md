@@ -4,6 +4,8 @@ A personal options trading analytics dashboard that helps you visualize and anal
 
 Your trades. Your browser. Your insights. No Tracking or Cookies.
 
+https://insights.sumiya.page/
+
 ## Quick Start
 
 ### Option 1: Try Demo Data 

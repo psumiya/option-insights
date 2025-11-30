@@ -93,6 +93,8 @@ The script will:
 - Load environment-specific configuration
 - Validate CloudFormation template
 - Create/update CloudFormation stack (5-15 min)
+  - For updates: creates change set and shows proposed changes
+  - For new stacks: applies stack policy for resource protection
 - Display ACM certificate validation instructions
 - Wait for certificate validation
 - Sync files to S3
@@ -106,7 +108,18 @@ The script will:
 # After DNS propagates
 https://trading.example.com        # Production
 https://trading-dev.example.com    # Development
+
+# Check security headers
+curl -I https://trading-dev.example.com
 ```
+
+**What gets created:**
+- Main S3 bucket (with encryption and versioning)
+- Logging S3 bucket (with 90-day retention)
+- CloudFront distribution (with OAC and security headers)
+- Route 53 hosted zone
+- ACM certificate
+- Stack policy (protects critical resources)
 
 ### ACM Certificate Validation
 
@@ -365,6 +378,21 @@ aws cloudfront create-invalidation --distribution-id <new-dist-id> --paths "/*"
 
 ---
 
+## Security & Best Practices
+
+**Recent Updates (Nov 2024):**
+- Migrated from deprecated OAI to Origin Access Control (OAC)
+- Added S3 encryption (SSE-S3), HTTPS-only enforcement, and access logging (90-day retention)
+- Implemented CloudFront security headers (HSTS, XSS protection, frame options)
+- Added change sets for safe updates and stack policies to protect critical resources
+
+**Key Features:**
+- **OAC**: Modern CloudFront-to-S3 auth supporting SSE-KMS and all regions
+- **Encryption**: Server-side encryption at rest, HTTPS-only in transit
+- **Logging**: Access logs in separate bucket with auto-cleanup
+- **Headers**: HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy
+- **Protection**: Stack policies prevent accidental deletion; change sets preview updates before applying
+
 ## Resources
 
 - [AWS CloudFormation](https://docs.aws.amazon.com/cloudformation/)
@@ -373,4 +401,5 @@ aws cloudfront create-invalidation --distribution-id <new-dist-id> --paths "/*"
 - [Amazon Route 53](https://docs.aws.amazon.com/route53/)
 - [AWS Certificate Manager](https://docs.aws.amazon.com/acm/)
 - [AWS CLI Reference](https://docs.aws.amazon.com/cli/)
+- [CloudFront Origin Access Control](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)
 

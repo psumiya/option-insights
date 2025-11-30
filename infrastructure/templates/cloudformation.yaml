@@ -29,9 +29,34 @@ Parameters:
     Default: production
 
 Resources:
+  # S3 Bucket for access logs
+  S3LoggingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${BucketName}-logs'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            ExpirationInDays: 90
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: AccessLogging
+
   # S3 Bucket for static website hosting
   S3Bucket:
     Type: AWS::S3::Bucket
+    DependsOn: S3LoggingBucket
     Properties:
       BucketName: !Ref BucketName
       WebsiteConfiguration:
@@ -39,6 +64,13 @@ Resources:
         ErrorDocument: index.html
       VersioningConfiguration:
         Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref S3LoggingBucket
+        LogFilePrefix: s3-access-logs/
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -50,26 +82,41 @@ Resources:
         - Key: Purpose
           Value: StaticWebsiteHosting
 
-  # CloudFront Origin Access Identity
-  CloudFrontOriginAccessIdentity:
-    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+  # CloudFront Origin Access Control (OAC)
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
     Properties:
-      CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub 'OAI for ${Subdomain}.${DomainName}'
+      OriginAccessControlConfig:
+        Name: !Sub '${Subdomain}-${Environment}-OAC'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+        Description: !Sub 'OAC for ${Subdomain}.${DomainName}'
 
-  # S3 Bucket Policy - Allow only CloudFront OAI access
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
+  # CloudFront Response Headers Policy for security
+  CloudFrontResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
-      Bucket: !Ref S3Bucket
-      PolicyDocument:
-        Statement:
-          - Sid: AllowCloudFrontOAIAccess
-            Effect: Allow
-            Principal:
-              CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
-            Action: 's3:GetObject'
-            Resource: !Sub '${S3Bucket.Arn}/*'
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${Subdomain}-${Environment}-SecurityHeaders'
+        Comment: Security headers for static website
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
 
   # Route 53 Hosted Zone
   Route53HostedZone:
@@ -100,8 +147,6 @@ Resources:
   # CloudFront Distribution
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
-    DependsOn:
-      - S3BucketPolicy
     Properties:
       DistributionConfig:
         Enabled: true
@@ -111,9 +156,10 @@ Resources:
           - !Sub '${Subdomain}.${DomainName}'
         Origins:
           - Id: S3Origin
-            DomainName: !GetAtt S3Bucket.DomainName
+            DomainName: !GetAtt S3Bucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
             S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+              OriginAccessIdentity: ''
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
@@ -129,6 +175,7 @@ Resources:
           DefaultTTL: 86400
           MaxTTL: 31536000
           MinTTL: 0
+          ResponseHeadersPolicyId: !Ref CloudFrontResponseHeadersPolicy
           ForwardedValues:
             QueryString: false
             Cookies:
@@ -152,6 +199,34 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
+  # S3 Bucket Policy - Allow only CloudFront OAC access with HTTPS enforcement
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: CloudFrontDistribution
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: 's3:GetObject'
+            Resource: !Sub '${S3Bucket.Arn}/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub '${S3Bucket.Arn}/*'
+              - !GetAtt S3Bucket.Arn
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+
   # Route 53 A Record
   Route53ARecord:
     Type: AWS::Route53::RecordSet
@@ -171,6 +246,12 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-S3BucketName'
 
+  S3LoggingBucketName:
+    Description: Name of the S3 logging bucket
+    Value: !Ref S3LoggingBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-S3LoggingBucketName'
+
   CloudFrontDistributionId:
     Description: CloudFront distribution ID
     Value: !Ref CloudFrontDistribution
@@ -182,6 +263,18 @@ Outputs:
     Value: !GetAtt CloudFrontDistribution.DomainName
     Export:
       Name: !Sub '${AWS::StackName}-CloudFrontDomainName'
+
+  CloudFrontOACId:
+    Description: CloudFront Origin Access Control ID
+    Value: !GetAtt CloudFrontOriginAccessControl.Id
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontOACId'
+
+  ResponseHeadersPolicyId:
+    Description: CloudFront Response Headers Policy ID
+    Value: !Ref CloudFrontResponseHeadersPolicy
+    Export:
+      Name: !Sub '${AWS::StackName}-ResponseHeadersPolicyId'
 
   Route53NameServers:
     Description: Route 53 nameservers for domain registrar configuration

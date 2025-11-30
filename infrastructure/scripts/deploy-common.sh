@@ -109,6 +109,7 @@ deploy_stack() {
     echo -e "${BLUE}Deploying CloudFormation stack...${NC}"
     
     local template_file="${INFRASTRUCTURE_DIR}/templates/cloudformation.yaml"
+    local stack_policy_file="${INFRASTRUCTURE_DIR}/templates/stack-policy.json"
     
     # Check if stack exists
     local stack_exists=false
@@ -127,24 +128,25 @@ deploy_stack() {
     parameters="${parameters} ParameterKey=Environment,ParameterValue=${ENVIRONMENT}"
     
     if [ "$stack_exists" = true ]; then
-        echo -e "${YELLOW}Stack ${STACK_NAME} already exists. Updating...${NC}"
+        echo -e "${YELLOW}Stack ${STACK_NAME} already exists. Creating change set...${NC}"
         
-        # Try to update the stack
-        if aws cloudformation update-stack \
+        local change_set_name="${STACK_NAME}-$(date +%Y%m%d-%H%M%S)"
+        
+        # Create change set
+        if aws cloudformation create-change-set \
             --stack-name "${STACK_NAME}" \
+            --change-set-name "${change_set_name}" \
             --template-body "file://${template_file}" \
             --parameters ${parameters} \
             --capabilities CAPABILITY_IAM \
             --profile "${AWS_PROFILE}" \
             --region "${AWS_REGION}" \
             > /dev/null 2>&1; then
-            echo -e "${GREEN}✓ Stack update initiated${NC}"
-            echo ""
-            return 0
+            echo -e "${GREEN}✓ Change set created: ${change_set_name}${NC}"
         else
-            # Check if the error is "No updates to be performed"
-            local error_output=$(aws cloudformation update-stack \
+            local error_output=$(aws cloudformation create-change-set \
                 --stack-name "${STACK_NAME}" \
+                --change-set-name "${change_set_name}" \
                 --template-body "file://${template_file}" \
                 --parameters ${parameters} \
                 --capabilities CAPABILITY_IAM \
@@ -156,24 +158,78 @@ deploy_stack() {
                 echo ""
                 return 0
             else
-                echo -e "${RED}✗ Stack update failed${NC}"
+                echo -e "${RED}✗ Change set creation failed${NC}"
                 echo "$error_output"
                 exit 1
             fi
         fi
+        
+        # Wait for change set creation
+        echo -e "${BLUE}Waiting for change set to be created...${NC}"
+        aws cloudformation wait change-set-create-complete \
+            --stack-name "${STACK_NAME}" \
+            --change-set-name "${change_set_name}" \
+            --profile "${AWS_PROFILE}" \
+            --region "${AWS_REGION}" 2>/dev/null || true
+        
+        # Display changes
+        echo ""
+        echo -e "${YELLOW}========================================${NC}"
+        echo -e "${YELLOW}Proposed Changes:${NC}"
+        echo -e "${YELLOW}========================================${NC}"
+        aws cloudformation describe-change-set \
+            --stack-name "${STACK_NAME}" \
+            --change-set-name "${change_set_name}" \
+            --profile "${AWS_PROFILE}" \
+            --region "${AWS_REGION}" \
+            --query 'Changes[*].[ResourceChange.Action,ResourceChange.LogicalResourceId,ResourceChange.ResourceType,ResourceChange.Replacement]' \
+            --output table 2>/dev/null || true
+        echo ""
+        
+        # Prompt for confirmation in production
+        if [ "$ENVIRONMENT" = "production" ]; then
+            read -p "Execute these changes? (yes/no): " -r
+            echo ""
+            if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+                echo -e "${YELLOW}Deleting change set and cancelling deployment...${NC}"
+                aws cloudformation delete-change-set \
+                    --stack-name "${STACK_NAME}" \
+                    --change-set-name "${change_set_name}" \
+                    --profile "${AWS_PROFILE}" \
+                    --region "${AWS_REGION}" 2>/dev/null || true
+                exit 0
+            fi
+        fi
+        
+        # Execute change set
+        echo -e "${BLUE}Executing change set...${NC}"
+        if aws cloudformation execute-change-set \
+            --stack-name "${STACK_NAME}" \
+            --change-set-name "${change_set_name}" \
+            --profile "${AWS_PROFILE}" \
+            --region "${AWS_REGION}" \
+            > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ Stack update initiated${NC}"
+            echo ""
+            return 0
+        else
+            echo -e "${RED}✗ Change set execution failed${NC}"
+            exit 1
+        fi
     else
         echo -e "${YELLOW}Creating new stack ${STACK_NAME}...${NC}"
         
-        # Create the stack
+        # Create the stack with stack policy
         if aws cloudformation create-stack \
             --stack-name "${STACK_NAME}" \
             --template-body "file://${template_file}" \
             --parameters ${parameters} \
             --capabilities CAPABILITY_IAM \
+            --stack-policy-body "file://${stack_policy_file}" \
             --profile "${AWS_PROFILE}" \
             --region "${AWS_REGION}" \
             > /dev/null 2>&1; then
-            echo -e "${GREEN}✓ Stack creation initiated${NC}"
+            echo -e "${GREEN}✓ Stack creation initiated with stack policy${NC}"
             echo ""
             return 0
         else
@@ -183,6 +239,7 @@ deploy_stack() {
                 --template-body "file://${template_file}" \
                 --parameters ${parameters} \
                 --capabilities CAPABILITY_IAM \
+                --stack-policy-body "file://${stack_policy_file}" \
                 --profile "${AWS_PROFILE}" \
                 --region "${AWS_REGION}" 2>&1 || true
             exit 1

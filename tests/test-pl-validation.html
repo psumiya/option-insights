@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P/L Validation Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section input {
+            margin: 10px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .result-box {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+            background: #E3F2FD;
+        }
+        .result-box.success {
+            border-left-color: #4CAF50;
+            background: #E8F5E9;
+        }
+        .result-box.error {
+            border-left-color: #f44336;
+            background: #FFEBEE;
+        }
+        .result-box.warning {
+            border-left-color: #FF9800;
+            background: #FFF3E0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .positive {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        .negative {
+            color: #f44336;
+            font-weight: 600;
+        }
+        .metric {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .detail {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 P/L Validation Test</h1>
+        <p>This test validates that P/L calculations are correct by comparing manual calculations with the analytics engine.</p>
+        
+        <div class="upload-section">
+            <h3>Upload Your CSV File</h3>
+            <input type="file" id="csv-file" accept=".csv">
+            <br>
+            <button class="btn" onclick="runTest()">Run P/L Validation</button>
+        </div>
+
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Processing CSV...</p>
+        </div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="../js/broker-adapters.js"></script>
+    <script src="../js/csv-parser.js"></script>
+    <script src="../js/strategy-detector.js"></script>
+    <script src="../js/analytics-engine.js"></script>
+
+    <script>
+        async function runTest() {
+            const fileInput = document.getElementById('csv-file');
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            
+            if (!fileInput.files.length) {
+                resultsDiv.innerHTML = '<div class="result-box error">Please select a CSV file first.</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '';
+            loadingDiv.style.display = 'block';
+
+            try {
+                // Parse CSV
+                const parser = new CSVParser();
+                const file = fileInput.files[0];
+                console.log('Parsing CSV file:', file.name);
+                
+                let trades = await parser.parse(file);
+                console.log('Parsed trades:', trades.length);
+
+                // Detect strategies
+                const detector = new StrategyDetector();
+                trades = trades.map(trade => {
+                    const strategy = detector.detect(trade);
+                    return { ...trade, Strategy: strategy };
+                });
+                console.log('Strategies detected');
+
+                // Enrich trades
+                const analytics = new AnalyticsEngine();
+                const enrichedTrades = trades.map(trade => analytics.enrichTrade(trade));
+                console.log('Trades enriched');
+
+                // Manual P/L calculation
+                const manualPL = calculateManualPL(enrichedTrades);
+                
+                // Analytics engine P/L calculation
+                const summaryMetrics = analytics.calculateSummaryMetrics(enrichedTrades);
+                const enginePL = summaryMetrics.totalPL;
+
+                // Calculate difference
+                const difference = Math.abs(manualPL - enginePL);
+                const percentDiff = manualPL !== 0 ? (difference / Math.abs(manualPL)) * 100 : 0;
+
+                loadingDiv.style.display = 'none';
+
+                // Display results
+                let html = '<h2>Validation Results</h2>';
+
+                // Summary comparison
+                const isMatch = difference < 0.01; // Allow for floating point precision
+                html += `<div class="result-box ${isMatch ? 'success' : 'error'}">`;
+                html += `<h3>${isMatch ? '✅ P/L Calculations Match!' : '❌ P/L Mismatch Detected'}</h3>`;
+                html += `<div class="metric">Manual Calculation: <span class="${manualPL >= 0 ? 'positive' : 'negative'}">$${manualPL.toFixed(2)}</span></div>`;
+                html += `<div class="metric">Analytics Engine: <span class="${enginePL >= 0 ? 'positive' : 'negative'}">$${enginePL.toFixed(2)}</span></div>`;
+                if (!isMatch) {
+                    html += `<div class="metric">Difference: <span class="negative">$${difference.toFixed(2)} (${percentDiff.toFixed(2)}%)</span></div>`;
+                }
+                html += '</div>';
+
+                // Trade breakdown
+                html += '<h2>Trade Breakdown</h2>';
+                html += `<div class="detail">Total Trades: ${enrichedTrades.length}</div>`;
+                html += `<div class="detail">Closed Trades: ${enrichedTrades.filter(t => t.Result !== 'Open').length}</div>`;
+                html += `<div class="detail">Open Trades: ${enrichedTrades.filter(t => t.Result === 'Open').length}</div>`;
+
+                // Detailed trade table
+                html += '<h2>Closed Trades Detail</h2>';
+                html += '<table>';
+                html += '<thead><tr><th>Symbol</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>Credit</th><th>Debit</th><th>P/L</th></tr></thead>';
+                html += '<tbody>';
+                
+                const closedTrades = enrichedTrades.filter(t => t.Result !== 'Open');
+                closedTrades.forEach(trade => {
+                    const plClass = trade.ProfitLoss >= 0 ? 'positive' : 'negative';
+                    html += '<tr>';
+                    html += `<td>${trade.Symbol}</td>`;
+                    html += `<td>${trade.Strategy}</td>`;
+                    html += `<td>${formatDate(trade.Entry)}</td>`;
+                    html += `<td>${formatDate(trade.Exit)}</td>`;
+                    html += `<td>$${trade.Credit.toFixed(2)}</td>`;
+                    html += `<td>$${trade.Debit.toFixed(2)}</td>`;
+                    html += `<td class="${plClass}">$${trade.ProfitLoss.toFixed(2)}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+
+                // Calculation method explanation
+                html += '<h2>Calculation Method</h2>';
+                html += '<div class="result-box">';
+                html += '<p><strong>P/L Formula:</strong> <span class="code">Credit - Debit</span></p>';
+                html += '<p>Only closed trades (with Exit date) are included in total P/L.</p>';
+                html += '<p>Open trades are excluded from P/L calculations.</p>';
+                html += '</div>';
+
+                // Summary by strategy
+                const strategyBreakdown = calculateStrategyBreakdown(closedTrades);
+                html += '<h2>P/L by Strategy</h2>';
+                html += '<table>';
+                html += '<thead><tr><th>Strategy</th><th>Trades</th><th>Total P/L</th><th>Avg P/L</th></tr></thead>';
+                html += '<tbody>';
+                
+                Object.entries(strategyBreakdown).forEach(([strategy, data]) => {
+                    const plClass = data.totalPL >= 0 ? 'positive' : 'negative';
+                    const avgPL = data.count > 0 ? data.totalPL / data.count : 0;
+                    html += '<tr>';
+                    html += `<td>${strategy}</td>`;
+                    html += `<td>${data.count}</td>`;
+                    html += `<td class="${plClass}">$${data.totalPL.toFixed(2)}</td>`;
+                    html += `<td class="${plClass}">$${avgPL.toFixed(2)}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                resultsDiv.innerHTML = `<div class="result-box error">
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                    <p class="detail">Check the browser console for more details.</p>
+                </div>`;
+                console.error('Test error:', error);
+            }
+        }
+
+        function calculateManualPL(trades) {
+            let totalPL = 0;
+            
+            trades.forEach(trade => {
+                // Only include closed trades
+                if (trade.Result === 'Win' || trade.Result === 'Loss') {
+                    const credit = parseFloat(trade.Credit) || 0;
+                    const debit = parseFloat(trade.Debit) || 0;
+                    const pl = credit - debit;
+                    totalPL += pl;
+                }
+            });
+            
+            return totalPL;
+        }
+
+        function calculateStrategyBreakdown(trades) {
+            const breakdown = {};
+            
+            trades.forEach(trade => {
+                const strategy = trade.Strategy || 'Unknown';
+                if (!breakdown[strategy]) {
+                    breakdown[strategy] = { count: 0, totalPL: 0 };
+                }
+                breakdown[strategy].count++;
+                breakdown[strategy].totalPL += trade.ProfitLoss;
+            });
+            
+            return breakdown;
+        }
+
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            const d = new Date(date);
+            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+    </script>
+</body>
+</html>

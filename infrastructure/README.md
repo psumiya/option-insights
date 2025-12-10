@@ -4,8 +4,9 @@ Deploy the Options Trading Journal as a static website using CloudFormation, S3,
 
 ## Quick Start - Repeat Deployments
 
-**Already set up? Just run:**
+**Already set up? Choose your deployment method:**
 
+### Full Deployment (Infrastructure + Files)
 ```bash
 cd infrastructure
 
@@ -16,7 +17,24 @@ cd infrastructure
 ./scripts/deploy-prod.sh
 ```
 
-The script will sync your latest files to S3 and invalidate the CloudFront cache. Changes are live in 1-2 minutes.
+### Quick Sync (Files Only)
+For when you only need to update website files without touching CloudFormation:
+
+```bash
+cd infrastructure
+
+# Sync to development
+./scripts/sync-dev.sh
+
+# Sync to production
+./scripts/sync-prod.sh
+```
+
+**When to use each:**
+- **Full deployment**: First time setup, infrastructure changes, or when you get "no changes" errors
+- **Quick sync**: Daily development, content updates, bug fixes
+
+Both methods sync your latest files to S3 and invalidate the CloudFront cache. Changes are live in 1-2 minutes.
 
 ---
 
@@ -222,6 +240,13 @@ Each environment maintains its own:
 - Try: `trading-example-com-a1b2c3`
 
 ### CloudFormation Failures
+
+**"No changes" error:**
+If you get "The submitted information didn't contain changes", your infrastructure is already up-to-date. Use the quick sync scripts instead:
+```bash
+./scripts/sync-dev.sh     # For development
+./scripts/sync-prod.sh    # For production
+```
 
 **Check errors:**
 ```bash

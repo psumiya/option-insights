@@ -43,7 +43,8 @@ class DashboardController {
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
       symbolPL: new SymbolPLChart('symbol-pl-chart'),
       winLossDonut: new WinLossDonutChart('win-loss-donut-chart'),
-      topUnderlyings: new TopUnderlyingsChart('top-underlyings-chart')
+      topUnderlyings: new TopUnderlyingsChart('top-underlyings-chart'),
+      costBasis: new CostBasisChart('cost-basis-chart')
     };
 
     // Initialize Advanced Visualization Panel (Requirements: 2.1, 2.2)
@@ -346,6 +347,9 @@ class DashboardController {
     
     const topUnderlyings = this.analyticsEngine.calculateTopUnderlyings(filteredTrades, 5);
     console.log('Top underlyings:', topUnderlyings);
+    
+    const costBasisData = this.analyticsEngine.calculateCostBasisBySymbol(filteredTrades);
+    console.log('Cost basis by symbol:', costBasisData);
 
     // Update visualizations
     console.log('Updating visualizations...');
@@ -404,6 +408,13 @@ class DashboardController {
       console.log('✓ Top Underlyings updated');
     } catch (e) {
       console.error('✗ Top Underlyings error:', e);
+    }
+    
+    try {
+      this.visualizations.costBasis.update(costBasisData);
+      console.log('✓ Cost Basis updated');
+    } catch (e) {
+      console.error('✗ Cost Basis error:', e);
     }
 
     // Update table

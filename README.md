@@ -43,6 +43,7 @@ See [BROKER_SUPPORT.md](BROKER_SUPPORT.md) for detailed format specifications.
 ### Analysis Tab
 - **Trade Flow** - Sankey diagram of symbol through strategy to outcome
 - **P/L by Symbol** - Bar chart showing profit/loss for each symbol
+- **Cost Basis by Symbol** - View total money spent (debits) per symbol with open position tracking
 - **Advanced Analytics** - Expandable panel with 8 advanced visualizations:
   - **Calendar Heatmap** - Daily P/L visualization
   - **Days Held vs P/L** - Scatter plot analysis

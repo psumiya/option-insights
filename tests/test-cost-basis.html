@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cost Basis Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #1e4620;
+            border-left: 4px solid #4caf50;
+        }
+        .fail {
+            background: #4a1e1e;
+            border-left: 4px solid #f44336;
+        }
+        h1 { color: #4fc3f7; }
+        h2 { color: #81c784; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <h1>Cost Basis Calculation Test</h1>
+    <div id="test-results"></div>
+
+    <script src="../js/analytics-engine.js"></script>
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function logTest(name, passed, message = '') {
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${passed ? '✓' : '✗'} ${name}</strong>
+                ${message ? `<br><small>${message}</small>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        // Initialize analytics engine
+        const analytics = new AnalyticsEngine();
+
+        // Test 1: Basic cost basis calculation (Only debits - money spent)
+        const testTrades1 = [
+            { Symbol: 'AAPL', Credit: 100, Debit: 20, Result: 'Win' },    // Cost basis: 20
+            { Symbol: 'AAPL', Credit: 150, Debit: 30, Result: 'Loss' },   // Cost basis: 30, Total: 50
+            { Symbol: 'MSFT', Credit: 200, Debit: 50, Result: 'Win' },    // Cost basis: 50
+            { Symbol: 'TSLA', Credit: 300, Debit: 0, Result: 'Win' }      // Cost basis: 0 (filtered out)
+        ];
+
+        const costBasis1 = analytics.calculateCostBasisBySymbol(testTrades1);
+        logTest(
+            'Basic cost basis calculation (Only debits)',
+            costBasis1.length === 2 &&
+            costBasis1.find(s => s.symbol === 'AAPL').costBasis === 50 &&
+            costBasis1.find(s => s.symbol === 'MSFT').costBasis === 50,
+            `AAPL: $${costBasis1.find(s => s.symbol === 'AAPL')?.costBasis}, MSFT: $${costBasis1.find(s => s.symbol === 'MSFT')?.costBasis}, TSLA filtered out (no debits)`
+        );
+
+        // Test 2: Open position tracking with debit trades
+        const testTrades2 = [
+            { Symbol: 'AAPL', Credit: 0, Debit: 100, Result: 'Open' },    // Open position with cost basis
+            { Symbol: 'AAPL', Credit: 0, Debit: 150, Result: 'Win' },     // Closed position with cost basis
+            { Symbol: 'MSFT', Credit: 0, Debit: 200, Result: 'Win' }      // Closed position with cost basis
+        ];
+
+        const costBasis2 = analytics.calculateCostBasisBySymbol(testTrades2);
+        const aaplData = costBasis2.find(s => s.symbol === 'AAPL');
+        const msftData = costBasis2.find(s => s.symbol === 'MSFT');
+        
+        logTest(
+            'Open position tracking with debit trades',
+            aaplData && aaplData.hasOpenPosition === true &&
+            aaplData.openPositions === 1 &&
+            msftData && msftData.hasOpenPosition === false &&
+            msftData.openPositions === 0,
+            `AAPL has open: ${aaplData?.hasOpenPosition}, MSFT has open: ${msftData?.hasOpenPosition}`
+        );
+
+        // Test 3: Trade count and debit calculation
+        const testTrades3 = [
+            { Symbol: 'AAPL', Credit: 100, Debit: 10, Result: 'Win' },   // Cost basis: 10
+            { Symbol: 'AAPL', Credit: 150, Debit: 20, Result: 'Win' },   // Cost basis: 20
+            { Symbol: 'AAPL', Credit: 200, Debit: 30, Result: 'Open' }   // Cost basis: 30, Total: 60
+        ];
+
+        const costBasis3 = analytics.calculateCostBasisBySymbol(testTrades3);
+        const aaplData3 = costBasis3.find(s => s.symbol === 'AAPL');
+        
+        logTest(
+            'Trade count and debit calculation accuracy',
+            aaplData3.totalTrades === 3 &&
+            aaplData3.costBasis === 60 &&
+            aaplData3.debitTrades === 3,
+            `Total trades: ${aaplData3.totalTrades}, Cost basis: $${aaplData3.costBasis}, Debit trades: ${aaplData3.debitTrades}`
+        );
+
+        // Test 4: Sorting by cost basis descending
+        const testTrades4 = [
+            { Symbol: 'AAPL', Credit: 100, Debit: 50, Result: 'Win' },   // Cost basis: 50
+            { Symbol: 'MSFT', Credit: 500, Debit: 100, Result: 'Win' },  // Cost basis: 100
+            { Symbol: 'TSLA', Credit: 100, Debit: 200, Result: 'Win' }   // Cost basis: 200
+        ];
+
+        const costBasis4 = analytics.calculateCostBasisBySymbol(testTrades4);
+        
+        logTest(
+            'Sorting by cost basis descending',
+            costBasis4[0].symbol === 'TSLA' &&
+            costBasis4[1].symbol === 'MSFT' &&
+            costBasis4[2].symbol === 'AAPL',
+            `Order: ${costBasis4.map(s => `${s.symbol}($${s.costBasis})`).join(' > ')}`
+        );
+
+        // Test 5: Credit-only trades filtering
+        const testTrades5 = [
+            { Symbol: 'AAPL', Credit: 100, Debit: 0, Result: 'Win' },   // Only credit, should be filtered out
+            { Symbol: 'MSFT', Credit: 50, Debit: 25, Result: 'Win' }    // Has debit, should be included
+        ];
+
+        const costBasis5 = analytics.calculateCostBasisBySymbol(testTrades5);
+        
+        logTest(
+            'Credit-only trades filtering',
+            costBasis5.length === 1 &&
+            costBasis5[0].symbol === 'MSFT' &&
+            costBasis5[0].costBasis === 25,
+            `Only MSFT included with cost basis $${costBasis5[0]?.costBasis}, AAPL filtered out (no debits)`
+        );
+
+        // Test 6: Empty data handling
+        const costBasis6 = analytics.calculateCostBasisBySymbol([]);
+        
+        logTest(
+            'Empty data handling',
+            costBasis6.length === 0,
+            'Returns empty array for no trades'
+        );
+
+        // Summary
+        const allTests = document.querySelectorAll('.test-result');
+        const passed = document.querySelectorAll('.pass').length;
+        const failed = document.querySelectorAll('.fail').length;
+        
+        const summary = document.createElement('h2');
+        summary.textContent = `Test Summary: ${passed} passed, ${failed} failed`;
+        summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+        results.insertBefore(summary, results.firstChild);
+    </script>
+</body>
+</html>

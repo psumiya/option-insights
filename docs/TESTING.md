@@ -57,6 +57,24 @@ The automated test page shows:
 - ✗ **Red** = Test failed (with error details)
 - **Summary** = Total tests, passed, failed, duration
 
+## P/L Validation Testing
+
+If you suspect P/L calculations are incorrect, use the dedicated validation test:
+
+```
+http://localhost:8000/tests/test-pl-validation.html
+```
+
+1. Upload your CSV file
+2. Click "Run P/L Validation"
+3. See detailed breakdown of:
+   - Manual P/L calculation vs Analytics Engine
+   - Trade-by-trade breakdown with Credit/Debit/P/L
+   - P/L by strategy
+   - Identifies any discrepancies
+
+The test calculates P/L manually using `Credit - Debit` for all closed trades and compares it with the analytics engine to identify any calculation errors.
+
 ## Manual Testing (if needed)
 
 ### Test Individual Brokers
@@ -123,6 +141,7 @@ The automated test suite runs:
 | File | Purpose |
 |------|---------|
 | `tests/automated-test.html` | Full automated test suite |
+| `tests/test-pl-validation.html` | P/L calculation validation |
 | `tests/test-broker-adapters.html` | Manual broker testing |
 | `tests/test-simple.html` | Basic component verification |
 | `tests/test-demo-data.html` | Demo data generator testing |

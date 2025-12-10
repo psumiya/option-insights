@@ -767,6 +767,54 @@ class AnalyticsEngine {
   }
 
   /**
+   * Calculate cost basis per symbol
+   * @param {Array} trades - Array of enriched trade records
+   * @returns {Array} - Array of {symbol, costBasis, totalTrades, openPositions, hasOpenPosition} objects
+   */
+  calculateCostBasisBySymbol(trades) {
+    const symbolMap = new Map();
+
+    // Group trades by symbol
+    trades.forEach(trade => {
+      const symbol = trade.Symbol;
+      const debit = parseFloat(trade.Debit) || 0; // Only count money spent (debits)
+      
+      if (!symbolMap.has(symbol)) {
+        symbolMap.set(symbol, {
+          symbol,
+          costBasis: 0,
+          totalTrades: 0,
+          openPositions: 0,
+          debitTrades: 0 // Track how many trades involved spending money
+        });
+      }
+
+      const stats = symbolMap.get(symbol);
+      stats.costBasis += debit; // Cost basis = total money spent
+      stats.totalTrades++;
+      
+      if (debit > 0) {
+        stats.debitTrades++;
+      }
+      
+      // Count open positions
+      if (trade.Result === 'Open') {
+        stats.openPositions++;
+      }
+    });
+
+    // Convert to array and add hasOpenPosition flag
+    // Filter out symbols with zero cost basis (only credit trades)
+    return Array.from(symbolMap.values())
+      .filter(stats => stats.costBasis > 0) // Only show symbols where money was spent
+      .map(stats => ({
+        ...stats,
+        hasOpenPosition: stats.openPositions > 0
+      }))
+      .sort((a, b) => b.costBasis - a.costBasis); // Sort by cost basis descending
+  }
+
+  /**
    * Calculate median of an array
    * @param {Array} values - Sorted array of numbers
    * @returns {number} - Median value

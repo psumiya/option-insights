@@ -117,7 +117,30 @@ class CostBasisChart {
       this.data = this.data.slice(0, this.options.maxBars);
     }
 
+    // Dynamically adjust container height based on number of symbols
+    this._adjustContainerHeight();
+
     this._render();
+  }
+
+  /**
+   * Dynamically adjust container height based on number of symbols
+   * @private
+   */
+  _adjustContainerHeight() {
+    if (!this.data || this.data.length === 0) return;
+
+    // Calculate required height based on number of symbols
+    // Each symbol needs minimum space for readable labels
+    const minBarHeight = 24; // Minimum height per bar for readability
+    const baseHeight = 300; // Base height for small datasets
+    const calculatedHeight = Math.max(
+      baseHeight,
+      this.data.length * minBarHeight + this.margin.top + this.margin.bottom + 100 // Extra space for axes
+    );
+
+    // Set the container height
+    this.container.style.height = `${calculatedHeight}px`;
   }
 
   /**
@@ -387,6 +410,8 @@ class CostBasisChart {
    */
   resize() {
     if (this.data && this.data.length > 0) {
+      // Re-adjust height in case of window resize or data changes
+      this._adjustContainerHeight();
       this._render();
     }
   }

@@ -96,26 +96,6 @@ class DashboardController {
     );
 
     this.advancedVizPanel.registerVisualization(
-      'violin',
-      'P/L Distribution',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.violin = new ViolinPlotChart(container.id);
-          return this.advancedVizPanel.charts.violin;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.violin) {
-            const violinData = this.analyticsEngine.calculateViolinData(data);
-            this.advancedVizPanel.charts.violin.update(violinData);
-          }
-        }
-      }
-    );
-
-
-    this.advancedVizPanel.registerVisualization(
       'dteScatter',
       'Days to Expire (at Entry) vs P/L',
       {
@@ -132,6 +112,25 @@ class DashboardController {
           if (this.advancedVizPanel.charts?.dteScatter) {
             const scatterData = this.analyticsEngine.calculateScatterData(data);
             this.advancedVizPanel.charts.dteScatter.update(scatterData);
+          }
+        }
+      }
+    );
+
+    this.advancedVizPanel.registerVisualization(
+      'violin',
+      'P/L Distribution',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.violin = new ViolinPlotChart(container.id);
+          return this.advancedVizPanel.charts.violin;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.violin) {
+            const violinData = this.analyticsEngine.calculateViolinData(data);
+            this.advancedVizPanel.charts.violin.update(violinData);
           }
         }
       }

@@ -166,6 +166,7 @@
     </div>
 
     <!-- Load all application scripts -->
+    <script src="../js/tasty-strategy-mapper.js"></script>
     <script src="../js/broker-adapters.js"></script>
     <script src="../js/csv-parser.js"></script>
     <script src="../js/strategy-detector.js"></script>
@@ -341,10 +342,10 @@
                         expected: 'robinhood'
                     },
                     {
-                        name: 'Tasty',
-                        headers: ['MarketOrFill', 'TimeStampAtType', 'Order #'],
-                        expected: 'tasty'
-                    },
+                    name: 'Tasty',
+                    headers: ['Sub Type', 'Underlying Symbol', 'Call or Put'],
+                    expected: 'tasty'
+                },
                     {
                         name: 'Generic',
                         headers: ['Symbol', 'Entry', 'Credit'],

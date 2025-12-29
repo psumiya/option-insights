@@ -9,17 +9,17 @@ class DashboardController {
     this.analyticsEngine = analyticsEngine;
     this.strategyDetector = strategyDetector;
     this.csvParser = csvParser;
-    
+
     // Visualization components
     this.visualizations = {};
-    
+
     // Current enriched trades
     this.enrichedTrades = [];
-    
+
     // Debounce timer for filter changes
     this.filterDebounceTimer = null;
     this.filterDebounceDelay = 300; // 300ms debounce (Requirement 8.3)
-    
+
     // UI element references
     this.elements = {
       dashboard: document.getElementById('dashboard'),
@@ -75,7 +75,7 @@ class DashboardController {
         }
       }
     );
-    
+
     this.advancedVizPanel.registerVisualization(
       'scatter',
       'Days Held vs P/L',
@@ -94,7 +94,7 @@ class DashboardController {
         }
       }
     );
-    
+
     this.advancedVizPanel.registerVisualization(
       'violin',
       'P/L Distribution',
@@ -113,8 +113,31 @@ class DashboardController {
         }
       }
     );
-    
-    
+
+
+    this.advancedVizPanel.registerVisualization(
+      'dteScatter',
+      'Days to Expire (at Entry) vs P/L',
+      {
+        instance: null,
+        initialize: (container) => {
+          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
+          this.advancedVizPanel.charts.dteScatter = new ScatterPlotChart(container.id, [], {
+            xField: 'daysToExpire',
+            xLabel: 'DTE at Entry'
+          });
+          return this.advancedVizPanel.charts.dteScatter;
+        },
+        update: (data) => {
+          if (this.advancedVizPanel.charts?.dteScatter) {
+            const scatterData = this.analyticsEngine.calculateScatterData(data);
+            this.advancedVizPanel.charts.dteScatter.update(scatterData);
+          }
+        }
+      }
+    );
+
+
     this.advancedVizPanel.registerVisualization(
       'bubble',
       'Win Rate Analysis',
@@ -133,7 +156,7 @@ class DashboardController {
         }
       }
     );
-    
+
     this.advancedVizPanel.registerVisualization(
       'radial',
       'Monthly Performance',
@@ -152,7 +175,7 @@ class DashboardController {
         }
       }
     );
-    
+
     this.advancedVizPanel.registerVisualization(
       'waterfall',
       'P/L Attribution',
@@ -172,7 +195,7 @@ class DashboardController {
         }
       }
     );
-    
+
     this.advancedVizPanel.registerVisualization(
       'horizon',
       'Long-term Trends',
@@ -206,10 +229,10 @@ class DashboardController {
 
     // Load persisted trades from data store
     const storedTrades = this.dataStore.loadTrades();
-    
+
     if (storedTrades && storedTrades.length > 0) {
       // Enrich trades and show dashboard
-      this.enrichedTrades = storedTrades.map(trade => 
+      this.enrichedTrades = storedTrades.map(trade =>
         this.analyticsEngine.enrichTrade(trade)
       );
       this.showDashboard();
@@ -238,7 +261,7 @@ class DashboardController {
         // Apply strategy detection
         const detectedStrategy = this.strategyDetector.detect(trade);
         trade.Strategy = detectedStrategy;
-        
+
         // Enrich with analytics
         return this.analyticsEngine.enrichTrade(trade);
       });
@@ -293,7 +316,7 @@ class DashboardController {
     this.filterDebounceTimer = setTimeout(() => {
       // Save filter state
       this.dataStore.setFilters(filters);
-      
+
       // Refresh dashboard with new filters
       this.refreshDashboard();
     }, this.filterDebounceDelay);
@@ -314,7 +337,7 @@ class DashboardController {
 
     // Apply filters to trades
     let filteredTrades = this.enrichedTrades;
-    
+
     // Apply date range filter (Requirement 8.3)
     filteredTrades = this.analyticsEngine.filterByDateRange(
       filteredTrades,
@@ -326,7 +349,7 @@ class DashboardController {
       filteredTrades,
       filters.positionStatus
     );
-    
+
     // Note: Don't show empty state if we have enriched trades but filters result in no matches
     // Instead, let the visualizations show their own empty states
 
@@ -338,16 +361,16 @@ class DashboardController {
     const plBySymbol = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol']);
     const plByTypeStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Type', 'Strategy']);
     console.log('P/L by type/strategy:', plByTypeStrategy);
-    
+
     const plBySymbolStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol', 'Strategy']);
     console.log('P/L by symbol/strategy:', plBySymbolStrategy);
-    
+
     const winLossDistribution = this.analyticsEngine.calculateWinLossDistribution(filteredTrades);
     console.log('Win/Loss distribution:', winLossDistribution);
-    
+
     const topUnderlyings = this.analyticsEngine.calculateTopUnderlyings(filteredTrades, 5);
     console.log('Top underlyings:', topUnderlyings);
-    
+
     const costBasisData = this.analyticsEngine.calculateCostBasisBySymbol(filteredTrades);
     console.log('Cost basis by symbol:', costBasisData);
 
@@ -359,7 +382,7 @@ class DashboardController {
     } catch (e) {
       console.error('✗ Summary Metrics error:', e);
     }
-    
+
     try {
       const sankeyData = this.analyticsEngine.calculateSankeyData(filteredTrades, 20);
       this.visualizations.tradeFlow.update(sankeyData);
@@ -367,49 +390,49 @@ class DashboardController {
     } catch (e) {
       console.error('✗ Trade Flow error:', e);
     }
-    
+
     try {
       this.visualizations.plTrend.update(monthlyPL);
       console.log('✓ P/L Trend updated');
     } catch (e) {
       console.error('✗ P/L Trend error:', e);
     }
-    
+
     try {
       this.visualizations.winRate.update(winRateData);
       console.log('✓ Win Rate updated');
     } catch (e) {
       console.error('✗ Win Rate error:', e);
     }
-    
+
     try {
       this.visualizations.plBreakdown.update(plByStrategy);
       console.log('✓ P/L Breakdown updated');
     } catch (e) {
       console.error('✗ P/L Breakdown error:', e);
     }
-    
+
     try {
       this.visualizations.symbolPL.update(plBySymbol);
       console.log('✓ Symbol P/L updated');
     } catch (e) {
       console.error('✗ Symbol P/L error:', e);
     }
-    
+
     try {
       this.visualizations.winLossDonut.update(winLossDistribution);
       console.log('✓ Win/Loss Donut updated');
     } catch (e) {
       console.error('✗ Win/Loss Donut error:', e);
     }
-    
+
     try {
       this.visualizations.topUnderlyings.update(topUnderlyings);
       console.log('✓ Top Underlyings updated');
     } catch (e) {
       console.error('✗ Top Underlyings error:', e);
     }
-    
+
     try {
       this.visualizations.costBasis.update(costBasisData);
       console.log('✓ Cost Basis updated');
@@ -458,7 +481,7 @@ class DashboardController {
           </td>
         </tr>
       `;
-      
+
       // Update collapsible section summary (Requirement 1.5)
       if (this.collapsibleSection) {
         this.collapsibleSection.updateSummary('No data available');
@@ -473,14 +496,14 @@ class DashboardController {
     data.forEach(item => {
       const row = document.createElement('tr');
       const plColor = item.pl >= 0 ? 'text-profit' : 'text-loss';
-      
+
       row.innerHTML = `
         <td>${item.dimensions.Symbol || 'Unknown'}</td>
         <td>${item.dimensions.Strategy || 'Unknown'}</td>
         <td class="font-mono">${item.tradeCount}</td>
         <td class="font-mono ${plColor}">${this.formatCurrency(item.pl)}</td>
       `;
-      
+
       tbody.appendChild(row);
     });
 
@@ -546,14 +569,14 @@ class DashboardController {
   showToast(message, type = 'success', duration = 3000) {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
+
     // Icon based on type
     const icons = {
       success: '✓',
       error: '✕',
       warning: '⚠'
     };
-    
+
     toast.innerHTML = `
       <div class="flex items-center gap-3">
         <span class="toast-icon">${icons[type] || icons.success}</span>
@@ -589,7 +612,7 @@ class DashboardController {
 
     // Format error message
     let errorMessage = error.message || 'An unknown error occurred';
-    
+
     // Check if it's a ParseError with row numbers
     if (error.name === 'ParseError') {
       errorMessage = errorMessage.replace(/\n/g, '<br>');
@@ -630,7 +653,7 @@ class DashboardController {
 
     document.getElementById('close-error-modal').addEventListener('click', closeModal);
     document.getElementById('close-error-modal-btn').addEventListener('click', closeModal);
-    
+
     // Close on overlay click
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {

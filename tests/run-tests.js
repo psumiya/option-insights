@@ -5,7 +5,12 @@
  * Runs automated tests and reports results to console
  */
 
-const http = require('http');
+import http from 'http';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const TEST_URL = 'http://localhost:8000/tests/automated-test.html';
 const TIMEOUT = 30000; // 30 seconds

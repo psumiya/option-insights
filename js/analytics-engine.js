@@ -466,6 +466,7 @@ class AnalyticsEngine {
         symbol: trade.Symbol,
         strategy: trade.Strategy,
         daysHeld: trade.DaysHeld,
+        daysToExpire: trade.DaysToExpireAtEntry,
         pl: trade.ProfitLoss,
         type: trade.Type
       }));

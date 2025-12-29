@@ -13,7 +13,7 @@ class ScatterPlotChart {
   constructor(containerId, data = [], options = {}) {
     this.containerId = containerId;
     this.container = document.getElementById(containerId);
-    
+
     if (!this.container) {
       console.error(`Container with id "${containerId}" not found`);
       return;
@@ -24,15 +24,17 @@ class ScatterPlotChart {
     this.pointRadius = 6;
     this.options = {
       animationDuration: 750,
+      xField: 'daysHeld',
+      xLabel: 'Days Held',
       ...options
     };
 
     // Initialize chart
     this._initChart();
-    
+
     // Set up resize observer (Requirement 4.1)
     this._setupResizeObserver();
-    
+
     // Render initial data
     if (data && data.length > 0) {
       this.update(data);
@@ -150,10 +152,10 @@ class ScatterPlotChart {
    */
   _processData() {
     // Filter out invalid data and ensure numeric values
-    this.processedData = this.data.filter(d => 
-      d.daysHeld != null && 
-      d.pl != null && 
-      !isNaN(d.daysHeld) && 
+    this.processedData = this.data.filter(d =>
+      d[this.options.xField] != null &&
+      d.pl != null &&
+      !isNaN(d[this.options.xField]) &&
       !isNaN(d.pl)
     );
 
@@ -167,10 +169,10 @@ class ScatterPlotChart {
    * @private
    */
   _createScales() {
-    // X-axis: Days Held (Requirement 4.1)
-    const maxDaysHeld = d3.max(this.processedData, d => d.daysHeld) || 60;
+    // X-axis: Dynamic Field
+    const maxValue = d3.max(this.processedData, d => d[this.options.xField]) || 60;
     this.xScale = d3.scaleLinear()
-      .domain([0, Math.max(maxDaysHeld, 10)])
+      .domain([0, Math.max(maxValue, 10)])
       .range([0, this.width])
       .nice();
 
@@ -216,7 +218,8 @@ class ScatterPlotChart {
       .attr('fill', '#e5e7eb')
       .attr('font-size', '13px')
       .attr('font-weight', '600')
-      .text('Days Held');
+      .attr('font-weight', '600')
+      .text(this.options.xLabel);
 
     // Y-axis
     const yAxis = d3.axisLeft(this.yScale)
@@ -285,7 +288,7 @@ class ScatterPlotChart {
       .append('circle')
       .attr('class', 'scatter-point')
       .attr('r', 0)
-      .attr('cx', d => this.xScale(d.daysHeld))
+      .attr('cx', d => this.xScale(d[this.options.xField]))
       .attr('cy', d => this.yScale(d.pl))
       .attr('fill', d => this.colorScale(d.strategy))
       .attr('stroke', '#141b2d')
@@ -299,7 +302,7 @@ class ScatterPlotChart {
       .on('mouseout', () => this._hideTooltip())
       .transition()
       .duration(this.options.animationDuration)
-      .attr('cx', d => this.xScale(d.daysHeld))
+      .attr('cx', d => this.xScale(d[this.options.xField]))
       .attr('cy', d => this.yScale(d.pl))
       .attr('fill', d => this.colorScale(d.strategy))
       .attr('r', this.pointRadius);
@@ -378,7 +381,7 @@ class ScatterPlotChart {
           Strategy: <span style="color: #e5e7eb; font-weight: 600;">${data.strategy}</span>
         </div>
         <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Days Held: <span style="color: #e5e7eb; font-weight: 600;">${data.daysHeld}</span>
+          ${this.options.xLabel}: <span style="color: #e5e7eb; font-weight: 600;">${data[this.options.xField]}</span>
         </div>
         <div style="color: #9ca3af; font-size: 11px;">
           P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
@@ -444,15 +447,15 @@ class ScatterPlotChart {
     if (this.axesGroup) this.axesGroup.selectAll('*').remove();
     if (this.zeroLineGroup) this.zeroLineGroup.selectAll('*').remove();
     if (this.legendGroup) this.legendGroup.selectAll('*').remove();
-    
+
     // Add empty state message to chart group
     if (this.chartGroup) {
       this.chartGroup.selectAll('.empty-state-text').remove();
-      
+
       const containerRect = this.container.getBoundingClientRect();
       const width = containerRect.width - this.margin.left - this.margin.right;
       const height = containerRect.height - this.margin.top - this.margin.bottom;
-      
+
       this.chartGroup.append('text')
         .attr('class', 'empty-state-text')
         .attr('x', width / 2)
@@ -461,7 +464,7 @@ class ScatterPlotChart {
         .attr('fill', '#9ca3af')
         .attr('font-size', '16px')
         .text('No scatter plot data available');
-      
+
       this.chartGroup.append('text')
         .attr('class', 'empty-state-text')
         .attr('x', width / 2)
@@ -489,11 +492,11 @@ class ScatterPlotChart {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    
+
     if (this.tooltip) {
       this.tooltip.remove();
     }
-    
+
     if (this.container) {
       this.container.innerHTML = '';
     }

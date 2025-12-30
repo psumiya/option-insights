@@ -47,6 +47,7 @@ See [BROKER_SUPPORT.md](BROKER_SUPPORT.md) for detailed format specifications.
 - **Advanced Analytics** - Expandable panel with 8 advanced visualizations:
   - **Calendar Heatmap** - Daily P/L visualization
   - **Days Held vs P/L** - Scatter plot analysis
+  - **Days to Expire vs P/L** - Scatter plot analysis
   - **P/L Distribution** - Violin plot showing distribution
   - **Win Rate Analysis** - Bubble chart by strategy
   - **Monthly Performance** - Radial chart of monthly results

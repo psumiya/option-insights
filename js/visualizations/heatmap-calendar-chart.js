@@ -13,7 +13,7 @@ class HeatmapCalendarChart {
   constructor(containerId, data = [], options = {}) {
     this.containerId = containerId;
     this.container = document.getElementById(containerId);
-    
+
     if (!this.container) {
       console.error(`Container with id "${containerId}" not found`);
       return;
@@ -31,10 +31,10 @@ class HeatmapCalendarChart {
 
     // Initialize chart
     this._initChart();
-    
+
     // Set up resize observer (Requirement 3.1)
     this._setupResizeObserver();
-    
+
     // Render initial data
     if (data && data.length > 0) {
       this.update(data);
@@ -82,8 +82,13 @@ class HeatmapCalendarChart {
 
     // Initialize color scale (Requirement 3.3)
     // Red (loss) → White (neutral) → Green (profit)
-    this.colorScale = d3.scaleSequential()
-      .interpolator(d3.interpolateRdYlGn);
+    // Initialize color scale (Requirement 3.3)
+    // Initialize color scale (Requirement 3.3)
+    const colors = window.ThemeColors ? ThemeColors.get() : { loss: '#ef4444', surface: '#1f2937', profit: '#10b981' };
+    this.colorScale = d3.scalePow()
+      .exponent(0.6)
+      .range([colors.loss, colors.surface, colors.profit])
+      .clamp(true);
   }
 
   /**
@@ -113,6 +118,20 @@ class HeatmapCalendarChart {
     }
 
     this.data = data;
+    this.currentData = data; // Store for theme updates
+
+    // Update colors based on current theme
+    if (window.ThemeColors) {
+      const colors = ThemeColors.get();
+      this.colorScale.range([colors.loss, colors.surface, colors.profit]);
+
+      // Update tooltip styles
+      this.tooltip
+        .style('background-color', colors.tooltipBg)
+        .style('border', `1px solid ${colors.tooltipBorder}`)
+        .style('color', colors.textPrimary);
+    }
+
     this._render();
   }
 
@@ -127,44 +146,44 @@ class HeatmapCalendarChart {
 
     // Process data and calculate date range (Requirement 3.6)
     this._processData();
-    
+
     // Calculate optimal cell size based on available space
     // Calendar has 5 rows (weekdays only) and variable columns (weeks)
     const numWeeks = Math.ceil(d3.timeWeek.count(
       d3.timeWeek.floor(this.startDate),
       d3.timeWeek.ceil(this.endDate)
     ));
-    
+
     // Use height-based sizing to maximize cell size
     // Account for gaps: 5 cells need 4 gaps between them
     const totalGapHeight = this.cellGap * 4;
     const availableHeightForCells = containerHeight - totalGapHeight;
     let targetCellSize = Math.floor(availableHeightForCells / 5);
-    
+
     // Apply min/max constraints - increased for text visibility
     // Use larger minimum on desktop (80px) vs mobile (60px)
     const minCellSize = window.innerWidth >= 768 ? 80 : 60;
     this.cellSize = Math.min(Math.max(targetCellSize, minCellSize), 140);
-    
+
     // Calculate actual width needed for the calendar
     const calendarWidth = numWeeks * (this.cellSize + this.cellGap);
-    
+
     // Set width to the larger of container width or calendar width (allows horizontal scroll)
     this.width = Math.max(calendarWidth, containerRect.width - this.margin.left - this.margin.right);
     this.height = containerHeight;
-    
+
     // Update SVG dimensions to accommodate full calendar
     const totalSvgWidth = this.width + this.margin.left + this.margin.right;
     const totalSvgHeight = this.height + this.margin.top + this.margin.bottom;
-    
+
     this.svg
       .attr('width', totalSvgWidth)
       .attr('height', totalSvgHeight);
 
     // Update color scale domain based on P/L range
     const plValues = this.processedData.map(d => d.pl);
-    const maxAbsPL = Math.max(Math.abs(d3.min(plValues)), Math.abs(d3.max(plValues)));
-    this.colorScale.domain([-maxAbsPL, maxAbsPL]);
+    const maxAbsPL = Math.max(Math.abs(d3.min(plValues) || 0), Math.abs(d3.max(plValues) || 0));
+    this.colorScale.domain([-maxAbsPL, 0, maxAbsPL]);
 
     // Render calendar grid (Requirement 3.2)
     this._renderCalendar();
@@ -259,14 +278,14 @@ class HeatmapCalendarChart {
         const day = String(date.getDate()).padStart(2, '0');
         const dateKey = `${year}-${month}-${day}`;
         const data = this.dataMap.get(dateKey);
-        
+
         // Calculate week-based position
         const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), date);
         const dayOfWeek = date.getDay();
-        
+
         // Map day of week to row (Mon=0, Tue=1, Wed=2, Thu=3, Fri=4)
         const rowIndex = dayOfWeek - 1;
-        
+
         return {
           date: date,
           x: weeksSinceStart * (this.cellSize + this.cellGap),
@@ -306,14 +325,18 @@ class HeatmapCalendarChart {
       .attr('x', d => d.x)
       .attr('y', d => d.y)
       .attr('fill', d => {
+        const colors = window.ThemeColors ? ThemeColors.get() : { gridLine: '#1f2937' };
         if (!d.hasData) {
-          // Empty days shown as dark gray (Requirement 3.5)
-          return '#1f2937';
+          // Empty days shown as grid line color (distinguishable from surface)
+          return colors.gridLine;
         }
         // Color-code based on P/L (Requirement 3.3)
         return this.colorScale(d.pl);
       })
-      .attr('stroke', d => d.hasData ? '#141b2d' : '#0f172a')
+      .attr('stroke', d => {
+        const colors = window.ThemeColors ? ThemeColors.get() : { surface: '#141b2d', background: '#0f172a' };
+        return d.hasData ? colors.surface : colors.background;
+      })
       .attr('stroke-width', 1)
       .attr('opacity', 1);
 
@@ -349,11 +372,11 @@ class HeatmapCalendarChart {
         const day = String(date.getDate()).padStart(2, '0');
         const dateKey = `${year}-${month}-${day}`;
         const data = this.dataMap.get(dateKey);
-        
+
         const weeksSinceStart = d3.timeWeek.count(d3.timeWeek.floor(this.startDate), date);
         const dayOfWeek = date.getDay();
         const rowIndex = dayOfWeek - 1;
-        
+
         return {
           date: date,
           x: weeksSinceStart * (this.cellSize + this.cellGap),
@@ -476,10 +499,10 @@ class HeatmapCalendarChart {
   _getContrastColor(bgColor) {
     // Convert color to RGB
     const rgb = d3.rgb(bgColor);
-    
+
     // Calculate relative luminance
     const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-    
+
     // Return black for light backgrounds, white for dark backgrounds
     return luminance > 0.5 ? '#1f2937' : '#ffffff';
   }
@@ -513,7 +536,7 @@ class HeatmapCalendarChart {
     const labelsEnter = labels.enter()
       .append('text')
       .attr('class', 'month-label')
-      .attr('fill', '#e5e7eb')
+      .attr('fill', window.ThemeColors ? ThemeColors.get().textPrimary : '#e5e7eb')
       .attr('font-size', '12px')
       .attr('font-weight', '600')
       .attr('opacity', 0);
@@ -525,6 +548,7 @@ class HeatmapCalendarChart {
       .attr('x', d => d.x)
       .attr('y', -10)
       .attr('opacity', 1)
+      .attr('fill', window.ThemeColors ? ThemeColors.get().textPrimary : '#e5e7eb')
       .text(d => d.label);
 
     // Exit
@@ -569,8 +593,8 @@ class HeatmapCalendarChart {
     this.legendGroup.selectAll('*').remove();
 
     // Create gradient
-    const defs = this.svg.select('defs').empty() 
-      ? this.svg.append('defs') 
+    const defs = this.svg.select('defs').empty()
+      ? this.svg.append('defs')
       : this.svg.select('defs');
 
     const gradient = defs.selectAll('#heatmap-gradient').data([null]);
@@ -580,17 +604,19 @@ class HeatmapCalendarChart {
       .attr('x1', '0%')
       .attr('x2', '100%');
 
+    const colors = window.ThemeColors ? ThemeColors.get() : { loss: '#ef4444', surface: '#1f2937', profit: '#10b981' };
+
     gradientEnter.append('stop')
       .attr('offset', '0%')
-      .attr('stop-color', '#ef4444');
+      .attr('stop-color', colors.loss);
 
     gradientEnter.append('stop')
       .attr('offset', '50%')
-      .attr('stop-color', '#fef08a');
+      .attr('stop-color', colors.surface);
 
     gradientEnter.append('stop')
       .attr('offset', '100%')
-      .attr('stop-color', '#10b981');
+      .attr('stop-color', colors.profit);
 
     // Draw legend rectangle
     this.legendGroup.append('rect')
@@ -709,15 +735,15 @@ class HeatmapCalendarChart {
     if (this.cellTextGroup) this.cellTextGroup.selectAll('*').remove();
     if (this.monthLabelsGroup) this.monthLabelsGroup.selectAll('*').remove();
     if (this.legendGroup) this.legendGroup.selectAll('*').remove();
-    
+
     // Add empty state message to chart group
     if (this.chartGroup) {
       this.chartGroup.selectAll('.empty-state-text').remove();
-      
+
       const containerRect = this.container.getBoundingClientRect();
       const width = containerRect.width - this.margin.left - this.margin.right;
       const height = containerRect.height - this.margin.top - this.margin.bottom;
-      
+
       this.chartGroup.append('text')
         .attr('class', 'empty-state-text')
         .attr('x', width / 2)
@@ -726,7 +752,7 @@ class HeatmapCalendarChart {
         .attr('fill', '#9ca3af')
         .attr('font-size', '16px')
         .text('No calendar data available');
-      
+
       this.chartGroup.append('text')
         .attr('class', 'empty-state-text')
         .attr('x', width / 2)
@@ -754,11 +780,15 @@ class HeatmapCalendarChart {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    
+
     if (this.tooltip) {
       this.tooltip.remove();
     }
-    
+
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+    }
+
     if (this.container) {
       this.container.innerHTML = '';
     }

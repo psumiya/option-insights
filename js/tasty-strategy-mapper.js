@@ -335,7 +335,7 @@ function processOptionTrades(trades) {
         const previous = lastGroupByContract.get(symbol);
         const residualId = previous || `${BOUNDARY_GROUP_PREFIX}${symbol}`;
 
-        pieces.push({ orderId: residualId, quantity: unmatched });
+        pieces.push({ orderId: residualId, quantity: unmatched, settlementOnly: !!previous });
         addRealized(realizedByGroup, residualId, {
           value: unmatched * closeValue,
           commissions: unmatched * closeCommissions,
@@ -345,13 +345,15 @@ function processOptionTrades(trades) {
       }
 
       pieces.forEach(piece => {
-        enrichedTrades.push(tag(
+        const leg = tag(
           trade,
           action,
           piece.orderId,
           proratedAmounts(trade, piece.quantity, quantity),
           piece.quantity
-        ));
+        );
+        if (piece.settlementOnly) leg.SettlementOnly = true;
+        enrichedTrades.push(leg);
       });
       return;
     }
@@ -725,6 +727,9 @@ function aggregateStrategyLegs(legs) {
   // spread as done and pulled its unrealized P/L into the realized figures.
   const netByContract = new Map();
   legs.forEach(leg => {
+    // A cash settlement row carries money for a contract its removal row
+    // already retired, so counting it again leaves the position open forever
+    if (leg.SettlementOnly) return;
     const quantity = Math.abs(parseInt(leg.Quantity, 10) || 0);
     let signed = 0;
     if (isOpeningAction(leg.Action)) {

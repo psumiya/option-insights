@@ -51,6 +51,7 @@ class DashboardController {
       plHistogram: new PLHistogramChart('pl-histogram-chart', { captionId: 'pl-histogram-caption' })
     };
 
+    this.tradesTable = new TradesTable('trades-table');
     this.lazy = new LazyRenderer();
     this.reportNav = new ReportNav();
     this.reportNav.initialize();
@@ -265,6 +266,7 @@ class DashboardController {
     }
 
     this.updateRailMeta(trades, summaryMetrics);
+    if (this.tradesTable) this.tradesTable.update(trades);
     this.renderHeadlines(trades);
 
     // Update research tab with the same filtered set (Requirement 5.5)
@@ -800,6 +802,7 @@ class DashboardController {
   clearData() {
     this.enrichedTrades = [];
     this.dataStore.clearTrades();
+    if (this.tradesTable) this.tradesTable.update([]);
     this.showEmptyState();
   }
 

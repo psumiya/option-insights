@@ -130,7 +130,7 @@
                 <nav class="view-nav" role="tablist" aria-label="Dashboard views">
                     <button id="tab-report" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-report">Report</button>
                     <button id="tab-research" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-research">Research</button>
-                    <button id="tab-data" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-data">Data</button>
+                    <button id="tab-trades" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-trades">Trades</button>
                 </nav>
                 <div class="toolbar-filters" role="region" aria-label="Filters">
                     <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
@@ -336,20 +336,14 @@
                 <div id="research-panel"></div>
             </div>
 
-            <!-- View: Data -->
-            <div id="tab-panel-data" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-data">
-                <section class="bg-surface border border-border rounded-lg p-6">
-                    <h2 class="text-lg font-semibold mb-4">Raw Trade Data</h2>
-                    <p class="text-text-secondary mb-4">View all imported trades and their details</p>
-                    <div class="overflow-x-auto">
-                        <table class="data-table" role="table">
-                            <tbody>
-                                <tr>
-                                    <td class="text-center text-text-secondary py-8">No data available</td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- View: Trades -->
+            <div id="tab-panel-trades" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-trades">
+                <section class="report-card" aria-labelledby="trades-title">
+                    <div class="card-head">
+                        <h2 id="trades-title" class="card-title">Trades</h2>
+                        <p class="card-sub">The trades every chart is built from, narrowed by the current filters. Click a symbol or strategy to filter the report to it.</p>
                     </div>
+                    <div id="trades-table"></div>
                 </section>
             </div>
         </div>
@@ -374,7 +368,7 @@
     
     <!-- UI Components -->
     <script src="js/tab-manager.js"></script>
-    <script src="js/csv-data-viewer.js"></script>
+    <script src="js/trades-table.js"></script>
     <script src="js/collapsible-section.js"></script>
     <script src="js/report-nav.js"></script>
     <script src="js/snapshot-headlines.js"></script>

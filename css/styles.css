@@ -2005,3 +2005,128 @@ body,
     max-width: 64ch;
     line-height: 1.5;
 }
+
+/* ============================================
+   Trades view
+   ============================================ */
+.trades-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.trades-search {
+    width: 280px;
+    max-width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+
+.trades-search::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.trades-search:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.trades-summary {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.trades-figure {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.trades-scroll {
+    max-height: 70vh;
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+
+.trades-table {
+    width: 100%;
+    white-space: nowrap;
+}
+
+.trades-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0;
+    background-color: var(--color-surface);
+    box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+.trades-table th.num,
+.trades-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.trades-sort {
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    font-weight: 600;
+    text-align: inherit;
+    color: var(--color-text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.trades-sort:hover,
+.trades-table th.sorted .trades-sort {
+    color: var(--color-text-primary);
+}
+
+.trades-table th.sorted .trades-sort::after {
+    content: ' ↓';
+}
+
+.trades-table th.sorted-asc .trades-sort::after {
+    content: ' ↑';
+}
+
+.trades-sort:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.trades-open {
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+.trades-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.trades-more:empty {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .trades-search {
+        width: 100%;
+    }
+}
+
+.trades-open-tag {
+    margin-right: 8px;
+    font-size: 12px;
+}

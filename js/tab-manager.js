@@ -1,10 +1,13 @@
 /**
  * Tab Manager
- * Switches between the Report, Research and Data views and mirrors the
+ * Switches between the Report, Research and Trades views and mirrors the
  * active view in the URL hash so it survives reloads and can be linked.
  */
 
-const VIEWS = ['report', 'research', 'data'];
+const VIEWS = ['report', 'research', 'trades'];
+
+// Older links used #data for what is now the Trades view
+const VIEW_ALIASES = { data: 'trades' };
 
 /**
  * Reads and writes the URL hash, shaped as #view/chapter?key=value.
@@ -14,7 +17,8 @@ const HashState = {
     read() {
         const raw = window.location.hash.replace(/^#/, '');
         const [path, query = ''] = raw.split('?');
-        const [view, chapter] = path.split('/');
+        const [rawView, chapter] = path.split('/');
+        const view = VIEW_ALIASES[rawView] || rawView;
         return {
             view: VIEWS.includes(view) ? view : null,
             chapter: chapter || null,

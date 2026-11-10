@@ -14,7 +14,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const mapper = new Function(
   `${readFileSync(join(repoRoot, 'js/tasty-strategy-mapper.js'), 'utf8')}
    return { convertTastyWithStrategyInference, classifyStrategy, extractOptionType,
-            isOptionTrade, isOptionRemoval, processEquityTrades };`
+            isOptionTrade, isOptionRemoval, processEquityTrades, processFuturesTrades };`
 )();
 
 let orderSeq = 1000;
@@ -281,4 +281,122 @@ test('share rows are not mistaken for option rows', () => {
   };
   assert.strictEqual(mapper.isOptionTrade(share), false);
   assert.strictEqual(mapper.isOptionRemoval(share), false);
+});
+
+// ===== Futures, futures options, dividends, fixed income =====
+
+const futuresOption = overrides => row({
+  Symbol: './ESZ6 EW3X6 261120P7100',
+  'Instrument Type': 'Future Option',
+  'Underlying Symbol': '/ESZ6',
+  'Expiration Date': '11/20/26',
+  'Strike Price': '7100',
+  'Call or Put': 'PUT',
+  ...overrides
+});
+
+test('a futures-option vertical is reconstructed and realizes its P/L', () => {
+  const open = String(orderSeq++);
+  const close = String(orderSeq++);
+  const trades = convert([
+    futuresOption({ 'Order #': open, Value: '1700.00' }),
+    futuresOption({
+      'Order #': open, Action: 'BUY_TO_OPEN', 'Sub Type': 'Buy to Open',
+      Symbol: './ESZ6 EW3X6 261120P7050', 'Strike Price': '7050', Value: '-1200.00'
+    }),
+    futuresOption({
+      'Order #': close, Date: '2026-03-09T09:30:00-0800', Action: 'BUY_TO_CLOSE',
+      'Sub Type': 'Buy to Close', Value: '-900.00'
+    }),
+    futuresOption({
+      'Order #': close, Date: '2026-03-09T09:30:00-0800', Action: 'SELL_TO_CLOSE',
+      'Sub Type': 'Sell to Close', Symbol: './ESZ6 EW3X6 261120P7050',
+      'Strike Price': '7050', Value: '600.00'
+    })
+  ]);
+
+  const spread = bySymbol(trades, '/ESZ6');
+  assert.strictEqual(spread.length, 1);
+  assert.strictEqual(spread[0].Strategy, 'Bull Put Spread');
+  assert.strictEqual(spread[0].RealizedGrossPL, 200);
+});
+
+const future = overrides => ({
+  Date: '2026-11-03T09:30:00-0800', Type: 'Trade', 'Sub Type': 'Buy', Action: 'BUY',
+  Symbol: '/NESH7', 'Instrument Type': 'Future', Value: '0.00', Quantity: '1',
+  Commissions: '-0.75', Fees: '-0.66', ...overrides
+});
+
+const markToMarket = (date, value) => ({
+  Date: date, Type: 'Money Movement', 'Sub Type': 'Mark to Market', Action: '',
+  Symbol: '/NESH7', 'Instrument Type': 'Future', Value: value, Quantity: '1',
+  Commissions: '--', Fees: '0.00'
+});
+
+test('a futures round trip realizes its trade and mark-to-market cash', () => {
+  const futures = mapper.processFuturesTrades([
+    future({}),
+    markToMarket('2026-11-03T14:00:00-0800', '-9.50'),
+    markToMarket('2026-11-04T14:00:00-0800', '20.00'),
+    future({ Date: '2026-11-05T09:30:00-0800', 'Sub Type': 'Sell', Action: 'SELL', Value: '84.25' })
+  ]);
+
+  assert.strictEqual(futures.length, 1);
+  assert.ok(futures[0].Exit);
+  assert.strictEqual(futures[0].Strategy, 'Long Future');
+  assert.strictEqual(futures[0].RealizedGrossPL, 94.75);
+  assert.strictEqual(futures[0].RealizedPL, 91.93, 'net of both sides of commissions and fees');
+});
+
+test('an open futures position realizes nothing', () => {
+  const futures = mapper.processFuturesTrades([
+    future({ 'Sub Type': 'Sell', Action: 'SELL' }),
+    markToMarket('2026-11-03T14:00:00-0800', '15.00')
+  ]);
+
+  assert.strictEqual(futures.length, 1);
+  assert.strictEqual(futures[0].Exit, null);
+  assert.strictEqual(futures[0].Strategy, 'Short Future');
+  assert.strictEqual(futures[0].RealizedGrossPL, 0);
+});
+
+test('a dividend counts toward the share position that earned it', () => {
+  const equity = mapper.processEquityTrades([
+    {
+      Date: '2026-08-01T09:30:00-0700', Type: 'Trade', 'Sub Type': 'Buy to Open',
+      Action: 'BUY_TO_OPEN', Symbol: 'BIL', 'Instrument Type': 'Equity',
+      Value: '-9150.00', Quantity: '100', Commissions: '0.00', Fees: '0.00'
+    },
+    {
+      Date: '2026-09-02T09:30:00-0700', Type: 'Trade', 'Sub Type': 'Sell to Close',
+      Action: 'SELL_TO_CLOSE', Symbol: 'BIL', 'Instrument Type': 'Equity',
+      Value: '9151.00', Quantity: '100', Commissions: '0.00', Fees: '0.00'
+    },
+    {
+      Date: '2026-09-04T14:00:00-0700', Type: 'Money Movement', 'Sub Type': 'Dividend',
+      Action: '', Symbol: 'BIL', 'Instrument Type': 'Equity',
+      Value: '83.93', Quantity: '0', Commissions: '--', Fees: '0.00'
+    }
+  ]);
+
+  assert.strictEqual(equity.length, 1);
+  assert.strictEqual(equity[0].RealizedGrossPL, 84.93);
+});
+
+test('a T-bill held to maturity realizes the discount', () => {
+  const bills = mapper.processEquityTrades([
+    {
+      Date: '2026-08-12T10:26:20-0700', Type: 'Trade', 'Sub Type': 'Buy to Open',
+      Action: 'BUY_TO_OPEN', Symbol: '912797UU9', 'Instrument Type': 'Fixed Income Security',
+      Value: '-9995.10', Quantity: '10', Commissions: '0.00', Fees: '0.00'
+    },
+    {
+      Date: '2026-08-18T06:00:00-0700', Type: 'Receive Deliver', 'Sub Type': 'Maturity',
+      Action: 'SELL_TO_CLOSE', Symbol: '912797UU9', 'Instrument Type': 'Fixed Income Security',
+      Value: '10000.00', Quantity: '10', Commissions: '--', Fees: '0.00'
+    }
+  ]);
+
+  assert.strictEqual(bills.length, 1);
+  assert.strictEqual(bills[0].RealizedGrossPL, 4.9);
 });

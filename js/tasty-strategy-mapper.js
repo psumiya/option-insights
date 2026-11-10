@@ -8,8 +8,11 @@
 
 // ===== Core Strategy Inference Functions (from tastyAdapter.js) =====
 
-function extractStrike(symbol) {
-  const match = symbol.match(/[PC](\d{8})$/);
+function extractStrike(symbol, trade) {
+  const declared = trade && parseFloat(String(trade['Strike Price'] || '').replace(/,/g, ''));
+  if (declared) return declared;
+
+  const match = String(symbol || '').match(/[PC](\d{8})$/);
   if (!match) return null;
   return parseInt(match[1]) / 1000;
 }
@@ -61,9 +64,14 @@ function isClosingAction(action) {
  * @param {Object} trade - Raw CSV row
  * @returns {boolean}
  */
+function isOptionInstrument(trade) {
+  const instrument = trade['Instrument Type'];
+  return instrument === 'Equity Option' || instrument === 'Future Option';
+}
+
 function isOptionRemoval(trade) {
   if (trade.Type !== 'Receive Deliver') return false;
-  if (trade['Instrument Type'] !== 'Equity Option') return false;
+  if (!isOptionInstrument(trade)) return false;
 
   const action = String(trade.Action || '').trim();
   return action === '' || isClosingAction(action);
@@ -110,7 +118,7 @@ function classifyStrategy(orderGroup) {
   }
   
   if (legs === 2) {
-    const strikes = orderGroup.map(t => extractStrike(t.Symbol)).sort((a, b) => a - b);
+    const strikes = orderGroup.map(t => extractStrike(t.Symbol, t)).sort((a, b) => a - b);
     const sameStrike = strikes[0] === strikes[1];
     
     if (calls.length === 2) {
@@ -118,8 +126,8 @@ function classifyStrategy(orderGroup) {
       const shortCall = sells.find(t => extractOptionType(t.Symbol, t) === 'CALL');
       
       if (longCall && shortCall) {
-        const longStrike = extractStrike(longCall.Symbol);
-        const shortStrike = extractStrike(shortCall.Symbol);
+        const longStrike = extractStrike(longCall.Symbol, longCall);
+        const shortStrike = extractStrike(shortCall.Symbol, shortCall);
         return longStrike < shortStrike ? 'Bull Call Spread' : 'Bear Call Spread';
       }
     }
@@ -129,8 +137,8 @@ function classifyStrategy(orderGroup) {
       const shortPut = sells.find(t => extractOptionType(t.Symbol, t) === 'PUT');
       
       if (longPut && shortPut) {
-        const longStrike = extractStrike(longPut.Symbol);
-        const shortStrike = extractStrike(shortPut.Symbol);
+        const longStrike = extractStrike(longPut.Symbol, longPut);
+        const shortStrike = extractStrike(shortPut.Symbol, shortPut);
         return longStrike > shortStrike ? 'Bear Put Spread' : 'Bull Put Spread';
       }
     }
@@ -160,7 +168,7 @@ function classifyStrategy(orderGroup) {
 }
 
 function isOptionTrade(trade) {
-  if (trade['Instrument Type'] !== 'Equity Option') return false;
+  if (!isOptionInstrument(trade)) return false;
   return trade.Type === 'Trade' || isOptionRemoval(trade);
 }
 
@@ -384,8 +392,120 @@ function processOptionTrades(trades) {
  * @returns {boolean}
  */
 function isEquityTrade(trade) {
-  if (trade['Instrument Type'] !== 'Equity') return false;
+  const instrument = trade['Instrument Type'];
+  if (instrument !== 'Equity' && instrument !== 'Fixed Income Security') return false;
   return trade.Type === 'Trade' || trade.Type === 'Receive Deliver';
+}
+
+function isDividend(trade) {
+  return trade.Type === 'Money Movement' && trade['Sub Type'] === 'Dividend';
+}
+
+/**
+ * Whether a row moves money on a futures contract
+ * Futures settle daily, so realized P/L arrives both on the trade rows and on
+ * the "Mark to Market" money movements between them.
+ * @param {Object} trade - Raw CSV row
+ * @returns {boolean}
+ */
+function isFuturesRow(trade) {
+  if (trade['Instrument Type'] !== 'Future') return false;
+  if (trade.Type === 'Trade') return true;
+  return trade.Type === 'Money Movement' && trade['Sub Type'] === 'Mark to Market';
+}
+
+/**
+ * Reconstruct futures positions from a transaction ledger
+ * One trade per flat-to-flat cycle on a contract. Every cash flow inside the
+ * cycle is already realized money, so the cycle's P/L is their sum.
+ * @param {Array} trades - All raw CSV rows
+ * @returns {Array} - Trades in internal format
+ */
+function processFuturesTrades(trades) {
+  const chronological = trades
+    .filter(isFuturesRow)
+    .slice()
+    .sort((a, b) => {
+      const da = parseDate(a.Date);
+      const db = parseDate(b.Date);
+      return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+    });
+
+  const cycles = new Map();
+  const finished = [];
+
+  chronological.forEach(trade => {
+    const symbol = trade.Symbol;
+    let cycle = cycles.get(symbol);
+
+    if (!cycle) {
+      cycle = {
+        symbol,
+        position: 0,
+        volume: 0,
+        isLong: trade.Action !== 'SELL',
+        entry: parseDate(trade.Date),
+        exit: null,
+        value: 0,
+        commissions: 0,
+        fees: 0
+      };
+      cycles.set(symbol, cycle);
+    }
+
+    cycle.value += parseAmount(trade.Value);
+    cycle.commissions += -parseAmount(trade.Commissions);
+    cycle.fees += -parseAmount(trade.Fees);
+
+    if (trade.Type !== 'Trade') return;
+
+    const quantity = Math.abs(parseInt(trade.Quantity, 10) || 0);
+    const signed = trade.Action === 'SELL' ? -quantity : quantity;
+    if (cycle.position === 0) cycle.isLong = signed > 0;
+    cycle.position += signed;
+    if (signed > 0 === cycle.isLong) cycle.volume += quantity;
+
+    if (cycle.position === 0) {
+      cycle.exit = parseDate(trade.Date);
+      finished.push(cycle);
+      cycles.delete(symbol);
+    }
+  });
+
+  const round = value => Math.round(value * 100) / 100;
+
+  return finished.concat([...cycles.values()]).map(cycle => {
+    const closed = cycle.exit !== null;
+    return {
+      Symbol: cycle.symbol,
+      Type: 'Future',
+      Strategy: cycle.isLong ? 'Long Future' : 'Short Future',
+      Strike: 0,
+      Expiry: null,
+      Volume: cycle.volume,
+      Entry: cycle.entry,
+      Delta: 0,
+      Exit: closed ? cycle.exit : null,
+      Debit: round(Math.max(0, -cycle.value)),
+      Credit: round(Math.max(0, cycle.value)),
+      RealizedGrossPL: closed ? round(cycle.value) : 0,
+      RealizedPL: closed ? round(cycle.value - cycle.commissions - cycle.fees) : 0,
+      OpenCredit: 0,
+      Commissions: round(cycle.commissions),
+      Fees: round(cycle.fees),
+      Width: null,
+      Account: 'TastyTrade',
+      _metadata: {
+        totalLegs: 1,
+        strategyGroupId: `future:${cycle.symbol}:${cycle.entry ? cycle.entry.toISOString() : 'preexisting'}`,
+        strikes: [],
+        legCount: 1,
+        feesAvailable: true,
+        multipleExpirations: false,
+        instrument: 'Future'
+      }
+    };
+  });
 }
 
 /**
@@ -396,7 +516,7 @@ function isEquityTrade(trade) {
  */
 function processEquityTrades(trades) {
   const chronological = trades
-    .filter(isEquityTrade)
+    .filter(trade => isEquityTrade(trade) || isDividend(trade))
     .slice()
     .sort((a, b) => {
       const da = parseDate(a.Date);
@@ -409,6 +529,7 @@ function processEquityTrades(trades) {
 
   const newLot = (trade, quantity, isLong) => ({
     symbol: trade.Symbol,
+    instrument: trade['Instrument Type'],
     isLong,
     quantity,
     remaining: quantity,
@@ -431,8 +552,18 @@ function processEquityTrades(trades) {
     lot.fees += -amounts.Fees;
   };
 
+  const lastFinished = new Map();
+
   chronological.forEach(trade => {
     const symbol = trade.Symbol;
+
+    if (isDividend(trade)) {
+      const queue = openLots.get(symbol);
+      const lot = (queue && queue[0]) || lastFinished.get(symbol);
+      if (lot) lot.credit += parseAmount(trade.Value);
+      return;
+    }
+
     const quantity = Math.abs(parseInt(trade.Quantity, 10) || 0);
     if (!quantity) return;
 
@@ -458,6 +589,7 @@ function processEquityTrades(trades) {
         unmatched -= taken;
         if (lot.remaining <= 0) {
           finished.push(lot);
+          lastFinished.set(symbol, lot);
           queue.shift();
         }
       }
@@ -507,7 +639,7 @@ function processEquityTrades(trades) {
       legCount: 1,
       feesAvailable: true,
       multipleExpirations: false,
-      instrument: 'Equity'
+      instrument: lot.instrument
     }
   }));
 }
@@ -624,6 +756,9 @@ function convertTastyWithStrategyInference(rows) {
     console.log('Share positions from assignment/exercise:', equityTrades.length);
     equityTrades.forEach(t => trades.push(t));
   }
+
+  const futuresTrades = processFuturesTrades(rows);
+  futuresTrades.forEach(t => trades.push(t));
 
   console.log('\n=== Results ===');
   console.log('Total trades created:', trades.length);

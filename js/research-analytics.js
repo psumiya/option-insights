@@ -402,7 +402,7 @@ const ResearchAnalytics = (function () {
    * right for max-loss outcomes and overstates partial ones.
    * @param {Array} trades - Closed trades
    * @param {Array} targetWidths - Widths to model
-   * @returns {Object} - { actualNet, actualN, byWidth, excludedNoWidth }
+   * @returns {Object} - { actualNet, actualN, actualAvgWidth, byWidth, excludedNoWidth }
    */
   function widthCounterfactual(trades, targetWidths) {
     const usable = withWidth(trades);
@@ -416,6 +416,7 @@ const ResearchAnalytics = (function () {
     return {
       actualNet: round(sum(usable.map(pl)), 2),
       actualN: usable.length,
+      actualAvgWidth: usable.length ? round(mean(usable.map(trade => Number(trade.Width))), 1) : null,
       byWidth: byWidth,
       excludedNoWidth: trades.length - usable.length
     };

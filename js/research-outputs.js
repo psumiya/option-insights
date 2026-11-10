@@ -48,8 +48,18 @@ const ResearchOutputs = (function () {
     return String(value);
   }
 
+  function round2(value) {
+    return Math.round(value * 100) / 100;
+  }
+
+  function signedCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) return '—';
+    return value > 0 ? `+${currency(value)}` : currency(value);
+  }
+
   function format(value, kind) {
     if (kind === 'currency') return currency(value);
+    if (kind === 'signedCurrency') return signedCurrency(value);
     if (kind === 'percent') return percent(value);
     return integer(value);
   }
@@ -106,7 +116,7 @@ const ResearchOutputs = (function () {
         <th scope="row">${row.label}</th>
         ${columns.map(column => {
           const value = row.stats[column.key];
-          const emphasise = column.key === 'net' || column.key === 'expectancy';
+          const emphasise = column.key === 'net' || column.key === 'expectancy' || column.key === 'delta';
           return `<td class="${emphasise ? plClass(value) : ''}">${format(value, column.format)}</td>`;
         }).join('')}
       </tr>
@@ -283,20 +293,29 @@ const ResearchOutputs = (function () {
       return;
     }
 
+    // Every scenario rescales the same trades, so the count is stated once
+    // here rather than repeated on each row
+    const tradesText = `${result.actualN} trade${result.actualN === 1 ? '' : 's'}`;
+    const lead = document.createElement('p');
+    lead.className = 'research-output-lead';
+    lead.textContent = `What the same ${tradesText} would have netted had each been opened `
+      + 'at a single spread width, compared with what they actually netted.';
+    container.appendChild(lead);
+
     const rows = [{
-      label: 'Actual',
-      stats: { label: 'Actual', net: result.actualNet, n: result.actualN }
+      label: `Actual (avg width ${result.actualAvgWidth})`,
+      stats: { net: result.actualNet, delta: null }
     }].concat(widths.map(width => ({
-      label: `Every trade at width ${width}`,
-      stats: { net: result.byWidth[width], n: result.actualN }
+      label: `All at width ${width}`,
+      stats: { net: result.byWidth[width], delta: round2(result.byWidth[width] - result.actualNet) }
     })));
 
     renderStatTable(container, {
       rowLabel: 'Scenario',
       rows: rows,
       columns: [
-        { key: 'n', label: 'Trades', format: 'int' },
-        { key: 'net', label: 'Net P/L', format: 'currency' }
+        { key: 'net', label: 'Net P/L', format: 'currency' },
+        { key: 'delta', label: 'vs actual', format: 'signedCurrency' }
       ]
     });
 

@@ -200,12 +200,6 @@
                                     <div id="trade-flow-chart" class="chart-container" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
                                 </div>
                             </section>
-                            <section class="report-card" aria-label="Cost Basis by Symbol">
-                                <div class="card-head"><h3 class="card-title">Cost Basis by Symbol</h3></div>
-                                <div class="chart-container-scrollable">
-                                    <div id="cost-basis-chart" class="chart-container" aria-label="Bar chart showing cost basis by symbol"></div>
-                                </div>
-                            </section>
                         </section>
 
                         <!-- Chapter: Strategies -->
@@ -269,15 +263,14 @@
                                     <div class="card-head"><h3 class="card-title">Calendar</h3></div>
                                     <div id="heatmap-chart" class="viz-panel-content"></div>
                                 </section>
-                                <section class="report-card" aria-label="Monthly Performance">
-                                    <div class="card-head"><h3 class="card-title">Monthly Performance</h3></div>
-                                    <div id="radial-chart" class="viz-panel-content"></div>
+                                <section class="report-card" aria-label="Monthly P/L">
+                                    <div class="card-head">
+                                        <h3 class="card-title">Monthly P/L</h3>
+                                        <p class="card-sub">Net realized P/L per month. Hover a month for its strategy breakdown.</p>
+                                    </div>
+                                    <div id="monthly-pl-chart" class="viz-panel-content"></div>
                                 </section>
                             </div>
-                            <section class="report-card" aria-label="Long-term Trends">
-                                <div class="card-head"><h3 class="card-title">Long-term Trends</h3></div>
-                                <div id="horizon-chart" class="viz-panel-content"></div>
-                            </section>
                             <section class="report-card" aria-label="Holding period vs P/L">
                                 <div class="card-head card-head-row">
                                     <h3 class="card-title">P/L vs <span id="scatter-x-title">Days Held</span></h3>
@@ -307,6 +300,30 @@
                                 </section>
                             </div>
                         </section>
+
+                        <!-- Secondary detail, closed by default -->
+                        <details class="report-details">
+                            <summary class="report-details-summary">
+                                <svg class="report-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                                <span class="report-details-title">Long-term Trends</span>
+                                <span class="report-details-hint">Daily cumulative P/L</span>
+                            </summary>
+                            <div class="report-details-body">
+                                <div id="horizon-chart" class="viz-panel-content"></div>
+                            </div>
+                        </details>
+                        <details class="report-details">
+                            <summary class="report-details-summary">
+                                <svg class="report-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                                <span class="report-details-title">Cost Basis by Symbol</span>
+                                <span class="report-details-hint">Total debits paid per underlying</span>
+                            </summary>
+                            <div class="report-details-body">
+                                <div class="chart-container-scrollable">
+                                    <div id="cost-basis-chart" class="chart-container" aria-label="Bar chart showing cost basis by symbol"></div>
+                                </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>
@@ -379,7 +396,7 @@
     <script src="js/visualizations/violin-plot-chart.js"></script>
     <script src="js/visualizations/sankey-diagram-chart.js"></script>
     <script src="js/visualizations/bubble-chart.js"></script>
-    <script src="js/visualizations/radial-chart.js"></script>
+    <script src="js/visualizations/monthly-pl-chart.js"></script>
     <script src="js/visualizations/waterfall-chart.js"></script>
     <script src="js/visualizations/horizon-chart.js"></script>
     <script src="js/visualizations/research-bar-chart.js"></script>

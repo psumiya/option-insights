@@ -400,6 +400,7 @@ test('widthCounterfactual rescales the book to a uniform width', () => {
 
   assert.strictEqual(result.actualN, 11, 'the Short Put has no width');
   assert.strictEqual(result.actualNet, -780, '-750 total less the +30 Short Put');
+  assert.strictEqual(typeof result.actualAvgWidth, 'number');
 
   // width 10: 50 + 75 - 300 + 80 + 60 - 200 + 80 + 45 - 350 + 20 + 0
   assert.strictEqual(result.byWidth['10'], -440);
@@ -422,6 +423,7 @@ test('widthCounterfactual on an empty set returns zeros', () => {
   assert.strictEqual(result.actualNet, 0);
   assert.strictEqual(result.actualN, 0);
   assert.strictEqual(result.byWidth['10'], 0);
+  assert.strictEqual(result.actualAvgWidth, null);
 });
 
 // ===== runsTest (Requirements 12.1, 12.2, 12.3) =====

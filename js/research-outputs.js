@@ -182,8 +182,8 @@ const ResearchOutputs = (function () {
     appendNote(container,
       'Dated by entry, so a day carries what the positions opened that day went on to return.');
 
-    // The calendar derives its cell size from container height and enforces an
-    // 80px floor on desktop, so it needs room for five weekday rows or it clips
+    // The calendar pages one month at a time and sizes its 5×5 grid to the
+    // tighter of the host's width and height
     const host = document.createElement('div');
     host.className = 'research-calendar-host';
     host.id = 'research-calendar-chart';

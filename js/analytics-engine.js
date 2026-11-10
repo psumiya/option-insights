@@ -501,56 +501,6 @@ class AnalyticsEngine {
   }
 
   /**
-   * Calculate violin plot data (P/L distribution by strategy)
-   * @param {Array} trades - Array of enriched trade records
-   * @returns {Array} - Array of strategy distribution objects
-   */
-  calculateViolinData(trades) {
-    const strategyMap = new Map();
-
-    // Group P/L values by strategy
-    trades.forEach(trade => {
-      if (trade.Result === 'Open') return;
-
-      const strategy = trade.Strategy;
-      
-      if (!strategyMap.has(strategy)) {
-        strategyMap.set(strategy, []);
-      }
-      
-      strategyMap.get(strategy).push(trade.ProfitLoss);
-    });
-
-    // Calculate statistics for each strategy
-    return Array.from(strategyMap.entries()).map(([strategy, plValues]) => {
-      plValues.sort((a, b) => a - b);
-      
-      const mean = plValues.reduce((sum, val) => sum + val, 0) / plValues.length;
-      const median = this._calculateMedian(plValues);
-      const q1 = this._calculateQuantile(plValues, 0.25);
-      const q3 = this._calculateQuantile(plValues, 0.75);
-      const min = plValues[0];
-      const max = plValues[plValues.length - 1];
-      
-      // Calculate standard deviation
-      const variance = plValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / plValues.length;
-      const stdDev = Math.sqrt(variance);
-
-      return {
-        strategy,
-        plValues,
-        median,
-        mean,
-        q1,
-        q3,
-        min,
-        max,
-        stdDev
-      };
-    });
-  }
-
-  /**
    * Calculate Sankey diagram data (Symbol -> Strategy -> Result flow)
    * @param {Array} trades - Array of enriched trade records
    * @param {number} topSymbolsLimit - Limit to top N symbols by trade count (default 10)

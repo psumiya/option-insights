@@ -48,7 +48,7 @@ class DashboardController {
       horizon: new HorizonChart('horizon-chart'),
       scatter: new ScatterPlotChart('scatter-chart'),
       winLossDonut: new WinLossDonutChart('win-loss-donut-chart'),
-      violin: new ViolinPlotChart('violin-chart')
+      plHistogram: new PLHistogramChart('pl-histogram-chart', { captionId: 'pl-histogram-caption' })
     };
 
     this.lazy = new LazyRenderer();
@@ -246,7 +246,9 @@ class DashboardController {
       horizon: () => engine.calculateHorizonData(trades),
       scatter: () => (this.scatterData = engine.calculateScatterData(trades)),
       winLossDonut: () => engine.calculateWinLossDistribution(trades),
-      violin: () => engine.calculateViolinData(trades)
+      plHistogram: () => trades
+        .filter(trade => trade.Result !== 'Open')
+        .map(trade => trade.ProfitLoss)
     };
 
     Object.entries(renders).forEach(([key, compute]) => {

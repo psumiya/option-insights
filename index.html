@@ -294,9 +294,12 @@
                                     <div class="card-head"><h3 class="card-title">Wins vs Losses</h3></div>
                                     <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
                                 </section>
-                                <section class="report-card" aria-label="P/L Distribution">
-                                    <div class="card-head"><h3 class="card-title">P/L Distribution by Strategy</h3></div>
-                                    <div id="violin-chart" class="viz-panel-content"></div>
+                                <section class="report-card" aria-label="Trade P/L Distribution">
+                                    <div class="card-head">
+                                        <h3 class="card-title">Trade P/L Distribution</h3>
+                                        <p id="pl-histogram-caption" class="card-sub pl-histogram-caption"></p>
+                                    </div>
+                                    <div id="pl-histogram-chart" class="viz-panel-content"></div>
                                 </section>
                             </div>
                         </section>
@@ -393,7 +396,7 @@
     <!-- Advanced Visualization Components -->
     <script src="js/visualizations/heatmap-calendar-chart.js"></script>
     <script src="js/visualizations/scatter-plot-chart.js"></script>
-    <script src="js/visualizations/violin-plot-chart.js"></script>
+    <script src="js/visualizations/pl-histogram-chart.js"></script>
     <script src="js/visualizations/sankey-diagram-chart.js"></script>
     <script src="js/visualizations/bubble-chart.js"></script>
     <script src="js/visualizations/monthly-pl-chart.js"></script>

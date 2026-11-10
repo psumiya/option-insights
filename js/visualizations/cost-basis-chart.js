@@ -278,6 +278,11 @@ class CostBasisChart {
     // Enter + Update with animation
     barsEnter.merge(bars)
       .on('mouseover', (event, d) => this._showTooltip(event, d))
+      .on('click', (event, d) => {
+        if (!this.onSelect) return;
+        this._hideTooltip();
+        this.onSelect('symbol', d.symbol);
+      })
       .on('mouseout', () => this._hideTooltip())
       .transition()
       .duration(this.options.animationDuration)

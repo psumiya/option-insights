@@ -125,176 +125,198 @@
 
         <!-- Dashboard Container (Hidden until data loaded) -->
         <div id="dashboard" class="hidden">
-            <!-- Tab Navigation -->
-            <div class="bg-surface border border-border rounded-lg mb-6">
-                <nav class="flex border-b border-border" role="tablist" aria-label="Dashboard sections">
-                    <button id="tab-overview" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-overview">
-                        Overview
-                    </button>
-                    <button id="tab-analysis" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-analysis">
-                        Analysis
-                    </button>
-                    <button id="tab-strategies" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-strategies">
-                        Strategies
-                    </button>
-                    <button id="tab-research" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-research">
-                        Research
-                    </button>
-                    <button id="tab-data" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-data">
-                        Data
-                    </button>
+            <!-- Toolbar: views + filters, sticky under the header -->
+            <div id="dashboard-toolbar" class="dashboard-toolbar">
+                <nav class="view-nav" role="tablist" aria-label="Dashboard views">
+                    <button id="tab-report" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-report">Report</button>
+                    <button id="tab-research" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-research">Research</button>
+                    <button id="tab-data" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-data">Data</button>
                 </nav>
+                <div class="toolbar-filters" role="region" aria-label="Filters">
+                    <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
+                        <button class="filter-btn" data-filter="date-range" data-value="last7days" role="radio" aria-checked="false">1W</button>
+                        <button class="filter-btn" data-filter="date-range" data-value="last30days" role="radio" aria-checked="false">1M</button>
+                        <button class="filter-btn" data-filter="date-range" data-value="last12months" role="radio" aria-checked="false">1Y</button>
+                        <button class="filter-btn" data-filter="date-range" data-value="ytd" role="radio" aria-checked="false">YTD</button>
+                        <button class="filter-btn active" data-filter="date-range" data-value="alltime" role="radio" aria-checked="true">All</button>
+                    </div>
+                    <span class="toolbar-divider" aria-hidden="true"></span>
+                    <div class="filter-button-group" role="radiogroup" aria-label="Position status selection">
+                        <button class="filter-btn" data-filter="position-status" data-value="closed" role="radio" aria-checked="false">Closed</button>
+                        <button class="filter-btn" data-filter="position-status" data-value="open" role="radio" aria-checked="false">Open</button>
+                        <button class="filter-btn active" data-filter="position-status" data-value="all" role="radio" aria-checked="true">All</button>
+                    </div>
+                </div>
+                <div id="filter-chips" class="filter-chips hidden" aria-label="Active symbol and strategy filters" aria-live="polite"></div>
             </div>
 
-            <!-- Filters Section - Collapsible -->
-            <section class="bg-surface border border-border rounded-lg mb-6 overflow-hidden" role="region" aria-label="Filters">
-                <button id="filters-toggle" class="w-full flex items-center justify-between p-4 hover:bg-opacity-50 transition-colors" aria-expanded="false" aria-controls="filters-content">
-                    <div class="flex items-center gap-2">
-                        <svg id="filters-icon" class="w-5 h-5 transition-transform duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span class="font-semibold">Filters</span>
-                        <span id="filters-summary" class="text-sm text-text-secondary">All Time • All Positions</span>
-                    </div>
-                </button>
-                <div id="filters-content" class="filters-collapsible">
-                    <div class="p-4 pt-0">
-                        <div class="flex flex-wrap gap-6 items-center">
-                            <!-- Date Range Filter -->
-                            <div class="filter-group">
-                                <span class="filter-label">Date Range:</span>
-                                <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
-                                    <button class="filter-btn" data-filter="date-range" data-value="last7days" role="radio" aria-checked="false">1W</button>
-                                    <button class="filter-btn" data-filter="date-range" data-value="last30days" role="radio" aria-checked="false">1M</button>
-                                    <button class="filter-btn" data-filter="date-range" data-value="last12months" role="radio" aria-checked="false">1Y</button>
-                                    <button class="filter-btn" data-filter="date-range" data-value="ytd" role="radio" aria-checked="false">YTD</button>
-                                    <button class="filter-btn active" data-filter="date-range" data-value="alltime" role="radio" aria-checked="true">All</button>
+            <!-- View: Report -->
+            <div id="tab-panel-report" class="tab-panel" role="tabpanel" aria-labelledby="tab-report">
+                <div class="report-layout">
+                    <nav id="report-rail" class="report-rail" aria-label="Report chapters">
+                        <a href="#ch-snapshot" class="rail-link" data-chapter="snapshot"><span class="rail-label">Snapshot</span><span class="rail-meta"></span></a>
+                        <a href="#ch-sources" class="rail-link" data-chapter="sources"><span class="rail-label">Where P/L came from</span><span class="rail-meta"></span></a>
+                        <a href="#ch-strategies" class="rail-link" data-chapter="strategies"><span class="rail-label">Strategies</span><span class="rail-meta"></span></a>
+                        <a href="#ch-timing" class="rail-link" data-chapter="timing"><span class="rail-label">Timing</span><span class="rail-meta"></span></a>
+                        <a href="#ch-outcomes" class="rail-link" data-chapter="outcomes"><span class="rail-label">Outcome shape</span><span class="rail-meta"></span></a>
+                    </nav>
+
+                    <div class="report-content">
+                        <!-- Chapter: Snapshot -->
+                        <section id="ch-snapshot" class="report-chapter" data-chapter="snapshot" aria-labelledby="ch-snapshot-title">
+                            <header class="chapter-head">
+                                <h2 id="ch-snapshot-title" class="chapter-title">Snapshot</h2>
+                                <p class="chapter-question">How am I doing overall?</p>
+                            </header>
+                            <ul id="snapshot-headlines" class="headlines hidden" aria-label="Highlights"></ul>
+                            <div id="summary-metrics-panel"></div>
+                            <section class="report-card" aria-label="Profit and Loss Trend">
+                                <div class="card-head"><h3 class="card-title">P/L Trend</h3></div>
+                                <div class="chart-container-scrollable">
+                                    <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
+                                </div>
+                            </section>
+                        </section>
+
+                        <!-- Chapter: Where the P/L came from -->
+                        <section id="ch-sources" class="report-chapter" data-chapter="sources" aria-labelledby="ch-sources-title">
+                            <header class="chapter-head">
+                                <h2 id="ch-sources-title" class="chapter-title">Where the P/L came from</h2>
+                                <p class="chapter-question">Which underlyings drove the result, and how did trades flow into wins and losses?</p>
+                            </header>
+                            <section class="report-card" aria-label="P/L Attribution">
+                                <div class="card-head">
+                                    <h3 class="card-title">P/L Attribution by Symbol</h3>
+                                    <p class="card-sub">Each step is one underlying's contribution to the total. Click a step to focus the report on it.</p>
+                                </div>
+                                <div id="waterfall-chart" class="viz-panel-content"></div>
+                            </section>
+                            <section class="report-card" aria-label="Trade Flow">
+                                <div class="card-head">
+                                    <h3 class="card-title">Trade Flow</h3>
+                                    <p class="card-sub">Symbol → strategy → outcome, weighted by trade count. Click a symbol or strategy to filter.</p>
+                                </div>
+                                <div class="chart-container-scrollable">
+                                    <div id="trade-flow-chart" class="chart-container" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
+                                </div>
+                            </section>
+                            <section class="report-card" aria-label="Cost Basis by Symbol">
+                                <div class="card-head"><h3 class="card-title">Cost Basis by Symbol</h3></div>
+                                <div class="chart-container-scrollable">
+                                    <div id="cost-basis-chart" class="chart-container" aria-label="Bar chart showing cost basis by symbol"></div>
+                                </div>
+                            </section>
+                        </section>
+
+                        <!-- Chapter: Strategies -->
+                        <section id="ch-strategies" class="report-chapter" data-chapter="strategies" aria-labelledby="ch-strategies-title">
+                            <header class="chapter-head">
+                                <h2 id="ch-strategies-title" class="chapter-title">Strategies</h2>
+                                <p class="chapter-question">Which structures work for me, and on which symbols?</p>
+                            </header>
+                            <div class="card-grid">
+                                <section class="report-card" aria-label="Win Rate by Strategy">
+                                    <div class="card-head"><h3 class="card-title">Win Rate by Strategy</h3></div>
+                                    <div id="win-rate-chart" class="chart-container" aria-label="Bar chart showing win rate by strategy"></div>
+                                </section>
+                                <section class="report-card" aria-label="Profit and Loss by Strategy">
+                                    <div class="card-head"><h3 class="card-title">P/L by Strategy</h3></div>
+                                    <div id="pl-breakdown-chart" class="chart-container" aria-label="Bar chart showing profit and loss by strategy"></div>
+                                </section>
+                            </div>
+                            <section class="report-card" aria-label="Win Rate Analysis">
+                                <div class="card-head">
+                                    <h3 class="card-title">Win Rate vs Average Win</h3>
+                                    <p class="card-sub">Bubble size is trade count.</p>
+                                </div>
+                                <div id="bubble-chart" class="viz-panel-content"></div>
+                            </section>
+                            <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
+                                <div class="bg-surface border border-border rounded-lg p-6">
+                                    <div class="pl-measure-header">
+                                        <h2 class="text-lg font-semibold">P/L by Symbol &amp; Strategy</h2>
+                                        <div class="filter-button-group" role="radiogroup" aria-label="P/L measure">
+                                            <button class="filter-btn active" data-pl-measure="net" role="radio" aria-checked="true">Net</button>
+                                            <button class="filter-btn" data-pl-measure="gross" role="radio" aria-checked="false">Gross</button>
+                                        </div>
+                                    </div>
+                                    <p id="pl-measure-caption" class="pl-measure-caption"></p>
+                                    <div class="overflow-x-auto">
+                                        <table id="symbol-strategy-table" class="data-table" role="table">
+                                            <thead>
+                                                <tr>
+                                                    <th role="columnheader" tabindex="0" class="sortable">Symbol</th>
+                                                    <th role="columnheader" tabindex="0" class="sortable">Strategy</th>
+                                                    <th role="columnheader" tabindex="0" class="sortable">Trades</th>
+                                                    <th id="pl-measure-column" role="columnheader" tabindex="0" class="sortable">P/L</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody></tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <!-- Position Status Filter -->
-                            <div class="filter-group">
-                                <span class="filter-label">Position Status:</span>
-                                <div class="filter-button-group" role="radiogroup" aria-label="Position status selection">
-                                    <button class="filter-btn" data-filter="position-status" data-value="closed" role="radio" aria-checked="false">Closed</button>
-                                    <button class="filter-btn" data-filter="position-status" data-value="open" role="radio" aria-checked="false">Open</button>
-                                    <button class="filter-btn active" data-filter="position-status" data-value="all" role="radio" aria-checked="true">All</button>
+                        </section>
+
+                        <!-- Chapter: Timing -->
+                        <section id="ch-timing" class="report-chapter" data-chapter="timing" aria-labelledby="ch-timing-title">
+                            <header class="chapter-head">
+                                <h2 id="ch-timing-title" class="chapter-title">Timing</h2>
+                                <p class="chapter-question">When do I make or lose money, and does holding period matter?</p>
+                            </header>
+                            <div class="card-grid">
+                                <section class="report-card" aria-label="Calendar Heatmap">
+                                    <div class="card-head"><h3 class="card-title">Calendar</h3></div>
+                                    <div id="heatmap-chart" class="viz-panel-content"></div>
+                                </section>
+                                <section class="report-card" aria-label="Monthly Performance">
+                                    <div class="card-head"><h3 class="card-title">Monthly Performance</h3></div>
+                                    <div id="radial-chart" class="viz-panel-content"></div>
+                                </section>
+                            </div>
+                            <section class="report-card" aria-label="Long-term Trends">
+                                <div class="card-head"><h3 class="card-title">Long-term Trends</h3></div>
+                                <div id="horizon-chart" class="viz-panel-content"></div>
+                            </section>
+                            <section class="report-card" aria-label="Holding period vs P/L">
+                                <div class="card-head card-head-row">
+                                    <h3 class="card-title">P/L vs <span id="scatter-x-title">Days Held</span></h3>
+                                    <div class="filter-button-group" role="radiogroup" aria-label="Scatter x-axis">
+                                        <button class="filter-btn active" data-scatter-x="daysHeld" role="radio" aria-checked="true">Days held</button>
+                                        <button class="filter-btn" data-scatter-x="daysToExpire" role="radio" aria-checked="false">DTE at entry</button>
+                                    </div>
                                 </div>
+                                <div id="scatter-chart" class="viz-panel-content"></div>
+                            </section>
+                        </section>
+
+                        <!-- Chapter: Outcome shape -->
+                        <section id="ch-outcomes" class="report-chapter" data-chapter="outcomes" aria-labelledby="ch-outcomes-title">
+                            <header class="chapter-head">
+                                <h2 id="ch-outcomes-title" class="chapter-title">Outcome shape</h2>
+                                <p class="chapter-question">How are my wins and losses distributed?</p>
+                            </header>
+                            <div class="card-grid card-grid-1-2">
+                                <section class="report-card" aria-label="Win Loss Distribution">
+                                    <div class="card-head"><h3 class="card-title">Wins vs Losses</h3></div>
+                                    <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
+                                </section>
+                                <section class="report-card" aria-label="P/L Distribution">
+                                    <div class="card-head"><h3 class="card-title">P/L Distribution by Strategy</h3></div>
+                                    <div id="violin-chart" class="viz-panel-content"></div>
+                                </section>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Tab Panel: Overview -->
-            <div id="tab-panel-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-overview">
-                <!-- Summary Metrics Panel (Full Width) -->
-                <section class="mb-6" role="region" aria-label="Summary Metrics">
-                    <div id="summary-metrics-panel"></div>
-                </section>
-
-                <!-- Win/Loss Distribution and Top Underlyings (2 Column Grid) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Loss Distribution">
-                        <h2 class="text-lg font-semibold mb-4">Win/Loss Distribution</h2>
-                        <div id="win-loss-donut-chart" class="chart-container" aria-label="Donut chart showing win and loss distribution"></div>
-                    </section>
-                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Top Performing Underlyings">
-                        <h2 class="text-lg font-semibold mb-4">Top 5 Underlyings by Win $</h2>
-                        <div id="top-underlyings-chart" class="chart-container" aria-label="Bar chart showing top 5 symbols by winning dollars"></div>
-                    </section>
-                </div>
-
-                <!-- P/L Trend Chart (Full Width) -->
-                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss Trend">
-                    <h2 class="text-lg font-semibold mb-4">P/L Trend</h2>
-                    <div class="chart-container-scrollable">
-                        <div id="pl-trend-chart" class="chart-container" aria-label="Line chart showing profit and loss trend over time"></div>
-                    </div>
-                </section>
-
-            </div>
-
-            <!-- Tab Panel: Analysis -->
-            <div id="tab-panel-analysis" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-analysis">
-                <!-- Trade Flow (Sankey Diagram) - Full Width -->
-                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Trade Flow">
-                    <h2 class="text-lg font-semibold mb-4">Trade Flow</h2>
-                    <div class="chart-container-scrollable">
-                        <div id="trade-flow-chart" class="chart-container" style="height: 1000px; min-height: 1000px;" aria-label="Sankey diagram showing trade flow from symbols through strategies to outcomes"></div>
-                    </div>
-                </section>
-
-                <!-- P/L by Symbol (Full Width) -->
-                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Profit and Loss by Symbol">
-                    <h2 class="text-lg font-semibold mb-4">P/L by Symbol</h2>
-                    <div class="chart-container-scrollable">
-                        <div id="symbol-pl-chart" class="chart-container" aria-label="Bar chart showing profit and loss by symbol"></div>
-                    </div>
-                </section>
-
-                <!-- Cost Basis by Symbol (Full Width) -->
-                <section class="bg-surface border border-border rounded-lg p-6 mb-6" role="region" aria-label="Cost Basis by Symbol">
-                    <h2 class="text-lg font-semibold mb-4">Cost Basis by Symbol</h2>
-                    <div class="chart-container-scrollable">
-                        <div id="cost-basis-chart" class="chart-container" aria-label="Bar chart showing cost basis by symbol"></div>
-                    </div>
-                </section>
-
-                <!-- Advanced Visualizations Panel (Full Width) -->
-                <section class="mb-6" role="region" aria-label="Advanced Analytics">
-                    <div id="advanced-viz-panel"></div>
-                </section>
-            </div>
-
-            <!-- Tab Panel: Strategies -->
-            <div id="tab-panel-strategies" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-strategies">
-                <!-- Win Rate and P/L by Strategy (2 Column Grid) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Win Rate by Strategy">
-                        <h2 class="text-lg font-semibold mb-4">Win Rate by Strategy</h2>
-                        <div id="win-rate-chart" class="chart-container" aria-label="Bar chart showing win rate by strategy"></div>
-                    </section>
-                    <section class="bg-surface border border-border rounded-lg p-6" role="region" aria-label="Profit and Loss by Strategy">
-                        <h2 class="text-lg font-semibold mb-4">P/L by Strategy</h2>
-                        <div id="pl-breakdown-chart" class="chart-container" aria-label="Bar chart showing profit and loss by strategy"></div>
-                    </section>
-                </div>
-
-                <!-- P/L by Symbol & Strategy Table (Full Width) -->
-                <div id="symbol-strategy-section-container" role="region" aria-label="Profit and Loss by Symbol and Strategy">
-                    <div class="bg-surface border border-border rounded-lg p-6">
-                        <div class="pl-measure-header">
-                            <h2 class="text-lg font-semibold">P/L by Symbol & Strategy</h2>
-                            <div class="filter-button-group" role="radiogroup" aria-label="P/L measure">
-                                <button class="filter-btn active" data-pl-measure="net" role="radio" aria-checked="true">Net</button>
-                                <button class="filter-btn" data-pl-measure="gross" role="radio" aria-checked="false">Gross</button>
-                            </div>
-                        </div>
-                        <p id="pl-measure-caption" class="pl-measure-caption"></p>
-                        <div class="overflow-x-auto">
-                            <table id="symbol-strategy-table" class="data-table" role="table">
-                                <thead>
-                                    <tr>
-                                        <th role="columnheader" tabindex="0" class="sortable">Symbol</th>
-                                        <th role="columnheader" tabindex="0" class="sortable">Strategy</th>
-                                        <th role="columnheader" tabindex="0" class="sortable">Trades</th>
-                                        <th id="pl-measure-column" role="columnheader" tabindex="0" class="sortable">P/L</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>
 
-            <!-- Tab Panel: Research -->
+            <!-- View: Research -->
             <div id="tab-panel-research" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-research">
                 <div id="research-panel"></div>
             </div>
 
-            <!-- Tab Panel: Data -->
+            <!-- View: Data -->
             <div id="tab-panel-data" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-data">
                 <section class="bg-surface border border-border rounded-lg p-6">
                     <h2 class="text-lg font-semibold mb-4">Raw Trade Data</h2>
@@ -334,7 +356,8 @@
     <script src="js/tab-manager.js"></script>
     <script src="js/csv-data-viewer.js"></script>
     <script src="js/collapsible-section.js"></script>
-    <script src="js/advanced-visualization-panel.js"></script>
+    <script src="js/report-nav.js"></script>
+    <script src="js/snapshot-headlines.js"></script>
 
     <!-- Research Tab -->
     <script src="js/research-analytics.js"></script>
@@ -347,9 +370,7 @@
     <script src="js/visualizations/pl-trend-chart.js"></script>
     <script src="js/visualizations/win-rate-chart.js"></script>
     <script src="js/visualizations/pl-breakdown-chart.js"></script>
-    <script src="js/visualizations/symbol-pl-chart.js"></script>
     <script src="js/visualizations/win-loss-donut-chart.js"></script>
-    <script src="js/visualizations/top-underlyings-chart.js"></script>
     <script src="js/visualizations/cost-basis-chart.js"></script>
     
     <!-- Advanced Visualization Components -->

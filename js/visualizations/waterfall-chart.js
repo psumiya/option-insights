@@ -381,6 +381,11 @@ class WaterfallChart {
       .style('cursor', 'pointer')
       .on('mouseover', (event, d) => this._showTooltip(event, d))
       .on('mousemove', (event) => this._moveTooltip(event))
+      .on('click', (event, d) => {
+        if (d.isTotal || !this.onSelect) return;
+        this._hideTooltip();
+        this.onSelect('symbol', d.symbol);
+      })
       .on('mouseout', () => this._hideTooltip())
       .transition()
       .duration(this.options.animationDuration)

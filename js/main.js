@@ -78,7 +78,7 @@ function setupEventListeners() {
   const emptyStateDemoBtn = document.getElementById('empty-state-demo-btn');
   
   // Filter button groups
-  const filterButtons = document.querySelectorAll('.filter-btn');
+  const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
   
   // Table headers for sorting
   const tableHeaders = document.querySelectorAll('#symbol-strategy-table th.sortable');

@@ -293,6 +293,12 @@ class SankeyDiagramChart {
       .attr('rx', d => d.layer === 2 ? 6 : 2) // Rounded corners for Win/Loss
       .style('cursor', 'pointer')
       .on('mouseover', (event, d) => this._showNodeTooltip(event, d))
+      .on('click', (event, d) => {
+        const dimension = d.layer === 0 ? 'symbol' : d.layer === 1 ? 'strategy' : null;
+        if (!dimension || !this.onSelect) return;
+        this._hideTooltip();
+        this.onSelect(dimension, d.name);
+      })
       .on('mousemove', (event) => this._moveTooltip(event))
       .on('mouseout', () => this._hideTooltip())
       .transition()

@@ -294,6 +294,12 @@ class PLBreakdownChart {
     // Enter + Update with animation
     barsEnter.merge(bars)
       .on('mouseover', (event, d) => this._showTooltip(event, d))
+      .on('click', (event, d) => {
+        const strategy = d.dimensions && d.dimensions.Strategy;
+        if (!strategy || !this.onSelect) return;
+        this._hideTooltip();
+        this.onSelect('strategy', strategy);
+      })
       .on('mouseout', () => this._hideTooltip())
       .transition()
       .duration(this.options.animationDuration)

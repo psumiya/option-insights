@@ -34,25 +34,28 @@ class DashboardController {
    * Sets up all chart instances and loads persisted data
    */
   initialize() {
-    // Initialize visualization components
     this.visualizations = {
       summaryMetrics: new SummaryMetricsPanel('summary-metrics-panel'),
-      tradeFlow: new SankeyDiagramChart('trade-flow-chart'),
       plTrend: new PLTrendChart('pl-trend-chart'),
+      waterfall: new WaterfallChart('waterfall-chart'),
+      tradeFlow: new SankeyDiagramChart('trade-flow-chart'),
+      costBasis: new CostBasisChart('cost-basis-chart'),
       winRate: new WinRateChart('win-rate-chart'),
       plBreakdown: new PLBreakdownChart('pl-breakdown-chart'),
-      symbolPL: new SymbolPLChart('symbol-pl-chart'),
+      bubble: new BubbleChart('bubble-chart'),
+      heatmap: new HeatmapCalendarChart('heatmap-chart'),
+      radial: new RadialChart('radial-chart'),
+      horizon: new HorizonChart('horizon-chart'),
+      scatter: new ScatterPlotChart('scatter-chart'),
       winLossDonut: new WinLossDonutChart('win-loss-donut-chart'),
-      topUnderlyings: new TopUnderlyingsChart('top-underlyings-chart'),
-      costBasis: new CostBasisChart('cost-basis-chart')
+      violin: new ViolinPlotChart('violin-chart')
     };
 
-    // Initialize Advanced Visualization Panel (Requirements: 2.1, 2.2)
-    this.advancedVizPanel = new AdvancedVisualizationPanel('advanced-viz-panel', {
-      showLoadingIndicator: true,
-      loadingThreshold: 100 // Requirement 12.3
-    });
-    this.advancedVizPanel.initialize();
+    this.lazy = new LazyRenderer();
+    this.reportNav = new ReportNav();
+    this.reportNav.initialize();
+    this.initializeScatterToggle();
+    this.initializeSelection();
 
     // Research tab (Requirement 5.1)
     this.researchPanel = new ResearchPanel('research-panel');
@@ -60,166 +63,6 @@ class DashboardController {
     ResearchOutputs.register(this.researchPanel);
 
     this.initializePLMeasureToggle();
-
-    // Register all advanced visualizations (Requirements: 2.3, 2.4)
-    // Note: Pass factory functions instead of instances so charts are created
-    // only when their tab container is ready
-    this.advancedVizPanel.registerVisualization(
-      'heatmap',
-      'Calendar Heatmap',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.heatmap = new HeatmapCalendarChart(container.id);
-          return this.advancedVizPanel.charts.heatmap;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.heatmap) {
-            const dailyPL = this.analyticsEngine.calculateDailyPL(data);
-            this.advancedVizPanel.charts.heatmap.update(dailyPL);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'scatter',
-      'Days Held vs P/L',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.scatter = new ScatterPlotChart(container.id);
-          return this.advancedVizPanel.charts.scatter;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.scatter) {
-            const scatterData = this.analyticsEngine.calculateScatterData(data);
-            this.advancedVizPanel.charts.scatter.update(scatterData);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'dteScatter',
-      'Days to Expire (at Entry) vs P/L',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.dteScatter = new ScatterPlotChart(container.id, [], {
-            xField: 'daysToExpire',
-            xLabel: 'DTE at Entry'
-          });
-          return this.advancedVizPanel.charts.dteScatter;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.dteScatter) {
-            const scatterData = this.analyticsEngine.calculateScatterData(data);
-            this.advancedVizPanel.charts.dteScatter.update(scatterData);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'violin',
-      'P/L Distribution',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.violin = new ViolinPlotChart(container.id);
-          return this.advancedVizPanel.charts.violin;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.violin) {
-            const violinData = this.analyticsEngine.calculateViolinData(data);
-            this.advancedVizPanel.charts.violin.update(violinData);
-          }
-        }
-      }
-    );
-
-
-    this.advancedVizPanel.registerVisualization(
-      'bubble',
-      'Win Rate Analysis',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.bubble = new BubbleChart(container.id);
-          return this.advancedVizPanel.charts.bubble;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.bubble) {
-            const bubbleData = this.analyticsEngine.calculateBubbleData(data);
-            this.advancedVizPanel.charts.bubble.update(bubbleData);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'radial',
-      'Monthly Performance',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.radial = new RadialChart(container.id);
-          return this.advancedVizPanel.charts.radial;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.radial) {
-            const radialData = this.analyticsEngine.calculateRadialData(data);
-            this.advancedVizPanel.charts.radial.update(radialData);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'waterfall',
-      'P/L Attribution',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.waterfall = new WaterfallChart(container.id);
-          return this.advancedVizPanel.charts.waterfall;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.waterfall) {
-            // Pass a high limit to get all symbols, let the chart handle filtering
-            const waterfallData = this.analyticsEngine.calculateWaterfallData(data, 999);
-            this.advancedVizPanel.charts.waterfall.update(waterfallData);
-          }
-        }
-      }
-    );
-
-    this.advancedVizPanel.registerVisualization(
-      'horizon',
-      'Long-term Trends',
-      {
-        instance: null,
-        initialize: (container) => {
-          if (!this.advancedVizPanel.charts) this.advancedVizPanel.charts = {};
-          this.advancedVizPanel.charts.horizon = new HorizonChart(container.id);
-          return this.advancedVizPanel.charts.horizon;
-        },
-        update: (data) => {
-          if (this.advancedVizPanel.charts?.horizon) {
-            const horizonData = this.analyticsEngine.calculateHorizonData(data);
-            this.advancedVizPanel.charts.horizon.update(horizonData);
-          }
-        }
-      }
-    );
 
     // Initialize collapsible section for table (Requirements: 1.1, 1.2, 1.3)
     this.collapsibleSection = new CollapsibleSection('symbol-strategy-section-container', {
@@ -243,6 +86,7 @@ class DashboardController {
       );
       this.showDashboard();
       this.refreshDashboard();
+      this.reportNav.restoreChapter();
     } else {
       // Show empty state (Requirement 12.4)
       this.showEmptyState();
@@ -356,125 +200,321 @@ class DashboardController {
       filters.positionStatus
     );
 
+    // Symbol and strategy picks from clicking the charts
+    this.pruneSelection();
+    const { symbols, strategies } = this.selection;
+    if (symbols.length > 0) {
+      filteredTrades = filteredTrades.filter(trade => symbols.includes(trade.Symbol));
+    }
+    if (strategies.length > 0) {
+      filteredTrades = filteredTrades.filter(trade => strategies.includes(trade.Strategy));
+    }
+    this.renderSelectionChips();
+    this.syncFilterHash(filters);
+
     // Note: Don't show empty state if we have enriched trades but filters result in no matches
     // Instead, let the visualizations show their own empty states
 
-    // Calculate analytics data
-    const summaryMetrics = this.analyticsEngine.calculateSummaryMetrics(filteredTrades);
-    const monthlyPL = this.analyticsEngine.calculateMonthlyPL(filteredTrades);
-    const winRateData = this.analyticsEngine.calculateWinRateByStrategy(filteredTrades);
-    const plByStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Strategy']);
-    const plBySymbol = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol']);
-    const plByTypeStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Type', 'Strategy']);
-    console.log('P/L by type/strategy:', plByTypeStrategy);
+    const engine = this.analyticsEngine;
+    const trades = filteredTrades;
+    const charts = this.visualizations;
 
-    const plBySymbolStrategy = this.analyticsEngine.calculatePLBreakdown(filteredTrades, ['Symbol', 'Strategy']);
-    console.log('P/L by symbol/strategy:', plBySymbolStrategy);
-
-    const winLossDistribution = this.analyticsEngine.calculateWinLossDistribution(filteredTrades);
-    console.log('Win/Loss distribution:', winLossDistribution);
-
-    const topUnderlyings = this.analyticsEngine.calculateTopUnderlyings(filteredTrades, 5);
-    console.log('Top underlyings:', topUnderlyings);
-
-    const costBasisData = this.analyticsEngine.calculateCostBasisBySymbol(filteredTrades);
-    console.log('Cost basis by symbol:', costBasisData);
-
-    // Update visualizations
-    console.log('Updating visualizations...');
+    const summaryMetrics = engine.calculateSummaryMetrics(trades);
     try {
-      this.visualizations.summaryMetrics.update(summaryMetrics);
-      console.log('✓ Summary Metrics updated');
+      charts.summaryMetrics.update(summaryMetrics);
     } catch (e) {
-      console.error('✗ Summary Metrics error:', e);
+      console.error('Summary Metrics error:', e);
     }
 
-    try {
-      const sankeyData = this.analyticsEngine.calculateSankeyData(filteredTrades, 20);
-      this.visualizations.tradeFlow.update(sankeyData);
-      console.log('✓ Trade Flow updated');
-    } catch (e) {
-      console.error('✗ Trade Flow error:', e);
-    }
+    // Each chart computes and draws only once its card is on screen
+    const renders = {
+      plTrend: () => engine.calculateMonthlyPL(trades),
+      waterfall: () => engine.calculateWaterfallData(trades, 999),
+      tradeFlow: () => this.sizeTradeFlow(engine.calculateSankeyData(trades, 20)),
+      costBasis: () => engine.calculateCostBasisBySymbol(trades),
+      winRate: () => engine.calculateWinRateByStrategy(trades),
+      plBreakdown: () => engine.calculatePLBreakdown(trades, ['Strategy']),
+      bubble: () => engine.calculateBubbleData(trades),
+      heatmap: () => engine.calculateDailyPL(trades),
+      radial: () => engine.calculateRadialData(trades),
+      horizon: () => engine.calculateHorizonData(trades),
+      scatter: () => (this.scatterData = engine.calculateScatterData(trades)),
+      winLossDonut: () => engine.calculateWinLossDistribution(trades),
+      violin: () => engine.calculateViolinData(trades)
+    };
 
-    try {
-      this.visualizations.plTrend.update(monthlyPL);
-      console.log('✓ P/L Trend updated');
-    } catch (e) {
-      console.error('✗ P/L Trend error:', e);
-    }
+    Object.entries(renders).forEach(([key, compute]) => {
+      const chart = charts[key];
+      if (!chart || !chart.container) return;
+      this.lazy.schedule(chart.container, () => chart.update(compute()));
+    });
 
-    try {
-      this.visualizations.winRate.update(winRateData);
-      console.log('✓ Win Rate updated');
-    } catch (e) {
-      console.error('✗ Win Rate error:', e);
-    }
-
-    try {
-      this.visualizations.plBreakdown.update(plByStrategy);
-      console.log('✓ P/L Breakdown updated');
-    } catch (e) {
-      console.error('✗ P/L Breakdown error:', e);
-    }
-
-    try {
-      this.visualizations.symbolPL.update(plBySymbol);
-      console.log('✓ Symbol P/L updated');
-    } catch (e) {
-      console.error('✗ Symbol P/L error:', e);
-    }
-
-    try {
-      this.visualizations.winLossDonut.update(winLossDistribution);
-      console.log('✓ Win/Loss Donut updated');
-    } catch (e) {
-      console.error('✗ Win/Loss Donut error:', e);
-    }
-
-    try {
-      this.visualizations.topUnderlyings.update(topUnderlyings);
-      console.log('✓ Top Underlyings updated');
-    } catch (e) {
-      console.error('✗ Top Underlyings error:', e);
-    }
-
-    try {
-      this.visualizations.costBasis.update(costBasisData);
-      console.log('✓ Cost Basis updated');
-    } catch (e) {
-      console.error('✗ Cost Basis error:', e);
-    }
-
-    // Update table
+    const plBySymbolStrategy = engine.calculatePLBreakdown(trades, ['Symbol', 'Strategy']);
     try {
       this.updateTable(plBySymbolStrategy);
-      console.log('✓ Table updated');
     } catch (e) {
-      console.error('✗ Table error:', e);
+      console.error('Table error:', e);
     }
 
-    // Update advanced visualization panel with filtered trades (Requirements: 12.1, 12.2)
-    if (this.advancedVizPanel) {
-      try {
-        this.advancedVizPanel.update(filteredTrades);
-        console.log('✓ Advanced Visualization Panel updated');
-      } catch (e) {
-        console.error('✗ Advanced Visualization Panel error:', e);
-      }
-    }
+    this.updateRailMeta(trades, summaryMetrics);
+    this.renderHeadlines(trades);
 
     // Update research tab with the same filtered set (Requirement 5.5)
     if (this.researchPanel) {
       try {
-        this.researchPanel.update(filteredTrades);
-        console.log('✓ Research Panel updated');
+        this.researchPanel.update(trades);
       } catch (e) {
-        console.error('✗ Research Panel error:', e);
+        console.error('Research Panel error:', e);
       }
     }
 
     console.log('=== refreshDashboard END ===');
+  }
+
+  /**
+   * Size the Sankey to its tallest column so a handful of symbols doesn't
+   * float in a 1000px box and twenty don't get squashed.
+   */
+  sizeTradeFlow(sankeyData) {
+    const container = this.visualizations.tradeFlow?.container;
+    if (container && sankeyData && sankeyData.nodes) {
+      const perLayer = {};
+      sankeyData.nodes.forEach(node => {
+        perLayer[node.layer] = (perLayer[node.layer] || 0) + 1;
+      });
+      const tallest = Math.max(1, ...Object.values(perLayer));
+      const height = Math.min(1000, Math.max(380, tallest * 44 + 100));
+      container.style.height = `${height}px`;
+      container.style.minHeight = `${height}px`;
+    }
+    return sankeyData;
+  }
+
+  /**
+   * Short figures beside each chapter in the report rail
+   */
+  updateRailMeta(trades, summaryMetrics) {
+    if (!this.reportNav) return;
+    const closed = trades.filter(trade => trade.Result !== 'Open');
+    const count = key => new Set(closed.map(trade => trade[key])).size;
+    const months = new Set(closed.map(trade => {
+      const date = this.analyticsEngine._parseDate(trade.Exit || trade.Entry);
+      return !date || isNaN(date) ? null : `${date.getFullYear()}-${date.getMonth()}`;
+    }).filter(Boolean)).size;
+    const pl = summaryMetrics.realizedPL ?? summaryMetrics.totalPL ?? 0;
+
+    this.reportNav.setMeta('snapshot', this.formatCurrency(pl), pl >= 0 ? 'profit' : 'loss');
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    this.reportNav.setMeta('sources', plural(count('Symbol'), 'symbol', 'symbols'));
+    this.reportNav.setMeta('strategies', plural(count('Strategy'), 'strategy', 'strategies'));
+    this.reportNav.setMeta('timing', months ? `${months} months` : '');
+    this.reportNav.setMeta('outcomes', `${Math.round(summaryMetrics.winRate || 0)}% win`);
+  }
+
+  /**
+   * Cross-filtering: clicking a symbol or strategy in a chart or the table
+   * narrows the whole report to it. Picks live in the URL hash, not in
+   * localStorage, so a new upload never opens pre-filtered by surprise.
+   */
+  initializeSelection() {
+    const { params } = HashState.read();
+    const list = key => (params.get(key) || '').split(',').map(v => v.trim()).filter(Boolean);
+    this.selection = { symbols: list('symbol'), strategies: list('strategy') };
+
+    // Date range and status from a shared link win over the stored ones
+    const range = params.get('range');
+    const status = params.get('status');
+    if (range || status) {
+      const filters = this.dataStore.getFilters();
+      if (range) filters.dateRange = { ...filters.dateRange, type: range };
+      if (status) filters.positionStatus = status;
+      this.dataStore.setFilters(filters);
+    }
+
+    const select = (dimension, value) => this.toggleSelection(dimension, value);
+    ['waterfall', 'tradeFlow', 'costBasis', 'winRate', 'plBreakdown', 'bubble'].forEach(key => {
+      if (this.visualizations[key]) this.visualizations[key].onSelect = select;
+    });
+
+    document.addEventListener('click', event => {
+      const cell = event.target.closest('[data-select]');
+      if (cell) {
+        this.toggleSelection(cell.dataset.select, cell.dataset.value);
+        return;
+      }
+      const chip = event.target.closest('[data-chip]');
+      if (chip) {
+        if (chip.dataset.chip === 'all') {
+          this.selection = { symbols: [], strategies: [] };
+        } else {
+          const key = chip.dataset.chip === 'symbol' ? 'symbols' : 'strategies';
+          this.selection[key] = this.selection[key].filter(v => v !== chip.dataset.value);
+        }
+        this.refreshDashboard();
+      }
+    });
+
+    window.addEventListener('hashchange', () => {
+      const next = HashState.read().params;
+      const same = key => (next.get(key) || '') === this.selection[`${key === 'symbol' ? 'symbols' : 'strategies'}`].join(',');
+      if (same('symbol') && same('strategy')) return;
+      this.selection = {
+        symbols: (next.get('symbol') || '').split(',').filter(Boolean),
+        strategies: (next.get('strategy') || '').split(',').filter(Boolean)
+      };
+      this.refreshDashboard();
+    });
+  }
+
+  toggleSelection(dimension, value) {
+    if (!value) return;
+    const key = dimension === 'symbol' ? 'symbols' : 'strategies';
+    const list = this.selection[key];
+    this.selection[key] = list.includes(value)
+      ? list.filter(v => v !== value)
+      : [...list, value];
+    this.refreshDashboard();
+  }
+
+  /** Drop picks that no longer exist, e.g. after loading a different file. */
+  pruneSelection() {
+    const symbols = new Set(this.enrichedTrades.map(trade => trade.Symbol));
+    const strategies = new Set(this.enrichedTrades.map(trade => trade.Strategy));
+    this.selection.symbols = this.selection.symbols.filter(v => symbols.has(v));
+    this.selection.strategies = this.selection.strategies.filter(v => strategies.has(v));
+  }
+
+  renderSelectionChips() {
+    const host = document.getElementById('filter-chips');
+    if (!host) return;
+    host.replaceChildren();
+
+    const chips = [
+      ...this.selection.symbols.map(value => ['symbol', 'Symbol', value]),
+      ...this.selection.strategies.map(value => ['strategy', 'Strategy', value])
+    ];
+    host.classList.toggle('hidden', chips.length === 0);
+
+    chips.forEach(([dimension, label, value]) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'filter-chip';
+      chip.dataset.chip = dimension;
+      chip.dataset.value = value;
+      chip.setAttribute('aria-label', `Remove ${label} filter ${value}`);
+      const name = document.createElement('span');
+      name.className = 'filter-chip-key';
+      name.textContent = `${label}:`;
+      const x = document.createElement('span');
+      x.className = 'filter-chip-x';
+      x.setAttribute('aria-hidden', 'true');
+      x.textContent = '×';
+      chip.append(name, ` ${value} `, x);
+      host.appendChild(chip);
+    });
+
+    if (chips.length > 1) {
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'filter-chip-clear';
+      clear.dataset.chip = 'all';
+      clear.textContent = 'Clear all';
+      host.appendChild(clear);
+    }
+  }
+
+  syncFilterHash(filters) {
+    const params = new URLSearchParams();
+    if (this.selection.symbols.length) params.set('symbol', this.selection.symbols.join(','));
+    if (this.selection.strategies.length) params.set('strategy', this.selection.strategies.join(','));
+    const range = filters.dateRange && filters.dateRange.type;
+    if (range && range !== 'alltime') params.set('range', range);
+    if (filters.positionStatus && filters.positionStatus !== 'all') params.set('status', filters.positionStatus);
+    HashState.update({ params });
+  }
+
+  /**
+   * Sentences at the top of Snapshot; clicking one applies its filter
+   */
+  renderHeadlines(trades) {
+    const list = document.getElementById('snapshot-headlines');
+    if (!list) return;
+    list.replaceChildren();
+
+    const headlines = SnapshotHeadlines.build(trades);
+    list.classList.toggle('hidden', headlines.length === 0);
+
+    headlines.forEach(headline => {
+      const { dimension, values } = headline.action;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'headline';
+      button.dataset.headline = headline.id;
+      button.setAttribute('aria-label', `${SnapshotHeadlines.toText(headline)} Filter the report to ${values.join(' and ')}.`);
+
+      headline.parts.forEach(part => {
+        if (!part.strong && !part.tone) {
+          button.append(part.text);
+          return;
+        }
+        const span = document.createElement('span');
+        span.className = part.tone ? `headline-figure text-${part.tone}` : 'headline-figure';
+        span.textContent = part.text;
+        button.appendChild(span);
+      });
+
+      button.addEventListener('click', () => {
+        const key = dimension === 'symbol' ? 'symbols' : 'strategies';
+        this.selection[key] = [...values];
+        this.refreshDashboard();
+      });
+
+      const item = document.createElement('li');
+      item.appendChild(button);
+      list.appendChild(item);
+    });
+  }
+
+  selectableCell(dimension, value) {
+    const cell = document.createElement('td');
+    if (!value) {
+      cell.textContent = 'Unknown';
+      return cell;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cell-select';
+    button.dataset.select = dimension;
+    button.dataset.value = value;
+    button.title = `Filter the report to ${value}`;
+    button.textContent = value;
+    cell.appendChild(button);
+    return cell;
+  }
+
+  /**
+   * The holding-period scatter can plot days held or DTE at entry
+   */
+  initializeScatterToggle() {
+    const buttons = document.querySelectorAll('[data-scatter-x]');
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const field = button.dataset.scatterX;
+        const label = field === 'daysToExpire' ? 'DTE at Entry' : 'Days Held';
+        buttons.forEach(other => {
+          const on = other === button;
+          other.classList.toggle('active', on);
+          other.setAttribute('aria-checked', String(on));
+        });
+        const title = document.getElementById('scatter-x-title');
+        if (title) title.textContent = label;
+
+        const chart = this.visualizations.scatter;
+        chart.options.xField = field;
+        chart.options.xLabel = label;
+        if (this.scatterData) chart.update(this.scatterData);
+      });
+    });
   }
 
   /**
@@ -521,12 +561,14 @@ class DashboardController {
       const value = valueOf(item);
       const plColor = value >= 0 ? 'text-profit' : 'text-loss';
 
-      row.innerHTML = `
-        <td>${item.dimensions.Symbol || 'Unknown'}</td>
-        <td>${item.dimensions.Strategy || 'Unknown'}</td>
+      row.append(
+        this.selectableCell('symbol', item.dimensions.Symbol),
+        this.selectableCell('strategy', item.dimensions.Strategy)
+      );
+      row.insertAdjacentHTML('beforeend', `
         <td class="font-mono">${countOf(item)}</td>
         <td class="font-mono ${plColor}">${this.formatCurrency(value)}</td>
-      `;
+      `);
 
       tbody.appendChild(row);
     });
@@ -782,12 +824,6 @@ class DashboardController {
     });
 
     this.visualizations = {};
-
-    // Destroy advanced visualization panel
-    if (this.advancedVizPanel && typeof this.advancedVizPanel.destroy === 'function') {
-      this.advancedVizPanel.destroy();
-      this.advancedVizPanel = null;
-    }
 
     // Destroy collapsible section
     if (this.collapsibleSection && typeof this.collapsibleSection.destroy === 'function') {

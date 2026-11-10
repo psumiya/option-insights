@@ -1,93 +1,90 @@
 /**
  * Tab Manager
- * Handles tab navigation and panel switching
+ * Switches between the Report, Research and Data views and mirrors the
+ * active view in the URL hash so it survives reloads and can be linked.
  */
+
+const VIEWS = ['report', 'research', 'data'];
+
+/**
+ * Reads and writes the URL hash, shaped as #view/chapter?key=value.
+ * replaceState keeps filter clicks and scrolling out of browser history.
+ */
+const HashState = {
+    read() {
+        const raw = window.location.hash.replace(/^#/, '');
+        const [path, query = ''] = raw.split('?');
+        const [view, chapter] = path.split('/');
+        return {
+            view: VIEWS.includes(view) ? view : null,
+            chapter: chapter || null,
+            params: new URLSearchParams(query)
+        };
+    },
+
+    update({ view, chapter, params } = {}) {
+        const current = this.read();
+        const nextView = view !== undefined ? view : (current.view || 'report');
+        const nextChapter = chapter !== undefined ? chapter : current.chapter;
+        const nextParams = params !== undefined ? params : current.params;
+
+        const query = nextParams.toString();
+        let path = nextView === 'report' ? '' : nextView;
+        if (nextView === 'report' && nextChapter) path = `report/${nextChapter}`;
+        if (!path && query) path = 'report';
+
+        const hash = path ? `#${path}${query ? `?${query}` : ''}` : '';
+        const url = `${window.location.pathname}${window.location.search}${hash}`;
+        if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+            history.replaceState(null, '', url);
+        }
+    }
+};
 
 class TabManager {
     constructor() {
-        this.currentTab = 'overview';
+        this.currentTab = 'report';
         this.init();
     }
 
     init() {
-        // Get all tab buttons
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        
-        // Add click event listeners
-        tabButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const tabId = e.target.id.replace('tab-', '');
-                this.switchTab(tabId);
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                this.switchTab(button.id.replace('tab-', ''));
             });
         });
 
-        // Show the default tab
-        this.switchTab('overview');
+        window.addEventListener('hashchange', () => {
+            const { view } = HashState.read();
+            if (view && view !== this.currentTab) this.switchTab(view, { updateHash: false });
+        });
+
+        this.switchTab(HashState.read().view || 'report', { updateHash: false });
     }
 
-    switchTab(tabId) {
-        // Update current tab
+    switchTab(tabId, { updateHash = true } = {}) {
+        if (!VIEWS.includes(tabId)) tabId = 'report';
         this.currentTab = tabId;
 
-        // Update tab buttons
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        tabButtons.forEach(button => {
-            const btnTabId = button.id.replace('tab-', '');
-            if (btnTabId === tabId) {
-                button.classList.add('active');
-                button.setAttribute('aria-selected', 'true');
-            } else {
-                button.classList.remove('active');
-                button.setAttribute('aria-selected', 'false');
-            }
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            const active = button.id === `tab-${tabId}`;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', String(active));
         });
 
-        // Update tab panels
-        const tabPanels = document.querySelectorAll('.tab-panel');
-        tabPanels.forEach(panel => {
-            const panelTabId = panel.id.replace('tab-panel-', '');
-            if (panelTabId === tabId) {
-                panel.classList.remove('hidden');
-                
-                // Trigger resize for charts in the newly visible panel
-                // This ensures charts recalculate dimensions after becoming visible
-                setTimeout(() => {
-                    const charts = panel.querySelectorAll('.chart-container');
-                    charts.forEach(chart => {
-                        window.dispatchEvent(new Event('resize'));
-                    });
-                }, 50);
-            } else {
-                panel.classList.add('hidden');
-            }
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.toggle('hidden', panel.id !== `tab-panel-${tabId}`);
         });
 
-        // Store the active tab in localStorage for persistence
-        try {
-            localStorage.setItem('activeTab', tabId);
-        } catch (e) {
-            // Ignore localStorage errors
-        }
+        if (updateHash) HashState.update({ view: tabId, chapter: null });
     }
 
     getCurrentTab() {
         return this.currentTab;
     }
-
-    // Restore the last active tab from localStorage
-    restoreLastTab() {
-        try {
-            const lastTab = localStorage.getItem('activeTab');
-            if (lastTab) {
-                this.switchTab(lastTab);
-            }
-        } catch (e) {
-            // Ignore localStorage errors
-        }
-    }
 }
 
-// Initialize tab manager when DOM is ready
 if (typeof window !== 'undefined') {
     window.TabManager = TabManager;
+    window.HashState = HashState;
 }

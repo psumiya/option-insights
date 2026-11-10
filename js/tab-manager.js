@@ -78,10 +78,6 @@ class TabManager {
 
         if (updateHash) HashState.update({ view: tabId, chapter: null });
     }
-
-    getCurrentTab() {
-        return this.currentTab;
-    }
 }
 
 if (typeof window !== 'undefined') {

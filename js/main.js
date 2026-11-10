@@ -83,21 +83,6 @@ function setupEventListeners() {
   // Table headers for sorting
   const tableHeaders = document.querySelectorAll('#symbol-strategy-table th.sortable');
   
-  // Filters toggle
-  const filtersToggle = document.getElementById('filters-toggle');
-  const filtersContent = document.getElementById('filters-content');
-  const filtersIcon = document.getElementById('filters-icon');
-  
-  // Set up filters toggle
-  if (filtersToggle && filtersContent && filtersIcon) {
-    filtersToggle.addEventListener('click', () => {
-      const isExpanded = filtersToggle.getAttribute('aria-expanded') === 'true';
-      filtersToggle.setAttribute('aria-expanded', !isExpanded);
-      filtersContent.classList.toggle('expanded');
-      filtersIcon.classList.toggle('expanded');
-    });
-  }
-  
   // Set up compact header on scroll
   setupCompactHeader();
 
@@ -214,9 +199,6 @@ function setupEventListeners() {
       button.classList.add('active');
       button.setAttribute('aria-checked', 'true');
       
-      // Update filter summary
-      updateFilterSummary();
-      
       // Trigger filter change
       handleFilterChange();
     });
@@ -268,9 +250,6 @@ async function handleFileUpload(file) {
 
   // Reveal the Clear action now that data is loaded
   syncHeaderActions();
-
-  // Initialize filter summary
-  updateFilterSummary();
 }
 
 /**
@@ -524,30 +503,6 @@ function enableCompactHeader() {
       header.classList.add('compact');
     }, 300);
   }
-}
-
-/**
- * Update filter summary text
- */
-function updateFilterSummary() {
-  const filtersSummary = document.getElementById('filters-summary');
-  if (!filtersSummary) return;
-  
-  const activeDateRangeBtn = document.querySelector('[data-filter="date-range"].active');
-  const activePositionStatusBtn = document.querySelector('[data-filter="position-status"].active');
-  
-  const dateRangeText = activeDateRangeBtn ? activeDateRangeBtn.textContent : 'All';
-  const positionStatusText = activePositionStatusBtn ? activePositionStatusBtn.textContent : 'All';
-  
-  const dateRangeMap = {
-    '1W': 'Last 7 Days',
-    '1M': 'Last 30 Days',
-    '1Y': 'Last 12 Months',
-    'YTD': 'Year to Date',
-    'All': 'All Time'
-  };
-  
-  filtersSummary.textContent = `${dateRangeMap[dateRangeText] || dateRangeText} • ${positionStatusText} Positions`;
 }
 
 /**

@@ -130,15 +130,6 @@ class StrategyDetector {
   clearDetectors() {
     this.customDetectors = [];
   }
-
-  /**
-   * Get the number of registered custom detectors
-   * 
-   * @returns {number} Number of registered detectors
-   */
-  getDetectorCount() {
-    return this.customDetectors.length;
-  }
 }
 
 // Export for use in other modules

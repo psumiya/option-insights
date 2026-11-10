@@ -198,45 +198,6 @@ button {
 }
 
 /* ============================================
-   Form Controls
-   ============================================ */
-.filter-select {
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-    padding: 6px 32px 6px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    /* iOS Safari fixes */
-    touch-action: manipulation;
-}
-
-/* Dark theme dropdown arrow */
-[data-theme="dark"] .filter-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-}
-
-/* Light theme dropdown arrow */
-[data-theme="light"] .filter-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-}
-
-.filter-select:hover {
-    border-color: var(--color-text-secondary);
-}
-
-.filter-select:focus {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 2px;
-    border-color: var(--color-accent);
-}
-
-/* ============================================
    Filter Button Groups
    ============================================ */
 .filter-group {
@@ -368,10 +329,6 @@ input[type="file"] {
     #trade-flow-chart {
         min-width: 1000px;
     }
-    
-    #symbol-pl-chart {
-        min-width: 900px;
-    }
 }
 
 /* Larger chart for P/L trend */
@@ -382,30 +339,8 @@ input[type="file"] {
 
 /* Specific chart heights */
 #win-rate-chart,
-#pl-breakdown-chart,
-#strategy-performance-chart {
+#pl-breakdown-chart {
     height: 300px;
-}
-
-/* P/L by Symbol needs more height for many symbols */
-#symbol-pl-chart {
-    height: 600px;
-    min-height: 600px;
-}
-
-/* Add this new rule for the trade flow chart specifically */
-#trade-flow-chart-section {
-    width: 100%;
-    min-width: 800px; /* Ensures chart is wide enough to scroll on mobile */
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-/* On mobile, allow the section to scroll */
-@media (max-width: 767px) {
-    #trade-flow-chart-section {
-        min-width: 1000px; /* Even wider on mobile for better visualization */
-    }
 }
 
 /* ============================================
@@ -649,15 +584,6 @@ input[type="file"] {
     font-size: 13px;
 }
 
-#main-header.compact .theme-toggle {
-    padding: 3px;
-}
-
-#main-header.compact .theme-btn {
-    width: 28px;
-    height: 28px;
-}
-
 /* Mobile compact header */
 @media (max-width: 767px) {
     #main-header.compact {
@@ -672,43 +598,6 @@ input[type="file"] {
     #main-header.compact .btn-primary {
         padding: 4px 8px;
         font-size: 12px;
-    }
-}
-
-/* ============================================
-   Collapsible Filters
-   ============================================ */
-.filters-collapsible {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-
-.filters-collapsible.expanded {
-    max-height: 500px;
-}
-
-#filters-toggle {
-    cursor: pointer;
-    user-select: none;
-}
-
-#filters-toggle:hover {
-    background-color: rgba(59, 130, 246, 0.05);
-}
-
-#filters-icon.expanded {
-    transform: rotate(90deg);
-}
-
-#filters-summary {
-    transition: opacity 0.2s ease;
-}
-
-/* Mobile filters */
-@media (max-width: 767px) {
-    .filters-collapsible.expanded {
-        max-height: 800px;
     }
 }
 
@@ -763,21 +652,6 @@ input[type="file"] {
 
 #drop-zone:active {
     background-color: rgba(59, 130, 246, 0.05);
-}
-
-/* ============================================
-   Color Coding for P/L Values
-   ============================================ */
-.pl-positive {
-    color: var(--color-profit);
-}
-
-.pl-negative {
-    color: var(--color-loss);
-}
-
-.pl-neutral {
-    color: var(--color-text-secondary);
 }
 
 /* ============================================
@@ -874,37 +748,8 @@ input[type="file"] {
 }
 
 /* ============================================
-   Advanced Visualization Panel Component - Vertical Layout
+   Chart Panel Content
    ============================================ */
-.advanced-viz-panel-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.viz-panels-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.viz-panel {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 24px;
-    overflow: hidden;
-}
-
-.viz-panel-header {
-    margin-bottom: 20px;
-}
-
-.viz-panel-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-}
 
 .viz-panel-content {
     min-height: 500px;
@@ -921,50 +766,8 @@ input[type="file"] {
     display: block;
 }
 
-/* Error state */
-.viz-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px 20px;
-    text-align: center;
-    height: 100%;
-}
-
-.viz-error-icon {
-    font-size: 48px;
-}
-
-.viz-error-message {
-    color: var(--color-text-secondary);
-    font-size: 14px;
-    max-width: 400px;
-}
-
 /* Mobile responsive */
 @media (max-width: 767px) {
-    .advanced-viz-panel-vertical {
-        gap: 16px;
-    }
-    
-    .viz-panels-container {
-        gap: 16px;
-    }
-    
-    .viz-panel {
-        padding: 16px;
-    }
-    
-    .viz-panel-header {
-        margin-bottom: 16px;
-    }
-    
-    .viz-panel-title {
-        font-size: 16px;
-    }
-    
     .viz-panel-content {
         min-height: 450px;
         height: 450px;
@@ -973,22 +776,6 @@ input[type="file"] {
 
 /* Tablet responsive */
 @media (min-width: 768px) and (max-width: 1023px) {
-    .advanced-viz-panel-vertical {
-        gap: 20px;
-    }
-    
-    .viz-panels-container {
-        gap: 20px;
-    }
-    
-    .viz-panel {
-        padding: 20px;
-    }
-    
-    .viz-panel-title {
-        font-size: 17px;
-    }
-    
     .viz-panel-content {
         min-height: 450px;
         height: 450px;
@@ -1189,10 +976,6 @@ input[type="file"] {
     background-color: rgba(37, 99, 235, 0.05);
 }
 
-[data-theme="light"] .theme-btn:hover {
-    background: rgba(37, 99, 235, 0.1);
-}
-
 /* Smooth theme transition */
 html {
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -1201,9 +984,7 @@ html {
 body,
 .bg-surface,
 .bg-background,
-.btn-secondary,
-.filter-select,
-.theme-toggle {
+.btn-secondary {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 

@@ -437,7 +437,7 @@ class RobinhoodAdapter {
 /**
  * Tasty Adapter
  * Converts TastyTrade CSV to internal trade format
- * Uses advanced strategy inference logic from tastyAdapter.js
+ * Uses the strategy inference in tasty-strategy-mapper.js
  */
 class TastyAdapter {
   /**

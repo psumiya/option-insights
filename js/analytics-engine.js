@@ -430,41 +430,6 @@ class AnalyticsEngine {
   }
 
   /**
-   * Calculate top underlyings by winning dollars
-   * @param {Array} trades - Array of enriched trade records
-   * @param {number} limit - Number of top symbols to return (default 5)
-   * @returns {Array} - Array of {symbol, winningDollars, winCount} objects
-   */
-  calculateTopUnderlyings(trades, limit = 5) {
-    const symbolMap = new Map();
-    
-    // Group winning trades by symbol (Requirement 15.2)
-    trades.forEach(trade => {
-      // Only include winning trades
-      if (trade.Result !== 'Win') return;
-      
-      const symbol = trade.Symbol;
-      
-      if (!symbolMap.has(symbol)) {
-        symbolMap.set(symbol, {
-          symbol,
-          winningDollars: 0,
-          winCount: 0
-        });
-      }
-      
-      const stats = symbolMap.get(symbol);
-      stats.winningDollars += trade.ProfitLoss;
-      stats.winCount++;
-    });
-    
-    // Convert to array, sort by winning dollars descending, and take top N (Requirement 15.3)
-    return Array.from(symbolMap.values())
-      .sort((a, b) => b.winningDollars - a.winningDollars)
-      .slice(0, limit);
-  }
-
-  /**
    * Format month key to display label
    * @param {string} monthKey - Month in YYYY-MM format
    * @returns {string} - Formatted month label (e.g., "Jan 2024")

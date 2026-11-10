@@ -53,13 +53,6 @@ const ThemeColors = {
   },
 
   /**
-   * Get CSS variable value
-   */
-  getCSSVar(varName) {
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  },
-
-  /**
    * Listen for theme changes and call callback
    */
   onChange(callback) {

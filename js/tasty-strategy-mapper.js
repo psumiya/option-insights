@@ -1,12 +1,12 @@
 /**
  * Tasty Strategy Mapper
- * Bridges between tastyAdapter.js strategy inference and broker-adapters.js format
+ * Infers multi-leg strategies from tastytrade rows and converts them to the broker-adapters.js format
  * Aggregates transaction-level data into strategy-level trades
  * 
  * This file includes the core strategy inference logic for browser use
  */
 
-// ===== Core Strategy Inference Functions (from tastyAdapter.js) =====
+// ===== Core Strategy Inference Functions =====
 
 function extractStrike(symbol, trade) {
   const declared = trade && parseFloat(String(trade['Strike Price'] || '').replace(/,/g, ''));
@@ -91,11 +91,6 @@ function effectiveAction(trade, netQuantity) {
 
   // Closing a short means buying it back, and vice versa
   return netQuantity < 0 ? 'BUY_TO_CLOSE' : 'SELL_TO_CLOSE';
-}
-
-function getSignedQuantity(trade) {
-  const qty = parseInt(trade.Quantity);
-  return String(trade.Action || '').startsWith('SELL') ? -qty : qty;
 }
 
 function classifyStrategy(orderGroup) {

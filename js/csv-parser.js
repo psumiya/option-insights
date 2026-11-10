@@ -316,32 +316,6 @@ class CSVParser {
     return normalized;
   }
 
-  /**
-   * Format validation errors into a readable message
-   * @param {Array} errors - Array of error objects with row and errors
-   * @returns {string} - Formatted error message
-   */
-  formatValidationErrors(errors) {
-    const maxErrorsToShow = 10;
-    const errorCount = errors.length;
-    const errorsToShow = errors.slice(0, maxErrorsToShow);
-
-    let message = `Found ${errorCount} validation error${errorCount > 1 ? 's' : ''}:\n\n`;
-
-    errorsToShow.forEach(error => {
-      message += `Row ${error.row}:\n`;
-      error.errors.forEach(err => {
-        message += `  - ${err}\n`;
-      });
-      message += '\n';
-    });
-
-    if (errorCount > maxErrorsToShow) {
-      message += `... and ${errorCount - maxErrorsToShow} more error${errorCount - maxErrorsToShow > 1 ? 's' : ''}`;
-    }
-
-    return message.trim();
-  }
 }
 
 // Export for use in other modules

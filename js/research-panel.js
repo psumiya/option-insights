@@ -81,7 +81,7 @@ class ResearchPanel {
         </div>
         <p class="research-filter-hint">
           Closed trades only; open positions have no realized outcome to analyze.
-          Deselect every structure to drop the structure filter and include all strategies.
+          All strategies drops the structure filter and includes every strategy, not just these three.
         </p>
       </section>
 
@@ -179,13 +179,21 @@ class ResearchPanel {
       ResearchAnalytics.STRUCTURES.CALL_CREDIT_SPREAD
     ];
 
-    this.elements.structureGroup.innerHTML = structures.map(structure => `
+    this.elements.structureGroup.innerHTML = `
+      <button class="filter-btn" data-research-structure-all
+              role="checkbox" aria-checked="false">
+        All strategies
+      </button>
+      <span class="research-structure-divider" aria-hidden="true"></span>
+    ` + structures.map(structure => `
       <button class="filter-btn" data-research-structure="${structure}"
               role="checkbox" aria-checked="false">
         ${ResearchAnalytics.structureLabel(structure)}
       </button>
     `).join('');
 
+    this.elements.structureAll =
+      this.elements.structureGroup.querySelector('[data-research-structure-all]');
     this.elements.structureButtons =
       [...this.elements.structureGroup.querySelectorAll('[data-research-structure]')];
   }
@@ -254,6 +262,13 @@ class ResearchPanel {
         this.filter.dteCut = button.dataset.researchDte;
         this.onManualFilterChange();
       });
+    });
+
+    // No structure filter at all, shown as its own choice so an empty
+    // selection never reads as "nothing included"
+    this.elements.structureAll.addEventListener('click', () => {
+      this.filter.structures = null;
+      this.onManualFilterChange();
     });
 
     this.elements.structureButtons.forEach(button => {
@@ -356,6 +371,9 @@ class ResearchPanel {
     });
 
     const structures = this.filter.structures || [];
+    const allStrategies = structures.length === 0;
+    this.elements.structureAll.classList.toggle('active', allStrategies);
+    this.elements.structureAll.setAttribute('aria-checked', String(allStrategies));
     this.elements.structureButtons.forEach(button => {
       const active = structures.indexOf(button.dataset.researchStructure) !== -1;
       button.classList.toggle('active', active);

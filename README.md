@@ -13,15 +13,15 @@ Or build locally as described below.
 ### Option 1: Try Demo Data 
 
 1. Open `index.html` in your browser
-2. Click **"Load Demo Data"** button
-3. Explore the dashboard with 100 sample trades
+2. Click **Try Demo Data** (or **Demo** in the header)
+3. Explore the report with 100 sample trades
 
 ### Option 2: Upload Your Own Data
 
 1. Open `index.html` in your browser
 2. Click **"Upload CSV"** button
 3. Select your trading data CSV file
-4. View your personalized analytics
+4. Read the report built from your trades
 
 ## Supported Brokers
 
@@ -30,49 +30,69 @@ The application automatically detects and adapts to CSV formats from:
 - **Tasty Trade** - Full support for Tasty Trade export format
 - **Generic** - Works with any CSV containing basic trade data
 
-See [BROKER_SUPPORT.md](BROKER_SUPPORT.md) for detailed format specifications.
+See [BROKER_SUPPORT.md](docs/BROKER_SUPPORT.md) for detailed format specifications.
 
-## Visualizations
+## Layout
 
-### Overview Tab
-- **Summary Metrics Panel** - Key performance indicators at a glance
-- **P/L Trend** - Track your profit/loss over time
-- **Win/Loss Distribution** - Donut chart of wins vs losses
-- **Top 5 Underlyings by Win $** - Top performing symbols by winning dollars
+The app has three views: **Report**, **Research** and **Trades**. The date range and
+position status filters sit in a bar under them and apply to all three.
 
-### Analysis Tab
-- **Trade Flow** - Sankey diagram of symbol through strategy to outcome
-- **P/L by Symbol** - Bar chart showing profit/loss for each symbol
-- **Cost Basis by Symbol** - View total money spent (debits) per symbol with open position tracking
-- **Advanced Analytics** - Expandable panel with 8 advanced visualizations:
-  - **Calendar Heatmap** - Daily P/L visualization
-  - **Days Held vs P/L** - Scatter plot analysis
-  - **Days to Expire vs P/L** - Scatter plot analysis
-  - **P/L Distribution** - Violin plot showing distribution
-  - **Win Rate Analysis** - Bubble chart by strategy
-  - **Monthly Performance** - Radial chart of monthly results
-  - **P/L Attribution** - Waterfall chart by symbol
-  - **Long-term Trends** - Horizon chart for extended periods
+### Report
 
-### Strategies Tab
-- **Win Rate by Strategy** - Compare strategy effectiveness
-- **P/L by Strategy** - See which strategies are most profitable
-- **P/L by Symbol & Strategy** - Detailed table breakdown of performance
+One scrolling page in five chapters, each headed by the question it answers. A rail
+on the left tracks the chapter you are reading and shows a figure for each; on a
+narrow screen it becomes a strip of chips along the top.
 
-### Research Tab
+- **Snapshot** - Up to four generated headlines (where losses concentrate, best
+  underlying, weakest and most reliable strategy), the key metrics, and the P/L trend
+- **Where the P/L came from** - P/L attribution by symbol (waterfall) and trade
+  flow from symbol through strategy to outcome (Sankey)
+- **Strategies** - Win rate and P/L by strategy, win rate against average win
+  (bubble size is trade count), and a P/L by symbol and strategy table
+- **Timing** - Daily P/L calendar, net P/L by month with a per-strategy breakdown
+  on hover, and P/L against days held or DTE at entry
+- **Outcome shape** - Wins against losses, and a histogram of every closed trade's
+  P/L with the average win and loss marked
+
+Two sparser charts sit collapsed at the end: **Long-term Trends** (daily cumulative
+P/L) and **Cost Basis by Symbol** (total debits paid per underlying).
+
+Charts draw when they scroll into view.
+
+### Click to filter
+
+Clicking a symbol or strategy in the waterfall, trade flow, cost basis, strategy
+charts, bubble chart or either table filters the whole app to it, shown as a
+removable chip in the filter bar. Picking several values in one dimension shows any
+of them; picks in different dimensions narrow together. Each Snapshot headline
+applies its own filter when clicked.
+
+The current view, chapter and filters live in the URL, so a link or a reload reopens
+the same view. Symbol and strategy picks are kept only there, never in storage, so a
+new upload never opens already filtered.
+
+### Trades
+
+The reconstructed trades every chart is computed from, narrowed by the same filters
+as the report: symbol, strategy, entry and exit dates, days held, credit, debit, fees
+and realized P/L. Columns sort, a search box matches symbol or strategy, and the
+summary line totals realized P/L the same way the Snapshot figure does.
+
+### Research
 Structural analysis of closed trades: which choices drove the result, and whether
 the pattern survives a small-sample check.
 
 - **Presets** - One click applies a saved cut (underlying, DTE, structures)
 - **Filter bar** - Underlying, days-to-expiration cut, and structure selection;
-  deselect every structure to include all strategies
+  **All strategies** drops the structure filter and includes every strategy
 - **Trade by trade** - One bar per closed trade, with net, average and count above
 - **Calendar** - Net P/L per trading date, cells labelled by structure
 - **By days to expiration** - Win rate and expectancy split 0DTE / 1-7DTE / >7DTE
 - **Condor vs single-sided** - Iron condors against one-sided credit spreads
 - **By spread width** - Performance and average credit collected per width bucket
   ($5-wide, $10-wide, $20-wide, other)
-- **Uniform-width counterfactual** - What the same book returns at one width
+- **Uniform-width counterfactual** - What the same trades would have netted at one
+  spread width, against what they actually netted
 - **Streak check** - Whether wins and losses cluster more than chance predicts
 - **Loss concentration** - Share of total losses carried by the largest few
 
@@ -85,14 +105,15 @@ Adding a cut is an edit to `RESEARCH_PRESETS` in `js/research-scenarios.js`.
 
 P/L is **net of commissions and fees** wherever the broker export provides them.
 TastyTrade exports do; Robinhood's `Amount` column is already net; the generic
-format has no fee columns, in which case the Research tab says P/L is gross of fees.
+format has no fee columns, in which case the Research view says P/L is gross of fees.
 
-The `P/L by Symbol & Strategy` table on the Strategies tab has a **Net / Gross**
+The `P/L by Symbol & Strategy` table in the Strategies chapter has a **Net / Gross**
 toggle. Net is what each closed position returned after costs. Gross counts every
 retired leg before costs, which is the measure that matches the P/L column of a
 broker statement, so use it to reconcile.
 
-The headline figure is **Realized P/L**, which counts every retired leg. Brokers
+The headline figure is **Realized P/L**, which counts every retired leg, and the
+Trades view totals the same way. Brokers
 settle leg by leg, so half of a strangle can be realized while the position is
 still open. This is the figure that ties to a broker statement; individual trades
 stay grouped by strategy, and a strategy is only marked closed once every one of
@@ -110,6 +131,7 @@ so rather than guessing:
 
 - **Date Range**: Last 7 days, 30 days, 12 months, Year To Date, All time
 - **Position Status**: Open, Closed, or All positions
+- **Symbol and Strategy**: set by clicking a chart, a table row or a headline
 
 ## Local Development
 
@@ -127,18 +149,16 @@ so rather than guessing:
 
 ## Testing
 
-Run the test suite to verify everything works:
+The analytics, research, tastytrade reconstruction, headline and histogram logic is
+covered by Node tests, with no install needed (Node 18 or later):
 
 ```bash
-node tests/run-tests.js
+node --test tests/*.test.js
 ```
 
-Or open the test pages in your browser:
-- `tests/automated-test.html` - Full automated test suite
-- `tests/test-demo-data.html` - Demo data generator tests
-- `tests/test-broker-adapters.html` - Broker format tests
-
-See [TESTING.md](docs/TESTING.md) for complete testing documentation.
+Older browser test pages remain under `tests/` and run against a local server, for
+example `http://localhost:8000/tests/test-broker-adapters.html`. See
+[TESTING.md](docs/TESTING.md) for those.
 
 ## Privacy & Security
 

@@ -97,3 +97,9 @@ const ThemeColors = {
     });
   }
 };
+
+// Charts that guard with `window.ThemeColors` need it on window; a top-level
+// const is not a window property
+if (typeof window !== 'undefined') {
+  window.ThemeColors = ThemeColors;
+}

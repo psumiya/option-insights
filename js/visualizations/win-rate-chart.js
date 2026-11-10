@@ -175,11 +175,11 @@ class WinRateChart {
     this.xAxisGroup
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style x-axis labels with responsive font size
     this.xAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', isMobile ? '9px' : '12px')
       .style('text-anchor', 'end')
       .attr('transform', 'rotate(-45)');
@@ -193,11 +193,11 @@ class WinRateChart {
 
     this.yAxisGroup
       .call(yAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style y-axis labels with responsive font size
     this.yAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', isMobile ? '10px' : '12px');
 
     // Add axis labels
@@ -219,7 +219,7 @@ class WinRateChart {
       .attr('x', -this.height / 2)
       .attr('y', -45)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Trade Count');
@@ -230,7 +230,7 @@ class WinRateChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 70)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Strategy');
@@ -349,7 +349,7 @@ class WinRateChart {
     legendEnter.append('text')
       .attr('x', 22)
       .attr('y', 12)
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '12px')
       .text(d => d.label);
   }
@@ -367,16 +367,16 @@ class WinRateChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 6px;">
           ${data.strategy}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          ${typeLabel}: <span style="color: #e5e7eb; font-weight: 600;">${data.value}</span> trades
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          ${typeLabel}: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.value}</span> trades
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Percentage: <span style="color: #e5e7eb; font-weight: 600;">${data.percentage.toFixed(1)}%</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Percentage: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.percentage.toFixed(1)}%</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Amount: <span style="color: ${amountColor}; font-weight: 600;">${this._formatCurrency(data.amount)}</span>
         </div>
       `);
@@ -454,7 +454,7 @@ class WinRateChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No win rate data available');
       
@@ -463,7 +463,7 @@ class WinRateChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades to see strategy performance');
     }

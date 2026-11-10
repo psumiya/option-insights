@@ -203,11 +203,11 @@ class ScatterPlotChart {
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axesGroup.selectAll('.x-axis path, .x-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // X-axis label
     this.axesGroup.append('text')
@@ -215,7 +215,7 @@ class ScatterPlotChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 45)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '13px')
       .attr('font-weight', '600')
       .attr('font-weight', '600')
@@ -230,11 +230,11 @@ class ScatterPlotChart {
       .attr('class', 'y-axis')
       .call(yAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axesGroup.selectAll('.y-axis path, .y-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // Y-axis label
     this.axesGroup.append('text')
@@ -243,7 +243,7 @@ class ScatterPlotChart {
       .attr('x', -this.height / 2)
       .attr('y', -60)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '13px')
       .attr('font-weight', '600')
       .text('P/L ($)');
@@ -266,7 +266,7 @@ class ScatterPlotChart {
         .attr('x2', this.width)
         .attr('y1', this.yScale(0))
         .attr('y2', this.yScale(0))
-        .attr('stroke', '#6b7280')
+        .style('stroke', 'var(--svg-zero-line)')
         .attr('stroke-width', 1)
         .attr('stroke-dasharray', '4,4')
         .attr('opacity', 0.6);
@@ -291,7 +291,7 @@ class ScatterPlotChart {
       .attr('cx', d => this.xScale(d[this.options.xField]))
       .attr('cy', d => this.yScale(d.pl))
       .attr('fill', d => this.colorScale(d.strategy))
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-surface)')
       .attr('stroke-width', 1.5)
       .attr('opacity', 0.7)
       .style('cursor', 'pointer');
@@ -333,7 +333,7 @@ class ScatterPlotChart {
     this.legendGroup.append('text')
       .attr('x', legendX)
       .attr('y', legendY)
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '12px')
       .attr('font-weight', '600')
       .text('Strategy');
@@ -348,7 +348,7 @@ class ScatterPlotChart {
         .attr('cy', itemY)
         .attr('r', 5)
         .attr('fill', this.colorScale(strategy))
-        .attr('stroke', '#141b2d')
+        .style('stroke', 'var(--svg-surface)')
         .attr('stroke-width', 1);
 
       // Strategy label
@@ -356,7 +356,7 @@ class ScatterPlotChart {
         .attr('x', legendX + 18)
         .attr('y', itemY)
         .attr('dominant-baseline', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '11px')
         .text(strategy);
     });
@@ -374,16 +374,16 @@ class ScatterPlotChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 4px;">
           ${data.symbol}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Strategy: <span style="color: #e5e7eb; font-weight: 600;">${data.strategy}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Strategy: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.strategy}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          ${this.options.xLabel}: <span style="color: #e5e7eb; font-weight: 600;">${data[this.options.xField]}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          ${this.options.xLabel}: <span style="color: var(--svg-text-primary); font-weight: 600;">${data[this.options.xField]}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
         </div>
       `);
@@ -461,7 +461,7 @@ class ScatterPlotChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No scatter plot data available');
 
@@ -470,7 +470,7 @@ class ScatterPlotChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades with close dates to see holding period analysis');
     }

@@ -344,11 +344,11 @@ class HorizonChart {
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axisGroup.selectAll('.x-axis path, .x-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // Y-axis labels (show band ranges)
     const yAxisGroup = this.axisGroup.append('g')
@@ -364,7 +364,7 @@ class HorizonChart {
         .attr('y', y)
         .attr('text-anchor', 'end')
         .attr('dominant-baseline', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '10px')
         .text(this._formatCurrency(value));
     }
@@ -379,7 +379,7 @@ class HorizonChart {
         .attr('y', y)
         .attr('text-anchor', 'end')
         .attr('dominant-baseline', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '10px')
         .text(this._formatCurrency(value));
     }
@@ -399,7 +399,7 @@ class HorizonChart {
       .attr('x2', this.width)
       .attr('y1', this.height / 2)
       .attr('y2', this.height / 2)
-      .attr('stroke', '#6b7280')
+      .style('stroke', 'var(--svg-zero-line)')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '4,4');
 
@@ -409,7 +409,7 @@ class HorizonChart {
       .attr('y', this.height / 2)
       .attr('text-anchor', 'start')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '10px')
       .text('$0');
   }
@@ -456,10 +456,10 @@ class HorizonChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 4px;">
           ${dateStr}
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Cumulative P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.cumulativePL)}</span>
         </div>
       `);
@@ -536,7 +536,7 @@ class HorizonChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No horizon chart data available');
       
@@ -545,7 +545,7 @@ class HorizonChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades with close dates to see long-term P/L trends');
     }

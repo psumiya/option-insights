@@ -83,8 +83,15 @@ class BubbleChart {
 
     // Initialize color scale for net P/L (Requirement 7.4)
     // Red (negative) → Yellow (neutral) → Green (positive)
-    this.colorScale = d3.scaleSequential()
-      .interpolator(d3.interpolateRdYlGn);
+    // Diverging around zero: loss red, neutral gray, profit green. A yellow
+    // midpoint (RdYlGn) vanishes on a light surface.
+    this.colorScale = d3.scaleDiverging(t => {
+      const colors = ThemeColors.get();
+      const neutral = '#8b93a1';
+      return t < 0.5
+        ? d3.interpolateRgb(colors.loss, neutral)(t * 2)
+        : d3.interpolateRgb(neutral, colors.profit)((t - 0.5) * 2);
+    });
   }
 
   /**
@@ -193,7 +200,7 @@ class BubbleChart {
     // Color scale: Net P/L (Requirement 7.4)
     const netPLExtent = d3.extent(this.processedData, d => d.netPL);
     const maxAbsNetPL = Math.max(Math.abs(netPLExtent[0]), Math.abs(netPLExtent[1]));
-    this.colorScale.domain([-maxAbsNetPL, maxAbsNetPL]);
+    this.colorScale.domain([-maxAbsNetPL, 0, maxAbsNetPL]);
   }
 
   /**
@@ -214,11 +221,11 @@ class BubbleChart {
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axesGroup.selectAll('.x-axis path, .x-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // X-axis label
     this.axesGroup.append('text')
@@ -226,7 +233,7 @@ class BubbleChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 50)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Win Rate (%)');
@@ -240,11 +247,11 @@ class BubbleChart {
       .attr('class', 'y-axis')
       .call(yAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axesGroup.selectAll('.y-axis path, .y-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // Y-axis label
     this.axesGroup.append('text')
@@ -253,7 +260,7 @@ class BubbleChart {
       .attr('x', -this.height / 2)
       .attr('y', -70)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Average Win ($)');
@@ -275,7 +282,7 @@ class BubbleChart {
         .attr('x2', this.xScale(50))
         .attr('y1', 0)
         .attr('y2', this.height)
-        .attr('stroke', '#6b7280')
+        .style('stroke', 'var(--svg-zero-line)')
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '5,5')
         .attr('opacity', 0.5);
@@ -289,7 +296,7 @@ class BubbleChart {
         .attr('x2', this.width)
         .attr('y1', this.yScale(0))
         .attr('y2', this.yScale(0))
-        .attr('stroke', '#6b7280')
+        .style('stroke', 'var(--svg-zero-line)')
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '5,5')
         .attr('opacity', 0.5);
@@ -306,7 +313,7 @@ class BubbleChart {
 
     const labelOffset = 15;
     const labelStyle = {
-      fill: '#6b7280',
+      fill: 'var(--svg-text-secondary)',
       fontSize: '11px',
       fontWeight: '500',
       opacity: 0.7
@@ -322,7 +329,7 @@ class BubbleChart {
         .attr('x', this.xScale(50) + labelOffset)
         .attr('y', this.yScale(0) - labelOffset)
         .attr('text-anchor', 'start')
-        .attr('fill', labelStyle.fill)
+        .style('fill', labelStyle.fill)
         .attr('font-size', labelStyle.fontSize)
         .attr('font-weight', labelStyle.fontWeight)
         .attr('opacity', labelStyle.opacity)
@@ -333,7 +340,7 @@ class BubbleChart {
         .attr('x', this.xScale(50) - labelOffset)
         .attr('y', this.yScale(0) - labelOffset)
         .attr('text-anchor', 'end')
-        .attr('fill', labelStyle.fill)
+        .style('fill', labelStyle.fill)
         .attr('font-size', labelStyle.fontSize)
         .attr('font-weight', labelStyle.fontWeight)
         .attr('opacity', labelStyle.opacity)
@@ -344,7 +351,7 @@ class BubbleChart {
         .attr('x', this.xScale(50) + labelOffset)
         .attr('y', this.yScale(0) + labelOffset + 10)
         .attr('text-anchor', 'start')
-        .attr('fill', labelStyle.fill)
+        .style('fill', labelStyle.fill)
         .attr('font-size', labelStyle.fontSize)
         .attr('font-weight', labelStyle.fontWeight)
         .attr('opacity', labelStyle.opacity)
@@ -355,7 +362,7 @@ class BubbleChart {
         .attr('x', this.xScale(50) - labelOffset)
         .attr('y', this.yScale(0) + labelOffset + 10)
         .attr('text-anchor', 'end')
-        .attr('fill', labelStyle.fill)
+        .style('fill', labelStyle.fill)
         .attr('font-size', labelStyle.fontSize)
         .attr('font-weight', labelStyle.fontWeight)
         .attr('opacity', labelStyle.opacity)
@@ -380,7 +387,7 @@ class BubbleChart {
       .attr('r', 0)
       .attr('cx', d => this.xScale(d.winRate))
       .attr('cy', d => this.yScale(d.averageWin))
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-surface)')
       .attr('stroke-width', 2)
       .attr('opacity', 0.75)
       .style('cursor', 'pointer');
@@ -464,19 +471,19 @@ class BubbleChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px; font-size: 13px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 6px; font-size: 13px;">
           ${data.strategy}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Win Rate: <span style="color: #e5e7eb; font-weight: 600;">${data.winRate.toFixed(1)}%</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Win Rate: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.winRate.toFixed(1)}%</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
           Avg Win: <span style="color: #10b981; font-weight: 600;">${this._formatCurrency(data.averageWin)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Trade Count: <span style="color: #e5e7eb; font-weight: 600;">${data.tradeCount}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Trade Count: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.tradeCount}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Net P/L: <span style="color: ${netPLColor}; font-weight: 600;">${this._formatCurrency(data.netPL)}</span>
         </div>
       `);
@@ -554,7 +561,7 @@ class BubbleChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No bubble chart data available');
       
@@ -563,7 +570,7 @@ class BubbleChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades with close dates to see win rate analysis');
     }

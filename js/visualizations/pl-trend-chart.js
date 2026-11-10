@@ -184,7 +184,7 @@ class PLTrendChart {
       .attr('x2', this.width)
       .attr('y1', d => this.yScale(d))
       .attr('y2', d => this.yScale(d))
-      .attr('stroke', '#1f2937')
+      .style('stroke', 'var(--svg-grid-line)')
       .attr('stroke-width', 1)
       .attr('stroke-dasharray', '2,2');
 
@@ -203,7 +203,7 @@ class PLTrendChart {
       .attr('x2', this.width)
       .attr('y1', this.yScale(0))
       .attr('y2', this.yScale(0))
-      .attr('stroke', '#9ca3af')
+      .style('stroke', 'var(--svg-zero-line)')
       .attr('stroke-width', 1.5);
 
     zeroLine.exit().remove();
@@ -222,11 +222,11 @@ class PLTrendChart {
     this.xAxisGroup
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style x-axis labels
     this.xAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '12px')
       .style('text-anchor', 'end')
       .attr('transform', 'rotate(-45)');
@@ -240,11 +240,11 @@ class PLTrendChart {
 
     this.yAxisGroup
       .call(yAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style y-axis labels
     this.yAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '12px');
 
     // Add axis labels
@@ -266,7 +266,7 @@ class PLTrendChart {
       .attr('x', -this.height / 2)
       .attr('y', -60)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Cumulative P/L');
@@ -277,7 +277,7 @@ class PLTrendChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 55)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Month');
@@ -333,7 +333,7 @@ class PLTrendChart {
       .attr('class', 'pl-dot')
       .attr('r', 0)
       .attr('fill', d => d.cumulativePL >= 0 ? '#10b981' : '#ef4444')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-surface)')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer');
 
@@ -369,13 +369,13 @@ class PLTrendChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 4px;">
           ${data.monthLabel}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
           Monthly P/L: <span style="color: ${monthlyPLColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Cumulative: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.cumulativePL)}</span>
         </div>
       `);
@@ -455,7 +455,7 @@ class PLTrendChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No P/L data available');
       
@@ -464,7 +464,7 @@ class PLTrendChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades to see your P/L trend');
     }

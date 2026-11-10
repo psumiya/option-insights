@@ -56,11 +56,11 @@ class WaterfallChart {
     
     const label = document.createElement('label');
     label.textContent = 'Show:';
-    label.style.cssText = 'color: #9ca3af; font-size: 12px;';
+    label.style.cssText = 'color: var(--svg-text-secondary); font-size: 12px;';
     
     const select = document.createElement('select');
     select.className = 'symbol-limit-select';
-    select.style.cssText = 'background: #1f2937; color: #e5e7eb; border: 1px solid #374151; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;';
+    select.style.cssText = 'background: var(--svg-surface); color: var(--svg-text-primary); border: 1px solid var(--svg-border); border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;';
     
     const options = [
       { value: 10, label: 'Top 10' },
@@ -270,7 +270,7 @@ class WaterfallChart {
       .selectAll('text')
       .attr('transform', 'rotate(-45)')
       .style('text-anchor', 'end')
-      .style('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .style('font-size', '11px');
 
     // Y-axis
@@ -282,12 +282,12 @@ class WaterfallChart {
       .attr('class', 'y-axis')
       .call(yAxis)
       .selectAll('text')
-      .style('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .style('font-size', '11px');
 
     // Style axis lines
     this.axesGroup.selectAll('.domain, .tick line')
-      .style('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // Y-axis label
     this.axesGroup.append('text')
@@ -296,7 +296,7 @@ class WaterfallChart {
       .attr('x', -chartHeight / 2)
       .attr('y', -60)
       .attr('text-anchor', 'middle')
-      .style('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .style('font-size', '12px')
       .style('font-weight', '500')
       .text('Cumulative P/L ($)');
@@ -309,7 +309,7 @@ class WaterfallChart {
         .attr('x2', chartWidth)
         .attr('y1', yScale(0))
         .attr('y2', yScale(0))
-        .style('stroke', '#6b7280')
+        .style('stroke', 'var(--svg-zero-line)')
         .style('stroke-width', 1)
         .style('stroke-dasharray', '4,4');
     }
@@ -335,7 +335,7 @@ class WaterfallChart {
       .attr('x2', (d, i) => xScale(this.processedData[i + 1].symbol))
       .attr('y1', d => yScale(d.end))
       .attr('y2', d => yScale(d.end))
-      .style('stroke', '#6b7280')
+      .style('stroke', 'var(--svg-zero-line)')
       .style('stroke-width', 1)
       .style('stroke-dasharray', '2,2')
       .style('opacity', 0)
@@ -405,14 +405,14 @@ class WaterfallChart {
     const formatCurrency = d3.format('$,.2f');
     
     let content = `
-      <div style="font-weight: 600; margin-bottom: 4px; color: #f3f4f6;">
+      <div style="font-weight: 600; margin-bottom: 4px; color: var(--svg-text-primary);">
         ${d.symbol}
       </div>
     `;
 
     if (d.isTotal) {
       content += `
-        <div style="color: #9ca3af;">
+        <div style="color: var(--svg-text-secondary);">
           Total P/L: <span style="color: ${d.pl >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
             ${formatCurrency(d.pl)}
           </span>
@@ -420,12 +420,12 @@ class WaterfallChart {
       `;
     } else {
       content += `
-        <div style="color: #9ca3af;">
+        <div style="color: var(--svg-text-secondary);">
           Contribution: <span style="color: ${d.pl >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
             ${formatCurrency(d.pl)}
           </span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-top: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-top: 2px;">
           Cumulative: ${formatCurrency(d.end)}
         </div>
       `;
@@ -483,7 +483,7 @@ class WaterfallChart {
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #9ca3af;
+        color: var(--svg-text-secondary);
         text-align: center;
         padding: 40px;
       ">

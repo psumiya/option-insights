@@ -250,7 +250,7 @@ class ViolinPlotChart {
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px')
       .attr('transform', 'rotate(-45)')
       .attr('text-anchor', 'end')
@@ -258,7 +258,7 @@ class ViolinPlotChart {
       .attr('dy', '0.5em');
 
     this.axesGroup.selectAll('.x-axis path, .x-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // X-axis label
     this.axesGroup.append('text')
@@ -266,7 +266,7 @@ class ViolinPlotChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 70)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Strategy');
@@ -280,11 +280,11 @@ class ViolinPlotChart {
       .attr('class', 'y-axis')
       .call(yAxis)
       .selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '11px');
 
     this.axesGroup.selectAll('.y-axis path, .y-axis line')
-      .attr('stroke', '#374151');
+      .style('stroke', 'var(--svg-axis-line)');
 
     // Y-axis label
     this.axesGroup.append('text')
@@ -293,7 +293,7 @@ class ViolinPlotChart {
       .attr('x', -this.height / 2)
       .attr('y', -60)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('P/L ($)');
@@ -306,7 +306,7 @@ class ViolinPlotChart {
         .attr('x2', this.width)
         .attr('y1', this.yScale(0))
         .attr('y2', this.yScale(0))
-        .attr('stroke', '#6b7280')
+        .style('stroke', 'var(--svg-zero-line)')
         .attr('stroke-width', 1)
         .attr('stroke-dasharray', '4,4')
         .attr('opacity', 0.6);
@@ -397,30 +397,30 @@ class ViolinPlotChart {
     // Whiskers (min to Q1, Q3 to max)
     boxPlotsEnter.append('line')
       .attr('class', 'whisker-low')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 2);
 
     boxPlotsEnter.append('line')
       .attr('class', 'whisker-high')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 2);
 
     // Whisker caps
     boxPlotsEnter.append('line')
       .attr('class', 'whisker-cap-low')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 2);
 
     boxPlotsEnter.append('line')
       .attr('class', 'whisker-cap-high')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 2);
 
     // Box (Q1 to Q3)
     boxPlotsEnter.append('rect')
       .attr('class', 'box')
-      .attr('fill', '#e5e7eb')
-      .attr('stroke', '#141b2d')
+      .style('fill', 'var(--svg-surface)')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 2)
       .attr('width', this.boxWidth)
       .attr('x', -this.boxWidth / 2);
@@ -428,7 +428,7 @@ class ViolinPlotChart {
     // Median line
     boxPlotsEnter.append('line')
       .attr('class', 'median-line')
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-text-primary)')
       .attr('stroke-width', 3)
       .attr('x1', -this.boxWidth / 2)
       .attr('x2', this.boxWidth / 2);
@@ -511,26 +511,26 @@ class ViolinPlotChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px; font-size: 13px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 6px; font-size: 13px;">
           ${data.strategy}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Median: <span style="color: #e5e7eb; font-weight: 600;">${this._formatCurrency(data.median)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Median: <span style="color: var(--svg-text-primary); font-weight: 600;">${this._formatCurrency(data.median)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Mean: <span style="color: #e5e7eb; font-weight: 600;">${this._formatCurrency(data.mean)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Mean: <span style="color: var(--svg-text-primary); font-weight: 600;">${this._formatCurrency(data.mean)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Std Dev: <span style="color: #e5e7eb; font-weight: 600;">${this._formatCurrency(data.stdDev)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Std Dev: <span style="color: var(--svg-text-primary); font-weight: 600;">${this._formatCurrency(data.stdDev)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Q1: <span style="color: #9ca3af; font-weight: 500;">${this._formatCurrency(data.q1)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Q1: <span style="color: var(--svg-text-secondary); font-weight: 500;">${this._formatCurrency(data.q1)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Q3: <span style="color: #9ca3af; font-weight: 500;">${this._formatCurrency(data.q3)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Q3: <span style="color: var(--svg-text-secondary); font-weight: 500;">${this._formatCurrency(data.q3)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
-          Range: <span style="color: #9ca3af; font-weight: 500;">${this._formatCurrency(data.min)} to ${this._formatCurrency(data.max)}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
+          Range: <span style="color: var(--svg-text-secondary); font-weight: 500;">${this._formatCurrency(data.min)} to ${this._formatCurrency(data.max)}</span>
         </div>
       `);
 
@@ -606,7 +606,7 @@ class ViolinPlotChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No violin plot data available');
       
@@ -615,7 +615,7 @@ class ViolinPlotChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades with close dates to see P/L distribution by strategy');
     }

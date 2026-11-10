@@ -57,6 +57,12 @@ class DashboardController {
     this.initializeScatterToggle();
     this.initializeSelection();
 
+    // Some charts work out colors while drawing (calendar cells, Sankey,
+    // bubble scale), so redraw from the current filters when the theme flips
+    ThemeColors.onChange(() => {
+      if (this.enrichedTrades.length > 0) this.refreshDashboard();
+    });
+
     // Research tab (Requirement 5.1)
     this.researchPanel = new ResearchPanel('research-panel');
     this.researchPanel.initialize();

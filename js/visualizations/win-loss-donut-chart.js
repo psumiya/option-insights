@@ -173,7 +173,7 @@ class WinLossDonutChart {
       .append('path')
       .attr('class', 'arc')
       .attr('fill', d => d.data.color)
-      .attr('stroke', '#141b2d')
+      .style('stroke', 'var(--svg-surface)')
       .attr('stroke-width', 2)
       .style('cursor', 'pointer')
       .on('mouseover', (event, d) => this._showTooltip(event, d))
@@ -219,7 +219,7 @@ class WinLossDonutChart {
       .append('text')
       .attr('class', 'percentage-label')
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '16px')
       .attr('font-weight', '600')
       .attr('opacity', 0);
@@ -258,7 +258,7 @@ class WinLossDonutChart {
     this.centerTextGroup.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '-0.2em')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '28px')
       .attr('font-weight', '700')
       .attr('font-family', 'JetBrains Mono, monospace')
@@ -268,7 +268,7 @@ class WinLossDonutChart {
     this.centerTextGroup.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', '1.5em')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '12px')
       .attr('font-weight', '500')
       .text('Total Trades');
@@ -284,13 +284,13 @@ class WinLossDonutChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 4px;">
           ${d.data.label}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
           Count: <span style="color: ${d.data.color}; font-weight: 600;">${d.data.count}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Percentage: <span style="color: ${d.data.color}; font-weight: 600;">${d.data.percentage.toFixed(1)}%</span>
         </div>
       `);
@@ -352,7 +352,7 @@ class WinLossDonutChart {
         .attr('x', 0)
         .attr('y', -10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No win/loss data available');
       
@@ -361,7 +361,7 @@ class WinLossDonutChart {
         .attr('x', 0)
         .attr('y', 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades to see distribution');
     }

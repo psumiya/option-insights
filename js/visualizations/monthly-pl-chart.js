@@ -85,7 +85,6 @@ class MonthlyPLChart {
     const { width, height } = this.container.getBoundingClientRect();
     if (width === 0 || height === 0) return;
 
-    const colors = ThemeColors.get();
     const m = this.margin;
     const innerW = Math.max(width - m.left - m.right, 50);
     const innerH = Math.max(height - m.top - m.bottom, 50);
@@ -119,7 +118,7 @@ class MonthlyPLChart {
       .attr('x2', m.left + innerW)
       .attr('y1', d => y(d))
       .attr('y2', d => y(d))
-      .attr('stroke', d => (d === 0 ? colors.zeroLine : colors.gridLine))
+      .style('stroke', d => (d === 0 ? 'var(--svg-zero-line)' : 'var(--svg-grid-line)'))
       .attr('stroke-width', 1)
       .attr('shape-rendering', 'crispEdges');
 
@@ -131,7 +130,7 @@ class MonthlyPLChart {
       .attr('y', d => y(d))
       .attr('dy', '0.32em')
       .attr('text-anchor', 'end')
-      .attr('fill', colors.textSecondary)
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', 11)
       .text(d => this._axisMoney(d, compactAxis));
 
@@ -144,7 +143,7 @@ class MonthlyPLChart {
       .attr('x', d => x(d.monthKey) + x.bandwidth() / 2)
       .attr('y', m.top + innerH + 20)
       .attr('text-anchor', 'middle')
-      .attr('fill', colors.textSecondary)
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', 11)
       .text((d, i) => (i % every === 0 ? this._monthTick(d.monthKey, i) : ''));
 
@@ -153,7 +152,7 @@ class MonthlyPLChart {
       .data(this.data, d => d.monthKey)
       .join('path')
       .attr('d', d => this._columnPath(barX(d), barW, zeroY, y(d.net)))
-      .attr('fill', d => (d.net >= 0 ? colors.profit : colors.loss))
+      .style('fill', d => (d.net >= 0 ? 'var(--svg-profit)' : 'var(--svg-loss)'))
       .attr('opacity', 1);
 
     // Direct labels on the best, worst and latest month only
@@ -164,7 +163,7 @@ class MonthlyPLChart {
       .attr('x', d => x(d.monthKey) + x.bandwidth() / 2)
       .attr('y', d => (d.net >= 0 ? y(d.net) - 6 : y(d.net) + 14))
       .attr('text-anchor', 'middle')
-      .attr('fill', colors.textPrimary)
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', 11)
       .attr('font-weight', 600)
       .text(d => this._compactMoney(d.net));
@@ -357,7 +356,7 @@ class MonthlyPLChart {
       .attr('x', width / 2)
       .attr('y', height / 2)
       .attr('text-anchor', 'middle')
-      .attr('fill', ThemeColors.get().textSecondary)
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', 14)
       .text('No closed trades in this range');
   }

@@ -589,7 +589,7 @@ class HeatmapCalendarChart {
       .attr('width', legendWidth)
       .attr('height', legendHeight)
       .attr('fill', `url(#${gradientId})`)
-      .attr('stroke', '#1f2937')
+      .style('stroke', 'var(--svg-grid-line)')
       .attr('stroke-width', 1);
 
     // Add legend labels
@@ -602,7 +602,7 @@ class HeatmapCalendarChart {
       .attr('y', legendY + legendHeight / 2)
       .attr('text-anchor', 'end')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '10px')
       .text(this._formatCompactCurrency(minPL));
 
@@ -611,7 +611,7 @@ class HeatmapCalendarChart {
       .attr('y', legendY + legendHeight / 2)
       .attr('text-anchor', 'start')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '10px')
       .text(this._formatCompactCurrency(maxPL));
   }
@@ -629,17 +629,17 @@ class HeatmapCalendarChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 4px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 4px;">
           ${dateStr}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
           P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
-          Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.tradeCount}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
+          Trades: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.tradeCount}</span>
         </div>
-        ${data.label ? `<div style="color: #9ca3af; font-size: 11px;">
-          Structure: <span style="color: #e5e7eb; font-weight: 600;">${data.label}</span>
+        ${data.label ? `<div style="color: var(--svg-text-secondary); font-size: 11px;">
+          Structure: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.label}</span>
         </div>` : ''}
       `);
 
@@ -730,7 +730,7 @@ class HeatmapCalendarChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No calendar data available');
 
@@ -739,7 +739,7 @@ class HeatmapCalendarChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Upload trades with close dates to see daily P/L patterns');
     }

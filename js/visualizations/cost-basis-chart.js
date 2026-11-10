@@ -193,11 +193,11 @@ class CostBasisChart {
     this.xAxisGroup
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style x-axis labels
     this.xAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '12px');
 
     // Y-axis
@@ -207,11 +207,11 @@ class CostBasisChart {
 
     this.yAxisGroup
       .call(yAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style y-axis labels
     this.yAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', '12px')
       .attr('font-family', 'monospace')
       .attr('font-weight', '600');
@@ -234,7 +234,7 @@ class CostBasisChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 40)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Cost Basis ($)');
@@ -246,7 +246,7 @@ class CostBasisChart {
       .attr('x', -this.height / 2)
       .attr('y', -85)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Symbol');
@@ -313,22 +313,22 @@ class CostBasisChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 6px;">
           ${data.symbol}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Cost Basis: <span style="color: #e5e7eb; font-weight: 600;">$${data.costBasis.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Cost Basis: <span style="color: var(--svg-text-primary); font-weight: 600;">$${data.costBasis.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Total Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.totalTrades}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Total Trades: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.totalTrades}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Debit Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.debitTrades}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Debit Trades: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.debitTrades}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
-          Open Positions: <span style="color: #e5e7eb; font-weight: 600;">${data.openPositions}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
+          Open Positions: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.openPositions}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
           Status: <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>
         </div>
       `);
@@ -395,7 +395,7 @@ class CostBasisChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No cost basis data available');
       
@@ -404,7 +404,7 @@ class CostBasisChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text('Only shows symbols with debit trades (money spent)');
     }

@@ -525,7 +525,7 @@ class SankeyDiagramChart {
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #9ca3af;
+        color: var(--svg-text-secondary);
         text-align: center;
         padding: 40px;
       ">

@@ -210,11 +210,11 @@ class PLBreakdownChart {
     this.xAxisGroup
       .attr('transform', `translate(0,${this.height})`)
       .call(xAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style x-axis labels with responsive font size
     this.xAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', isMobile ? '10px' : '12px');
 
     // Y-axis
@@ -224,11 +224,11 @@ class PLBreakdownChart {
 
     this.yAxisGroup
       .call(yAxis)
-      .call(g => g.select('.domain').attr('stroke', '#1f2937'));
+      .call(g => g.select('.domain').style('stroke', 'var(--svg-grid-line)'));
 
     // Style y-axis labels with responsive font size
     this.yAxisGroup.selectAll('text')
-      .attr('fill', '#9ca3af')
+      .style('fill', 'var(--svg-text-secondary)')
       .attr('font-size', isMobile ? '10px' : '12px');
 
     // Add axis labels
@@ -249,7 +249,7 @@ class PLBreakdownChart {
       .attr('x', this.width / 2)
       .attr('y', this.height + 40)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text('Profit/Loss ($)');
@@ -261,7 +261,7 @@ class PLBreakdownChart {
       .attr('x', -this.height / 2)
       .attr('y', -100)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#e5e7eb')
+      .style('fill', 'var(--svg-text-primary)')
       .attr('font-size', '14px')
       .attr('font-weight', '600')
       .text(this.options.dimension);
@@ -334,14 +334,14 @@ class PLBreakdownChart {
     this.tooltip
       .style('visibility', 'visible')
       .html(`
-        <div style="color: #e5e7eb; font-weight: 600; margin-bottom: 6px;">
+        <div style="color: var(--svg-text-primary); font-weight: 600; margin-bottom: 6px;">
           ${label}
         </div>
-        <div style="color: #9ca3af; font-size: 11px; margin-bottom: 2px;">
+        <div style="color: var(--svg-text-secondary); font-size: 11px; margin-bottom: 2px;">
           P/L: <span style="color: ${plColor}; font-weight: 600;">${this._formatCurrency(data.pl)}</span>
         </div>
-        <div style="color: #9ca3af; font-size: 11px;">
-          Trades: <span style="color: #e5e7eb; font-weight: 600;">${data.tradeCount}</span>
+        <div style="color: var(--svg-text-secondary); font-size: 11px;">
+          Trades: <span style="color: var(--svg-text-primary); font-weight: 600;">${data.tradeCount}</span>
         </div>
       `);
 
@@ -418,7 +418,7 @@ class PLBreakdownChart {
         .attr('x', width / 2)
         .attr('y', height / 2 - 10)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '16px')
         .text('No P/L breakdown data available');
       
@@ -427,7 +427,7 @@ class PLBreakdownChart {
         .attr('x', width / 2)
         .attr('y', height / 2 + 15)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#9ca3af')
+        .style('fill', 'var(--svg-text-secondary)')
         .attr('font-size', '12px')
         .text(`Upload trades to see P/L by ${this.options.dimension}`);
     }

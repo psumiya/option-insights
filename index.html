@@ -131,6 +131,7 @@
                     <button id="tab-report" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-report">Report</button>
                     <button id="tab-research" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-research">Research</button>
                     <button id="tab-trades" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-trades">Trades</button>
+                    <button id="tab-ask" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-ask" aria-label="Ask Claude"><span class="tab-label-long">Ask Claude</span><span class="tab-label-short" aria-hidden="true">Ask</span></button>
                 </nav>
                 <div class="toolbar-filters" role="region" aria-label="Filters">
                     <div class="filter-button-group" role="radiogroup" aria-label="Date range selection">
@@ -351,6 +352,11 @@
                     <div id="trades-table"></div>
                 </section>
             </div>
+
+            <!-- View: Ask Claude -->
+            <div id="tab-panel-ask" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-ask">
+                <div id="ask-claude"></div>
+            </div>
         </div>
     </main>
     <footer class="mt-8 pt-4 text-sm text-gray-600 text-center">
@@ -383,6 +389,8 @@
     <script src="js/research-scenarios.js"></script>
     <script src="js/research-panel.js"></script>
     <script src="js/research-outputs.js"></script>
+    <script src="js/ai-context.js"></script>
+    <script src="js/ai-panel.js"></script>
     
     <!-- Visualization Components -->
     <script src="js/visualizations/summary-metrics-panel.js"></script>

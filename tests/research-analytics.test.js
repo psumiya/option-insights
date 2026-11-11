@@ -607,6 +607,14 @@ test('holdTimeStats buckets same-day trades by hours and longer ones by days', (
   assert.strictEqual(result.excludedNoTime, 1);
 });
 
+test('marketDay uses the New York date for timed values and the written date otherwise', () => {
+  // 21:30 ET on Jan 5 is already Jan 6 in UTC and in Tokyo
+  assert.strictEqual(RA.marketDay(et(5, 21, 30)), '2026-01-05');
+  assert.strictEqual(RA.marketDay('2026-01-05'), '2026-01-05');
+  assert.strictEqual(RA.marketDay(new Date(2026, 0, 5)), '2026-01-05');
+  assert.strictEqual(RA.marketDay(null), null);
+});
+
 test('time statistics are pure', () => {
   const trades = [timed('Iron Condor', et(5, 9, 45), et(5, 15, 55))];
   const before = JSON.stringify(trades);

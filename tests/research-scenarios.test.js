@@ -24,8 +24,8 @@ const { RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS, RESEARC
 
 // ===== Preset configuration (Requirements 6.2, 6.6) =====
 
-test('the seeded preset list covers all twelve cuts', () => {
-  assert.strictEqual(RESEARCH_PRESETS.length, 12);
+test('the seeded preset list covers all thirteen cuts', () => {
+  assert.strictEqual(RESEARCH_PRESETS.length, 13);
 });
 
 test('no preset hardcodes a symbol', () => {
@@ -93,7 +93,7 @@ test('every preset names only canonical structures', () => {
 test('the cuts needing every strategy in scope use a null structure filter', () => {
   // DTE buckets, streak check and loss concentration are asked of the whole
   // book, not just the three structures the tab otherwise focuses on
-  ['account_dte_buckets', 'account_edge_check', 'account_loss_concentration', 'top_dte_buckets',
+  ['account_dte_buckets', 'account_edge_check', 'account_direction_split', 'account_loss_concentration', 'top_dte_buckets',
     'top_runs_test', 'top_loss_concentration'].forEach(id => {
     const preset = RESEARCH_PRESETS.find(entry => entry.id === id);
     assert.strictEqual(preset.filter.structures, null, id);

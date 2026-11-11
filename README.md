@@ -89,6 +89,9 @@ the pattern survives a small-sample check.
 - **Calendar** - Net P/L per trading date, cells labelled by structure
 - **By days to expiration** - Win rate and expectancy split 0DTE / 1-7DTE / >7DTE
 - **Condor vs single-sided** - Iron condors against one-sided credit spreads
+- **Direction and credit vs debit** - Bullish, bearish and neutral trades, sold
+  against bought premium, and the two crossed for directional trades. Read from
+  the strategy name; trades it cannot place are listed rather than guessed
 - **By spread width** - Performance and average credit collected per width bucket
   ($5-wide, $10-wide, $20-wide, other)
 - **Uniform-width counterfactual** - What the same trades would have netted at one

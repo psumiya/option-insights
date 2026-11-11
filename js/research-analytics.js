@@ -40,6 +40,36 @@ const ResearchAnalytics = (function () {
     nonzero: 'DTE > 0'
   };
 
+  // Market view and premium side of each strategy label the adapters produce.
+  // A null side means the label alone cannot say: a straddle or butterfly can
+  // be bought or sold, and stock has no premium.
+  const STRATEGY_PROFILE = {
+    'Long Call': { direction: 'bullish', premium: 'debit' },
+    'Bull Call Spread': { direction: 'bullish', premium: 'debit' },
+    'Short Put': { direction: 'bullish', premium: 'credit' },
+    'Cash Secured Put': { direction: 'bullish', premium: 'credit' },
+    'Bull Put Spread': { direction: 'bullish', premium: 'credit' },
+    'Put Credit Spread': { direction: 'bullish', premium: 'credit' },
+    'Covered Call': { direction: 'bullish', premium: 'credit' },
+    'Long Stock': { direction: 'bullish', premium: null },
+    'Long Future': { direction: 'bullish', premium: null },
+    'Long Put': { direction: 'bearish', premium: 'debit' },
+    'Bear Put Spread': { direction: 'bearish', premium: 'debit' },
+    'Short Call': { direction: 'bearish', premium: 'credit' },
+    'Bear Call Spread': { direction: 'bearish', premium: 'credit' },
+    'Call Credit Spread': { direction: 'bearish', premium: 'credit' },
+    'Short Stock': { direction: 'bearish', premium: null },
+    'Short Future': { direction: 'bearish', premium: null },
+    'Iron Condor': { direction: 'neutral', premium: 'credit' },
+    'Butterfly': { direction: 'neutral', premium: null },
+    'Butterfly Spread': { direction: 'neutral', premium: null },
+    'Straddle': { direction: 'neutral', premium: null },
+    'Strangle': { direction: 'neutral', premium: null }
+  };
+
+  const DIRECTIONS = ['bullish', 'bearish', 'neutral'];
+  const PREMIUMS = ['credit', 'debit'];
+
   // Why a trade the active filter would otherwise have admitted was dropped
   const EXCLUSION_LABELS = {
     unmappedStructure: 'strategy out of scope',
@@ -344,6 +374,71 @@ const ResearchAnalytics = (function () {
       });
 
     return result;
+  }
+
+  /**
+   * Market view and premium side of a strategy label
+   * @param {string} displayLabel - Strategy label as shown in the UI
+   * @returns {Object} - { direction, premium }, each null when the label cannot say
+   */
+  function strategyProfile(displayLabel) {
+    const profile = STRATEGY_PROFILE[String(displayLabel || '').trim()];
+    return profile ? { ...profile } : { direction: null, premium: null };
+  }
+
+  /**
+   * Win/loss summary split by market view, by premium side, and by both for
+   * the directional trades
+   * Every group is always present: a side never traded is a finding, not
+   * something to hide. Trades whose label cannot place them are counted, by
+   * label, rather than guessed.
+   * @param {Array} trades - Closed trades
+   * @returns {Object} - { byDirection, byPremium, byDirectionAndPremium,
+   *   unclassifiedDirection, unclassifiedPremium }
+   *   byDirectionAndPremium keys are 'bullish-credit', 'bullish-debit', and so on
+   *   unclassified*: [{ label, n }] most frequent first
+   */
+  function directionSplit(trades) {
+    const profiled = trades.map(trade => ({ trade, profile: strategyProfile(trade.Strategy) }));
+    const statsWhere = test => winLossStats(profiled.filter(test).map(entry => entry.trade));
+
+    const unclassified = side => {
+      const counts = new Map();
+      profiled.forEach(({ trade, profile }) => {
+        if (profile[side]) return;
+        const label = trade.Strategy || 'Unknown';
+        counts.set(label, (counts.get(label) || 0) + 1);
+      });
+      return [...counts.entries()]
+        .sort((a, b) => (b[1] - a[1]) || (a[0] < b[0] ? -1 : 1))
+        .map(([label, n]) => ({ label, n }));
+    };
+
+    const byDirection = {};
+    DIRECTIONS.forEach(direction => {
+      byDirection[direction] = statsWhere(entry => entry.profile.direction === direction);
+    });
+
+    const byPremium = {};
+    PREMIUMS.forEach(premium => {
+      byPremium[premium] = statsWhere(entry => entry.profile.premium === premium);
+    });
+
+    const byDirectionAndPremium = {};
+    ['bullish', 'bearish'].forEach(direction => {
+      PREMIUMS.forEach(premium => {
+        byDirectionAndPremium[`${direction}-${premium}`] = statsWhere(entry =>
+          entry.profile.direction === direction && entry.profile.premium === premium);
+      });
+    });
+
+    return {
+      byDirection,
+      byPremium,
+      byDirectionAndPremium,
+      unclassifiedDirection: unclassified('direction'),
+      unclassifiedPremium: unclassified('premium')
+    };
   }
 
   // ===== width analyses =====
@@ -720,6 +815,8 @@ const ResearchAnalytics = (function () {
     winLossStats,
     dteBucketStats,
     condorVsSingleSide,
+    strategyProfile,
+    directionSplit,
     widthBreakdown,
     commonWidths,
     widthCounterfactual,

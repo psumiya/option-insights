@@ -40,7 +40,13 @@ class AskClaudePanel {
       : 'Load trades, or change the filters above, to have something to ask about.';
     this.buttons.forEach(button => { button.disabled = !ready; });
     this._setStatus('');
-    if (this.preview.open) this._renderPreview();
+    if (!ready) {
+      this.preview.open = false;
+      this.previewText.textContent = '';
+      this.preview.querySelector('summary').textContent = 'See exactly what will be copied';
+    } else if (this.preview.open) {
+      this._renderPreview();
+    }
   }
 
   _text() {

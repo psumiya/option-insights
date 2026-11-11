@@ -28,7 +28,9 @@ class TradesTable {
       { key: 'credit', label: 'Credit', numeric: true, value: t => t.Credit },
       { key: 'debit', label: 'Debit', numeric: true, value: t => t.Debit },
       { key: 'fees', label: 'Fees', numeric: true, value: t => (Number(t.Commissions) || 0) + (Number(t.Fees) || 0) },
-      { key: 'pl', label: 'Realized P/L', numeric: true, value: t => TradesTable.realized(t) }
+      { key: 'pl', label: 'Realized P/L', numeric: true, value: t => TradesTable.realized(t) },
+      { key: 'maxloss', label: 'Max loss', numeric: true, value: t => t.MaxLoss },
+      { key: 'onrisk', label: 'P/L on risk', numeric: true, value: t => TradesTable.returnOnRisk(t) }
     ];
 
     this._build();
@@ -43,6 +45,16 @@ class TradesTable {
     const value = Number(trade.RealizedPL);
     if (trade.Result === 'Open') return value ? value : null;
     return Number.isFinite(value) ? value : Number(trade.ProfitLoss) || 0;
+  }
+
+  /**
+   * Closed P/L as a percentage of what the trade risked at open
+   * Null for open positions and where max loss is unknown or zero.
+   */
+  static returnOnRisk(trade) {
+    const risk = Number(trade.MaxLoss);
+    if (trade.Result === 'Open' || !(risk > 0)) return null;
+    return Math.round(TradesTable.realized(trade) / risk * 1000) / 10;
   }
 
   static time(value) {
@@ -250,6 +262,11 @@ class TradesTable {
         td.title = 'Realized from legs already closed; the position is still open';
       }
     }
+
+    cell(TradesTable.money(trade.MaxLoss), 'num');
+    const onRisk = TradesTable.returnOnRisk(trade);
+    cell(onRisk === null ? '' : `${onRisk > 0 ? '+' : ''}${onRisk.toFixed(1)}%`,
+      `num ${onRisk === null ? '' : onRisk >= 0 ? 'text-profit' : 'text-loss'}`);
     return tr;
   }
 }

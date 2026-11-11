@@ -900,13 +900,23 @@ function aggregateStrategyLegs(legs) {
   // which also picks up sell-to-close proceeds and so overstates what the
   // structure was originally sold for.
   let openCredit = 0;
+  // Net cash at open: positive for a credit taken in, negative for a debit paid
+  let openPremium = 0;
+  let openQuantity = 0;
 
   openingLegs.forEach(leg => {
     const amount = parseAmount(leg.Value || leg.Total || '0');
     if (amount > 0) {
       openCredit += amount;
     }
+    openPremium += amount;
+    openQuantity += Math.abs(parseInt(leg.Quantity) || 0);
   });
+
+  // Contracts per leg: fills of one leg can arrive as several rows, so total
+  // opening quantity is spread across the distinct contracts opened
+  const openLegCount = new Set(openingLegs.map(leg => leg.Symbol)).size;
+  const openContracts = openLegCount ? openQuantity / openLegCount : null;
 
   // Sum commissions and fees across all legs. TastyTrade reports both as
   // negative values (money leaving the account), so negate to store them as
@@ -972,6 +982,8 @@ function aggregateStrategyLegs(legs) {
     Debit: totalDebit,
     Credit: totalCredit,
     OpenCredit: Math.round(openCredit * 100) / 100,
+    OpenPremium: openingLegs.length ? Math.round(openPremium * 100) / 100 : null,
+    OpenContracts: openContracts,
     Commissions: totalCommissions,
     Fees: totalFees,
     Width: width,

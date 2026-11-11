@@ -476,6 +476,77 @@ test('runsTest reads the sequence chronologically, not in array order', () => {
   assert.deepStrictEqual(RA.runsTest(shuffled), RA.runsTest(fixture()));
 });
 
+// ===== edgeCheck =====
+
+function steady(count, base, swing, strategy = 'Iron Condor') {
+  return Array.from({ length: count }, (_, i) =>
+    trade(1 + i, strategy, 0, 20, base + (i % 2 ? swing : -swing), 200));
+}
+
+test('edgeCheck over the whole fixture cannot separate the book from zero', () => {
+  // values sum to -750 over 12 trades → mean -62.5
+  // sample sd 282.24, standard error 81.47, t = -0.77
+  const { overall } = RA.edgeCheck(fixture());
+
+  assert.strictEqual(overall.n, 12);
+  assert.strictEqual(overall.expectancy, -62.5);
+  assert.strictEqual(overall.t, -0.77);
+  assert.ok(overall.ciLow < overall.expectancy && overall.expectancy < overall.ciHigh);
+  assert.strictEqual(overall.verdict, 'unclear');
+  assert.strictEqual(overall.note, null);
+});
+
+test('edgeCheck lists strategies most-traded first and withholds a verdict under ten', () => {
+  const result = RA.edgeCheck(fixture());
+
+  assert.deepStrictEqual(
+    result.byStrategy.map(row => [row.label, row.n]),
+    [['Iron Condor', 5], ['Bull Put Spread', 4], ['Bear Call Spread', 2], ['Short Put', 1]]
+  );
+  result.byStrategy.forEach(row => {
+    assert.strictEqual(row.verdict, null);
+    assert.strictEqual(row.ciLow, null);
+    assert.strictEqual(row.t, null);
+    assert.match(row.note, /too few/);
+  });
+  assert.strictEqual(result.byStrategy[0].expectancy, -10);
+  assert.strictEqual(result.minTrades, 10);
+});
+
+test('edgeCheck calls a consistent winner an edge and a consistent loser losing', () => {
+  const winning = RA.edgeCheck(steady(30, 100, 20)).overall;
+  assert.strictEqual(winning.verdict, 'positive');
+  assert.ok(winning.ciLow > 0);
+  assert.ok(winning.t > 2);
+
+  const losing = RA.edgeCheck(steady(30, -100, 20)).overall;
+  assert.strictEqual(losing.verdict, 'negative');
+  assert.ok(losing.ciHigh < 0);
+});
+
+test('edgeCheck handles identical P/L without dividing by zero', () => {
+  const { overall } = RA.edgeCheck(steady(12, 50, 0));
+
+  assert.strictEqual(overall.t, null);
+  assert.strictEqual(overall.ciLow, 50);
+  assert.strictEqual(overall.ciHigh, 50);
+  assert.strictEqual(overall.verdict, 'positive');
+});
+
+test('edgeCheck declines an empty set', () => {
+  const result = RA.edgeCheck([]);
+
+  assert.strictEqual(result.overall.n, 0);
+  assert.strictEqual(result.overall.expectancy, null);
+  assert.strictEqual(result.overall.verdict, null);
+  assert.deepStrictEqual(result.byStrategy, []);
+});
+
+test('edgeCheck does not depend on the order trades arrive in', () => {
+  const trades = steady(15, 40, 120).concat(fixture());
+  assert.deepStrictEqual(RA.edgeCheck(trades.slice().reverse()), RA.edgeCheck(trades));
+});
+
 // ===== lossConcentration (Requirements 12.4, 12.5) =====
 
 test('lossConcentration on a set with more losses than the top-N', () => {
@@ -595,6 +666,7 @@ test('every statistic returns the same result on a repeated call', () => {
     () => RA.widthCounterfactual(trades, [10, 20]),
     () => RA.runsTest(trades),
     () => RA.lossConcentration(trades, [3, 5]),
+    () => RA.edgeCheck(trades),
     () => RA.calendarSeries(trades),
     () => RA.barSeries(trades)
   ];
@@ -613,6 +685,7 @@ test('no statistic mutates or reorders its input', () => {
   RA.widthCounterfactual(trades, [10, 20]);
   RA.runsTest(trades);
   RA.lossConcentration(trades, [3, 5]);
+  RA.edgeCheck(trades);
   RA.calendarSeries(trades);
   RA.barSeries(trades);
 

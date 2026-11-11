@@ -35,6 +35,12 @@ const RESEARCH_PRESETS = [
     focus: 'dte-buckets'
   },
   {
+    id: 'account_edge_check',
+    title: 'Whole account edge check',
+    filter: { underlying: null, dteCut: 'all', structures: null },
+    focus: 'edge-check'
+  },
+  {
     id: 'account_loss_concentration',
     title: 'Whole account loss concentration',
     filter: { underlying: null, dteCut: 'all', structures: null },
@@ -108,6 +114,7 @@ const RESEARCH_SECTIONS = [
   { id: 'structure-split', title: 'Condor vs single-sided', defaultExpanded: false },
   { id: 'width-breakdown', title: 'By spread width', defaultExpanded: false },
   { id: 'width-counterfactual', title: 'Uniform-width counterfactual', defaultExpanded: false },
+  { id: 'edge-check', title: 'Edge check', defaultExpanded: false },
   { id: 'runs-test', title: 'Streak check', defaultExpanded: false },
   { id: 'loss-concentration', title: 'Loss concentration', defaultExpanded: false }
 ];

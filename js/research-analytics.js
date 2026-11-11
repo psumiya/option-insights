@@ -3,7 +3,7 @@
  * Pure, deterministic statistics over enriched trade records for the Research
  * tab. Every function takes an already-filtered trade array plus explicit
  * parameters and returns the same result for the same input: no DOM access, no
- * randomness, no wall-clock reads, no network calls, no mutation of inputs.
+ * unseeded randomness, no wall-clock reads, no network calls, no mutation of inputs.
  *
  * Ported from the externally developed analysis.py. Where the Python operated
  * on a `cash` column net of commissions and fees, this reads ProfitLoss, which
@@ -525,6 +525,122 @@ const ResearchAnalytics = (function () {
     };
   }
 
+  // Smallest group the edge check will judge; matches the runs test floor
+  const EDGE_MIN_TRADES = 10;
+  const BOOTSTRAP_RESAMPLES = 2000;
+  const BOOTSTRAP_SEED = 0x5eed;
+
+  /**
+   * Mulberry32. Seeded so the bootstrap, and every statistic built on it,
+   * returns the same result for the same trades.
+   */
+  function seededRandom(seed) {
+    let state = seed >>> 0;
+    return function () {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function bootstrapMeanInterval(values) {
+    const random = seededRandom(BOOTSTRAP_SEED);
+    const n = values.length;
+    const means = new Array(BOOTSTRAP_RESAMPLES);
+
+    for (let b = 0; b < BOOTSTRAP_RESAMPLES; b++) {
+      let total = 0;
+      for (let i = 0; i < n; i++) {
+        total += values[Math.floor(random() * n)];
+      }
+      means[b] = total / n;
+    }
+
+    means.sort((a, b) => a - b);
+    return {
+      low: means[Math.floor(0.025 * (BOOTSTRAP_RESAMPLES - 1))],
+      high: means[Math.ceil(0.975 * (BOOTSTRAP_RESAMPLES - 1))]
+    };
+  }
+
+  /**
+   * Whether one group's average P/L per trade is distinguishable from zero
+   * @param {string} label - Row label
+   * @param {Array} trades - Closed trades in the group
+   * @returns {Object} - { label, n, expectancy, t, ciLow, ciHigh, verdict, note }
+   */
+  function edgeRow(label, trades) {
+    // Sorted by value so the seeded resample, and so the interval, cannot
+    // depend on the order trades arrive in, including ties on entry time
+    const values = trades.map(pl).sort((a, b) => a - b);
+    const n = values.length;
+    const expectancy = n ? round(mean(values), 2) : null;
+
+    if (n < EDGE_MIN_TRADES) {
+      return {
+        label: label,
+        n: n,
+        expectancy: expectancy,
+        t: null,
+        ciLow: null,
+        ciHigh: null,
+        verdict: null,
+        note: 'too few trades to judge'
+      };
+    }
+
+    const average = mean(values);
+    const variance = sum(values.map(value => (value - average) * (value - average))) / (n - 1);
+    const standardError = Math.sqrt(variance / n);
+    const interval = bootstrapMeanInterval(values);
+
+    let verdict = 'unclear';
+    if (interval.low > 0) verdict = 'positive';
+    else if (interval.high < 0) verdict = 'negative';
+
+    return {
+      label: label,
+      n: n,
+      expectancy: expectancy,
+      t: standardError > 0 ? round(average / standardError, 2) : null,
+      ciLow: round(interval.low, 2),
+      ciHigh: round(interval.high, 2),
+      verdict: verdict,
+      note: null
+    };
+  }
+
+  /**
+   * Edge or luck: for the whole cut and each strategy in it, whether the
+   * average P/L per trade clears zero by more than resampling noise
+   * The interval is a seeded percentile bootstrap of the mean, which needs no
+   * normality assumption and so suits the lopsided P/L of short premium. The
+   * t-statistic is reported beside it as the familiar yardstick.
+   * Strategy rows run most-traded first, then alphabetically.
+   * @param {Array} trades - Closed trades
+   * @returns {Object} - { overall, byStrategy, minTrades }
+   */
+  function edgeCheck(trades) {
+    const groups = new Map();
+    trades.forEach(trade => {
+      const label = trade.Strategy || 'Unknown';
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(trade);
+    });
+
+    const byStrategy = [...groups.entries()]
+      .sort((a, b) => (b[1].length - a[1].length) || (a[0] < b[0] ? -1 : 1))
+      .map(([label, group]) => edgeRow(label, group));
+
+    return {
+      overall: edgeRow('All trades in this cut', trades),
+      byStrategy: byStrategy,
+      minTrades: EDGE_MIN_TRADES
+    };
+  }
+
   // ===== chart shaping =====
 
   /**
@@ -609,6 +725,7 @@ const ResearchAnalytics = (function () {
     widthCounterfactual,
     runsTest,
     lossConcentration,
+    edgeCheck,
     calendarSeries,
     barSeries
   };

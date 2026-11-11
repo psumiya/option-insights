@@ -61,6 +61,7 @@ const ResearchOutputs = (function () {
     if (kind === 'currency') return currency(value);
     if (kind === 'signedCurrency') return signedCurrency(value);
     if (kind === 'percent') return percent(value);
+    if (kind === 'text') return value === null || value === undefined ? '—' : String(value);
     return integer(value);
   }
 
@@ -382,6 +383,67 @@ const ResearchOutputs = (function () {
     });
   }
 
+  const EDGE_VERDICTS = {
+    positive: 'Edge',
+    negative: 'Losing',
+    unclear: 'Can’t tell yet'
+  };
+
+  function edgeStats(row) {
+    return {
+      n: row.n,
+      expectancy: row.expectancy,
+      t: row.t === null ? null : row.t.toFixed(2),
+      range: row.ciLow === null ? null : `${currency(row.ciLow)} to ${currency(row.ciHigh)}`,
+      verdict: row.verdict ? EDGE_VERDICTS[row.verdict] : 'Too few trades'
+    };
+  }
+
+  function renderEdgeCheck(container, context) {
+    const result = ResearchAnalytics.edgeCheck(context.trades);
+
+    if (!result.overall.n) {
+      appendEmpty(container, 'No closed trades in this cut.');
+      return;
+    }
+
+    const lead = document.createElement('p');
+    lead.className = 'research-output-lead';
+    lead.textContent = 'Is the average P/L per trade above zero by more than chance would '
+      + 'produce, or could this many trades have landed here by luck?';
+    container.appendChild(lead);
+
+    // Strategy labels can come straight from a generic CSV, and the table is built as HTML
+    const escape = text => String(text).replace(/[&<>"']/g, ch => `&#${ch.charCodeAt(0)};`);
+    const rows = [{ label: result.overall.label, stats: edgeStats(result.overall) }];
+    if (result.byStrategy.length > 1) {
+      result.byStrategy.forEach(row => rows.push({ label: escape(row.label), stats: edgeStats(row) }));
+    }
+
+    renderStatTable(container, {
+      rowLabel: 'Group',
+      rows: rows,
+      columns: [
+        { key: 'n', label: 'Trades', format: 'int' },
+        { key: 'expectancy', label: 'Avg P/L per trade', format: 'currency' },
+        { key: 'range', label: 'Likely range of the average', format: 'text' },
+        { key: 't', label: 't', format: 'text' },
+        { key: 'verdict', label: 'Verdict', format: 'text' }
+      ]
+    });
+
+    appendNote(container,
+      'The likely range resamples these trades 2,000 times and keeps the middle 95% of the averages. '
+      + 'Entirely above zero reads as an edge, entirely below as a losing pattern, and a range that '
+      + 'straddles zero means this sample cannot separate skill from luck. t is the average over its '
+      + 'standard error, where about 2 or more is the usual bar. '
+      + `Groups under ${result.minTrades} closed trades get no verdict.`);
+
+    appendNote(container,
+      'Both assume each trade is independent of the others. Same-day trades on one underlying '
+      + 'share a market move, so treat a narrow edge on clustered trades with caution.');
+  }
+
   /**
    * Attach every renderer to a panel
    * @param {ResearchPanel} panel - The panel to register against
@@ -410,6 +472,7 @@ const ResearchOutputs = (function () {
     panel.registerRenderer('structure-split', renderStructureSplit);
     panel.registerRenderer('width-breakdown', renderWidthBreakdown);
     panel.registerRenderer('width-counterfactual', renderWidthCounterfactual);
+    panel.registerRenderer('edge-check', renderEdgeCheck);
     panel.registerRenderer('runs-test', renderRunsTest);
     panel.registerRenderer('loss-concentration', renderLossConcentration);
   }

@@ -93,6 +93,9 @@ the pattern survives a small-sample check.
   ($5-wide, $10-wide, $20-wide, other)
 - **Uniform-width counterfactual** - What the same trades would have netted at one
   spread width, against what they actually netted
+- **Edge check** - Whether the average P/L per trade, for the cut and each strategy
+  in it, clears zero by more than luck would produce (bootstrap range and t-statistic,
+  no verdict under 10 trades)
 - **Streak check** - Whether wins and losses cluster more than chance predicts
 - **Loss concentration** - Share of total losses carried by the largest few
 

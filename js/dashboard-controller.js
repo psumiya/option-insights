@@ -211,13 +211,7 @@ class DashboardController {
 
     // Symbol and strategy picks from clicking the charts
     this.pruneSelection();
-    const { symbols, strategies } = this.selection;
-    if (symbols.length > 0) {
-      filteredTrades = filteredTrades.filter(trade => symbols.includes(trade.Symbol));
-    }
-    if (strategies.length > 0) {
-      filteredTrades = filteredTrades.filter(trade => strategies.includes(trade.Strategy));
-    }
+    filteredTrades = DashboardController.applySelection(filteredTrades, this.selection);
     this.renderSelectionChips();
     this.syncFilterHash(filters);
 
@@ -329,10 +323,58 @@ class DashboardController {
    * narrows the whole report to it. Picks live in the URL hash, not in
    * localStorage, so a new upload never opens pre-filtered by surprise.
    */
+  static emptySelection() {
+    return { symbols: [], strategies: [], notSymbols: [], notStrategies: [] };
+  }
+
+  /**
+   * Narrow trades to the chip selection
+   * Picks within a dimension widen (any of them); dimensions narrow together;
+   * an excluded value is dropped whatever else is picked.
+   * @param {Array} trades - Trades to narrow
+   * @param {Object} selection - { symbols, strategies, notSymbols, notStrategies }
+   * @returns {Array} - Trades that pass every chip
+   */
+  static applySelection(trades, selection) {
+    const { symbols, strategies, notSymbols, notStrategies } = {
+      ...DashboardController.emptySelection(),
+      ...selection
+    };
+    return trades.filter(trade =>
+      (!symbols.length || symbols.includes(trade.Symbol))
+      && (!strategies.length || strategies.includes(trade.Strategy))
+      && !notSymbols.includes(trade.Symbol)
+      && !notStrategies.includes(trade.Strategy));
+  }
+
+  static selectionFromParams(params) {
+    const list = key => (params.get(key) || '').split(',').map(v => v.trim()).filter(Boolean);
+    return {
+      symbols: list('symbol'),
+      strategies: list('strategy'),
+      notSymbols: list('not-symbol'),
+      notStrategies: list('not-strategy')
+    };
+  }
+
+  static selectionToParams(selection, params) {
+    [['symbols', 'symbol'], ['strategies', 'strategy'],
+      ['notSymbols', 'not-symbol'], ['notStrategies', 'not-strategy']].forEach(([key, param]) => {
+      if (selection[key].length) params.set(param, selection[key].join(','));
+    });
+    return params;
+  }
+
+  // The include and exclude lists for a chip dimension
+  static selectionKeys(dimension) {
+    return dimension === 'symbol'
+      ? { include: 'symbols', exclude: 'notSymbols' }
+      : { include: 'strategies', exclude: 'notStrategies' };
+  }
+
   initializeSelection() {
     const { params } = HashState.read();
-    const list = key => (params.get(key) || '').split(',').map(v => v.trim()).filter(Boolean);
-    this.selection = { symbols: list('symbol'), strategies: list('strategy') };
+    this.selection = DashboardController.selectionFromParams(params);
 
     // Date range and status from a shared link win over the stored ones
     const range = params.get('range');
@@ -355,37 +397,56 @@ class DashboardController {
         this.toggleSelection(cell.dataset.select, cell.dataset.value);
         return;
       }
+      const flip = event.target.closest('[data-chip-flip]');
+      if (flip) {
+        this.flipSelection(flip.dataset.chipFlip, flip.dataset.value);
+        return;
+      }
       const chip = event.target.closest('[data-chip]');
       if (chip) {
         if (chip.dataset.chip === 'all') {
-          this.selection = { symbols: [], strategies: [] };
+          this.selection = DashboardController.emptySelection();
         } else {
-          const key = chip.dataset.chip === 'symbol' ? 'symbols' : 'strategies';
-          this.selection[key] = this.selection[key].filter(v => v !== chip.dataset.value);
+          const keys = DashboardController.selectionKeys(chip.dataset.chip);
+          [keys.include, keys.exclude].forEach(key => {
+            this.selection[key] = this.selection[key].filter(v => v !== chip.dataset.value);
+          });
         }
         this.refreshDashboard();
       }
     });
 
     window.addEventListener('hashchange', () => {
-      const next = HashState.read().params;
-      const same = key => (next.get(key) || '') === this.selection[`${key === 'symbol' ? 'symbols' : 'strategies'}`].join(',');
-      if (same('symbol') && same('strategy')) return;
-      this.selection = {
-        symbols: (next.get('symbol') || '').split(',').filter(Boolean),
-        strategies: (next.get('strategy') || '').split(',').filter(Boolean)
-      };
+      const next = DashboardController.selectionFromParams(HashState.read().params);
+      const unchanged = Object.keys(next)
+        .every(key => next[key].join(',') === this.selection[key].join(','));
+      if (unchanged) return;
+      this.selection = next;
       this.refreshDashboard();
     });
   }
 
+  /** A chart or table click picks a value, or clears it if it is already a chip. */
   toggleSelection(dimension, value) {
     if (!value) return;
-    const key = dimension === 'symbol' ? 'symbols' : 'strategies';
-    const list = this.selection[key];
-    this.selection[key] = list.includes(value)
-      ? list.filter(v => v !== value)
-      : [...list, value];
+    const { include, exclude } = DashboardController.selectionKeys(dimension);
+    if (this.selection[exclude].includes(value)) {
+      this.selection[exclude] = this.selection[exclude].filter(v => v !== value);
+    } else {
+      const list = this.selection[include];
+      this.selection[include] = list.includes(value)
+        ? list.filter(v => v !== value)
+        : [...list, value];
+    }
+    this.refreshDashboard();
+  }
+
+  /** Turn a chip from "only this" into "without this", or back. */
+  flipSelection(dimension, value) {
+    const { include, exclude } = DashboardController.selectionKeys(dimension);
+    const [from, to] = this.selection[include].includes(value) ? [include, exclude] : [exclude, include];
+    this.selection[from] = this.selection[from].filter(v => v !== value);
+    if (!this.selection[to].includes(value)) this.selection[to] = [...this.selection[to], value];
     this.refreshDashboard();
   }
 
@@ -393,8 +454,12 @@ class DashboardController {
   pruneSelection() {
     const symbols = new Set(this.enrichedTrades.map(trade => trade.Symbol));
     const strategies = new Set(this.enrichedTrades.map(trade => trade.Strategy));
-    this.selection.symbols = this.selection.symbols.filter(v => symbols.has(v));
-    this.selection.strategies = this.selection.strategies.filter(v => strategies.has(v));
+    ['symbols', 'notSymbols'].forEach(key => {
+      this.selection[key] = this.selection[key].filter(v => symbols.has(v));
+    });
+    ['strategies', 'notStrategies'].forEach(key => {
+      this.selection[key] = this.selection[key].filter(v => strategies.has(v));
+    });
   }
 
   renderSelectionChips() {
@@ -402,27 +467,41 @@ class DashboardController {
     if (!host) return;
     host.replaceChildren();
 
+    const { symbols, strategies, notSymbols, notStrategies } = this.selection;
     const chips = [
-      ...this.selection.symbols.map(value => ['symbol', 'Symbol', value]),
-      ...this.selection.strategies.map(value => ['strategy', 'Strategy', value])
+      ...symbols.map(value => ['symbol', 'Symbol', value, false]),
+      ...notSymbols.map(value => ['symbol', 'Symbol', value, true]),
+      ...strategies.map(value => ['strategy', 'Strategy', value, false]),
+      ...notStrategies.map(value => ['strategy', 'Strategy', value, true])
     ];
     host.classList.toggle('hidden', chips.length === 0);
 
-    chips.forEach(([dimension, label, value]) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'filter-chip';
-      chip.dataset.chip = dimension;
-      chip.dataset.value = value;
-      chip.setAttribute('aria-label', `Remove ${label} filter ${value}`);
+    chips.forEach(([dimension, label, value, excluded]) => {
+      const chip = document.createElement('span');
+      chip.className = excluded ? 'filter-chip filter-chip-excluded' : 'filter-chip';
+
+      const flip = document.createElement('button');
+      flip.type = 'button';
+      flip.className = 'filter-chip-flip';
+      flip.dataset.chipFlip = dimension;
+      flip.dataset.value = value;
+      flip.title = excluded ? `Show only ${value} instead` : `Show everything except ${value} instead`;
+      flip.setAttribute('aria-label',
+        `${excluded ? 'Excluding' : 'Only'} ${label.toLowerCase()} ${value}. ${flip.title}`);
       const name = document.createElement('span');
       name.className = 'filter-chip-key';
-      name.textContent = `${label}:`;
-      const x = document.createElement('span');
+      name.textContent = excluded ? `Not ${label.toLowerCase()}:` : `${label}:`;
+      flip.append(name, ` ${value}`);
+
+      const x = document.createElement('button');
+      x.type = 'button';
       x.className = 'filter-chip-x';
-      x.setAttribute('aria-hidden', 'true');
+      x.dataset.chip = dimension;
+      x.dataset.value = value;
+      x.setAttribute('aria-label', `Remove ${label} filter ${value}`);
       x.textContent = '×';
-      chip.append(name, ` ${value} `, x);
+
+      chip.append(flip, x);
       host.appendChild(chip);
     });
 
@@ -437,9 +516,7 @@ class DashboardController {
   }
 
   syncFilterHash(filters) {
-    const params = new URLSearchParams();
-    if (this.selection.symbols.length) params.set('symbol', this.selection.symbols.join(','));
-    if (this.selection.strategies.length) params.set('strategy', this.selection.strategies.join(','));
+    const params = DashboardController.selectionToParams(this.selection, new URLSearchParams());
     const range = filters.dateRange && filters.dateRange.type;
     if (range && range !== 'alltime') params.set('range', range);
     if (filters.positionStatus && filters.positionStatus !== 'all') params.set('status', filters.positionStatus);
@@ -477,8 +554,9 @@ class DashboardController {
       });
 
       button.addEventListener('click', () => {
-        const key = dimension === 'symbol' ? 'symbols' : 'strategies';
-        this.selection[key] = [...values];
+        const { include, exclude } = DashboardController.selectionKeys(dimension);
+        this.selection[include] = [...values];
+        this.selection[exclude] = this.selection[exclude].filter(v => !values.includes(v));
         this.refreshDashboard();
       });
 

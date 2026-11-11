@@ -34,8 +34,9 @@ See [BROKER_SUPPORT.md](docs/BROKER_SUPPORT.md) for detailed format specificatio
 
 ## Layout
 
-The app has three views: **Report**, **Research** and **Trades**. The date range and
-position status filters sit in a bar under them and apply to all three.
+The app has four views: **Report**, **Research**, **Trades** and **Ask Claude**. The
+date range and position status filters sit in a bar under them and apply to all but
+Research, which always starts from the whole account.
 
 ### Report
 
@@ -88,6 +89,21 @@ is realized P/L as a share of it, so sorting that column ranks trades by return 
 the risk taken. Both need the opening premium, which only TastyTrade exports carry,
 and stay blank for naked short options, strangles or straddles sold for credit, and
 futures options.
+
+### Ask Claude
+
+For the questions a fixed chart cannot settle: what to change, whether a pattern is
+an edge or luck, whether recent trading took on too much risk. Pick a suggested
+question or write your own, then **Copy for Claude**: it copies a summary of the
+trades in the current filters, plus a short set of instructions and your question,
+and opens claude.ai in a new tab for you to paste into. **Copy only** skips the new
+tab, and **See exactly what will be copied** shows the full text first.
+
+The summary holds totals and breakdowns by strategy, underlying, month, days to
+expiration, direction and premium side, time of day, risk (max loss, trades per day,
+same-day re-entries after a loss), the largest wins and losses, and open positions.
+It never includes the CSV itself. The site makes no network request: the text goes
+to Anthropic only when you paste it, under your own Claude account.
 
 ### Research
 Structural analysis of closed trades: which choices drove the result, and whether
@@ -186,6 +202,8 @@ example `http://localhost:8000/tests/test-broker-adapters.html`. See
 ## Privacy & Security
 
 - **100% Client-Side** - All processing happens in your browser
+- **Ask Claude Copies, Never Sends** - The Ask Claude view only puts a summary on
+  your clipboard; it reaches Anthropic only if you paste it into Claude yourself
 - **No Server Required** - Your data never leaves your computer
 - **Local Storage Only** - Data is saved in your browser's localStorage
 - **No Analytics** - No tracking or data collection using cookies or any other means

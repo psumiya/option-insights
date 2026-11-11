@@ -52,6 +52,7 @@ class DashboardController {
     };
 
     this.tradesTable = new TradesTable('trades-table');
+    this.askPanel = new AskClaudePanel('ask-claude');
     this.lazy = new LazyRenderer();
     this.reportNav = new ReportNav();
     this.reportNav.initialize();
@@ -263,6 +264,7 @@ class DashboardController {
 
     this.updateRailMeta(trades, summaryMetrics);
     if (this.tradesTable) this.tradesTable.update(trades);
+    if (this.askPanel) this.askPanel.update(trades, AiContext.describeScope(filters, this.selection));
     this.renderHeadlines(trades);
 
     // Research works on the whole account, so the Report's filters don't reach it
@@ -884,6 +886,7 @@ class DashboardController {
     this.enrichedTrades = [];
     this.dataStore.clearTrades();
     if (this.tradesTable) this.tradesTable.update([]);
+    if (this.askPanel) this.askPanel.update([], '');
     this.showEmptyState();
   }
 

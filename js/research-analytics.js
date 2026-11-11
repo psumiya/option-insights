@@ -502,6 +502,24 @@ const ResearchAnalytics = (function () {
     };
   }
 
+  /**
+   * The trading day a timestamp belongs to, as YYYY-MM-DD: the New York date
+   * when it carries a time of day, otherwise the date as written
+   * @param {Date|string} value - Timestamp or date
+   * @returns {string|null}
+   */
+  function marketDay(value) {
+    const timed = withClockTime(value);
+    if (timed) return eastern(timed).day;
+    const date = toDate(value);
+    if (!date) return null;
+    const utcMidnight = date.getUTCHours() === 0 && date.getUTCMinutes() === 0;
+    const year = utcMidnight ? date.getUTCFullYear() : date.getFullYear();
+    const month = (utcMidnight ? date.getUTCMonth() : date.getMonth()) + 1;
+    const dayOfMonth = utcMidnight ? date.getUTCDate() : date.getDate();
+    return `${year}-${String(month).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`;
+  }
+
   function entryWindow(trade) {
     const entry = withClockTime(trade.Entry);
     if (!entry) return null;
@@ -960,6 +978,8 @@ const ResearchAnalytics = (function () {
     directionSplit,
     entryTimeStats,
     holdTimeStats,
+    withClockTime,
+    marketDay,
     widthBreakdown,
     commonWidths,
     widthCounterfactual,

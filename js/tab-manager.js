@@ -1,10 +1,10 @@
 /**
  * Tab Manager
- * Switches between the Report, Research and Trades views and mirrors the
+ * Switches between the Report, Research, Trades and Ask Claude views and mirrors the
  * active view in the URL hash so it survives reloads and can be linked.
  */
 
-const VIEWS = ['report', 'research', 'trades'];
+const VIEWS = ['report', 'research', 'trades', 'ask'];
 
 // Older links used #data for what is now the Trades view
 const VIEW_ALIASES = { data: 'trades' };

@@ -441,6 +441,147 @@ const ResearchAnalytics = (function () {
     };
   }
 
+  // ===== time of day =====
+
+  // Minutes after midnight in New York, where the market keeps its hours
+  const ENTRY_WINDOWS = [
+    { id: 'open', label: 'Open, 9:30 to 10:30', test: minutes => minutes >= 570 && minutes < 630 },
+    { id: 'morning', label: 'Morning, 10:30 to 12:00', test: minutes => minutes >= 630 && minutes < 720 },
+    { id: 'midday', label: 'Midday, 12:00 to 2:00', test: minutes => minutes >= 720 && minutes < 840 },
+    { id: 'afternoon', label: 'Afternoon, 2:00 to close', test: minutes => minutes >= 840 && minutes < 975 },
+    { id: 'outside', label: 'Outside market hours', test: () => true }
+  ];
+
+  const HOLD_BUCKETS = [
+    { id: 'under-1h', label: 'Under 1 hour' },
+    { id: '1-3h', label: '1 to 3 hours' },
+    { id: '3h-same-day', label: '3 hours or more, same day' },
+    { id: '1-7d', label: 'Overnight to 7 days' },
+    { id: 'over-7d', label: 'Over 7 days' }
+  ];
+
+  const MS_PER_HOUR = 60 * 60 * 1000;
+
+  const easternParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23'
+  });
+
+  function toDate(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  /**
+   * A timestamp that carries a time of day. Exports with dates only parse to
+   * midnight, local for "MM/DD/YYYY" and UTC for "YYYY-MM-DD", which would
+   * otherwise read as a trade placed outside market hours.
+   */
+  function withClockTime(value) {
+    const date = toDate(value);
+    if (!date) return null;
+    const localMidnight = date.getHours() === 0 && date.getMinutes() === 0
+      && date.getSeconds() === 0 && date.getMilliseconds() === 0;
+    const utcMidnight = date.getUTCHours() === 0 && date.getUTCMinutes() === 0
+      && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0;
+    return localMidnight || utcMidnight ? null : date;
+  }
+
+  function eastern(date) {
+    const parts = {};
+    easternParts.formatToParts(date).forEach(part => { parts[part.type] = part.value; });
+    return {
+      day: `${parts.year}-${parts.month}-${parts.day}`,
+      minutes: Number(parts.hour) * 60 + Number(parts.minute)
+    };
+  }
+
+  function entryWindow(trade) {
+    const entry = withClockTime(trade.Entry);
+    if (!entry) return null;
+    const minutes = eastern(entry).minutes;
+    return ENTRY_WINDOWS.find(window => window.test(minutes)).id;
+  }
+
+  function holdBucket(trade) {
+    const entry = withClockTime(trade.Entry);
+    const exit = withClockTime(trade.Exit);
+    if (!entry || !exit || exit < entry) return null;
+
+    const hours = (exit - entry) / MS_PER_HOUR;
+    if (eastern(entry).day === eastern(exit).day) {
+      if (hours < 1) return 'under-1h';
+      if (hours < 3) return '1-3h';
+      return '3h-same-day';
+    }
+    return hours <= 7 * 24 ? '1-7d' : 'over-7d';
+  }
+
+  /**
+   * Win/loss summary by the New York time a trade was opened, overall and
+   * split into credit and debit
+   * Every window is always present. Trades whose export records only a date
+   * are counted out rather than placed in a window.
+   * @param {Array} trades - Closed trades
+   * @returns {Object} - { windows, byWindow, byWindowAndPremium, excludedNoTime }
+   *   byWindowAndPremium keys are '<window>-credit' and '<window>-debit'
+   */
+  function entryTimeStats(trades) {
+    const placed = trades
+      .map(trade => ({ trade, window: entryWindow(trade), premium: strategyProfile(trade.Strategy).premium }))
+      .filter(entry => entry.window);
+    const statsWhere = test => winLossStats(placed.filter(test).map(entry => entry.trade));
+
+    const byWindow = {};
+    const byWindowAndPremium = {};
+    ENTRY_WINDOWS.forEach(window => {
+      byWindow[window.id] = statsWhere(entry => entry.window === window.id);
+      PREMIUMS.forEach(premium => {
+        byWindowAndPremium[`${window.id}-${premium}`] = statsWhere(entry =>
+          entry.window === window.id && entry.premium === premium);
+      });
+    });
+
+    return {
+      windows: ENTRY_WINDOWS.map(window => ({ id: window.id, label: window.label })),
+      byWindow,
+      byWindowAndPremium,
+      excludedNoTime: trades.length - placed.length
+    };
+  }
+
+  /**
+   * Win/loss summary by how long a trade was held, entry to exit
+   * Hours matter for same-day trades and days for the rest, so the buckets
+   * switch units at the New York date boundary.
+   * @param {Array} trades - Closed trades
+   * @returns {Object} - { buckets, byBucket, excludedNoTime }
+   */
+  function holdTimeStats(trades) {
+    const placed = trades
+      .map(trade => ({ trade, bucket: holdBucket(trade) }))
+      .filter(entry => entry.bucket);
+
+    const byBucket = {};
+    HOLD_BUCKETS.forEach(bucket => {
+      byBucket[bucket.id] = winLossStats(placed
+        .filter(entry => entry.bucket === bucket.id)
+        .map(entry => entry.trade));
+    });
+
+    return {
+      buckets: HOLD_BUCKETS.map(bucket => ({ ...bucket })),
+      byBucket,
+      excludedNoTime: trades.length - placed.length
+    };
+  }
+
   // ===== width analyses =====
 
   function withWidth(trades) {
@@ -817,6 +958,8 @@ const ResearchAnalytics = (function () {
     condorVsSingleSide,
     strategyProfile,
     directionSplit,
+    entryTimeStats,
+    holdTimeStats,
     widthBreakdown,
     commonWidths,
     widthCounterfactual,

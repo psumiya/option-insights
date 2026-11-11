@@ -313,6 +313,58 @@ const ResearchOutputs = (function () {
     appendNote(container, unclassifiedText(split.unclassifiedPremium, 'the premium tables'));
   }
 
+  function renderTimeOfDay(container, context) {
+    const entry = ResearchAnalytics.entryTimeStats(context.trades);
+    const hold = ResearchAnalytics.holdTimeStats(context.trades);
+
+    if (entry.excludedNoTime === context.trades.length) {
+      appendEmpty(container, context.trades.length
+        ? 'This export records trade dates without times of day, so there is nothing to split by time. '
+          + 'TastyTrade exports carry times.'
+        : 'No closed trades in this cut.');
+      return;
+    }
+
+    appendSubheading(container, 'By time opened (New York time)');
+    renderStatTable(container, {
+      rowLabel: 'Opened',
+      rows: entry.windows.map(window => ({ label: window.label, stats: entry.byWindow[window.id] }))
+    });
+
+    appendSubheading(container, 'Time opened, credit against debit');
+    const premiumRows = [];
+    entry.windows.forEach(window => {
+      ['credit', 'debit'].forEach(premium => {
+        const stats = entry.byWindowAndPremium[`${window.id}-${premium}`];
+        if (stats.n) premiumRows.push({ label: `${window.label}, ${premium}`, stats });
+      });
+    });
+    if (premiumRows.length) {
+      renderStatTable(container, { rowLabel: 'Opened and premium', rows: premiumRows });
+    } else {
+      appendNote(container, 'No trade in this cut has a strategy that says credit or debit.');
+    }
+
+    appendSubheading(container, 'By time held');
+    renderStatTable(container, {
+      rowLabel: 'Held',
+      rows: hold.buckets.map(bucket => ({ label: bucket.label, stats: hold.byBucket[bucket.id] }))
+    });
+
+    appendNote(container,
+      'Windows and the same-day boundary use New York time, wherever you are. A window or holding '
+      + 'period with no trades is listed with a zero count; the credit and debit table lists only '
+      + 'pairs that occur, and leaves out strategies whose name does not say which side they are.');
+    if (entry.excludedNoTime) {
+      appendNote(container,
+        `${entry.excludedNoTime} trade${entry.excludedNoTime === 1 ? '' : 's'} left out of the time-opened tables (no time of day recorded).`);
+    }
+    if (hold.excludedNoTime) {
+      appendNote(container,
+        `${hold.excludedNoTime} trade${hold.excludedNoTime === 1 ? '' : 's'} left out of the time-held table (no time of day at entry or exit).`);
+    }
+  }
+
   // A width is a count of the underlying's strike points, so $5 wide on a $40
   // stock and on SPX are different trades and cannot be pooled
   function requireOneUnderlying(container, context) {
@@ -526,6 +578,7 @@ const ResearchOutputs = (function () {
     panel.registerRenderer('dte-buckets', renderDteBuckets);
     panel.registerRenderer('structure-split', renderStructureSplit);
     panel.registerRenderer('direction-split', renderDirectionSplit);
+    panel.registerRenderer('time-of-day', renderTimeOfDay);
     panel.registerRenderer('width-breakdown', renderWidthBreakdown);
     panel.registerRenderer('width-counterfactual', renderWidthCounterfactual);
     panel.registerRenderer('edge-check', renderEdgeCheck);

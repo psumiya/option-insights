@@ -24,8 +24,8 @@ const { RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS, RESEARC
 
 // ===== Preset configuration (Requirements 6.2, 6.6) =====
 
-test('the seeded preset list covers all thirteen cuts', () => {
-  assert.strictEqual(RESEARCH_PRESETS.length, 13);
+test('the seeded preset list covers all fourteen cuts', () => {
+  assert.strictEqual(RESEARCH_PRESETS.length, 14);
 });
 
 test('no preset hardcodes a symbol', () => {

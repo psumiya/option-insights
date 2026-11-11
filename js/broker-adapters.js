@@ -169,7 +169,7 @@ class RobinhoodAdapter {
       // Single leg strategies
       if (leg.transCode === 'STO' && leg.type === 'Put') return 'Short Put';
       if (leg.transCode === 'BTO' && leg.type === 'Call') return 'Long Call';
-      if (leg.transCode === 'BTO' && leg.type === 'Put') return 'Short Put'; // Buy Put is bearish
+      if (leg.transCode === 'BTO' && leg.type === 'Put') return 'Long Put';
       if (leg.transCode === 'STO' && leg.type === 'Call') return 'Short Call';
       return 'Long Option';
     }
@@ -182,32 +182,19 @@ class RobinhoodAdapter {
     const sellCalls = calls.filter(l => l.transCode === 'STO');
     const buyCalls = calls.filter(l => l.transCode === 'BTO');
 
-    // Strangle: Sell Put AND Sell Call
-    if (sellPuts.length === 1 && sellCalls.length === 1 && legs.length === 2) {
-      return 'Strangle';
+    const sameExpiry = (x, y) => x.expiry && y.expiry && x.expiry.getTime() === y.expiry.getTime();
+
+    if (legs.length === 2 && puts.length === 1 && calls.length === 1 &&
+        ((sellPuts.length === 1 && sellCalls.length === 1) || (buyPuts.length === 1 && buyCalls.length === 1))) {
+      return puts[0].strike === calls[0].strike ? 'Straddle' : 'Strangle';
     }
 
-    // Straddle: Buy Put AND Buy Call
-    if (buyPuts.length === 1 && buyCalls.length === 1 && legs.length === 2) {
-      return 'Straddle';
+    if (sellPuts.length === 1 && buyPuts.length === 1 && legs.length === 2 && sameExpiry(sellPuts[0], buyPuts[0])) {
+      return buyPuts[0].strike > sellPuts[0].strike ? 'Bear Put Spread' : 'Put Credit Spread';
     }
 
-    // Put Credit Spread: Sell Put AND Buy Put (same expiry)
-    if (sellPuts.length === 1 && buyPuts.length === 1 && legs.length === 2) {
-      const expiry1 = sellPuts[0].expiry;
-      const expiry2 = buyPuts[0].expiry;
-      if (expiry1 && expiry2 && expiry1.getTime() === expiry2.getTime()) {
-        return 'Put Credit Spread';
-      }
-    }
-
-    // Call Credit Spread: Sell Call AND Buy Call (same expiry)
-    if (sellCalls.length === 1 && buyCalls.length === 1 && legs.length === 2) {
-      const expiry1 = sellCalls[0].expiry;
-      const expiry2 = buyCalls[0].expiry;
-      if (expiry1 && expiry2 && expiry1.getTime() === expiry2.getTime()) {
-        return 'Call Credit Spread';
-      }
+    if (sellCalls.length === 1 && buyCalls.length === 1 && legs.length === 2 && sameExpiry(sellCalls[0], buyCalls[0])) {
+      return buyCalls[0].strike < sellCalls[0].strike ? 'Bull Call Spread' : 'Call Credit Spread';
     }
 
     // Iron Condor: Sell Put, Buy Put, Sell Call, Buy Call

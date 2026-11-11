@@ -531,6 +531,90 @@ test('directionSplit counts debit trades and lists what it could not place', () 
     [{ label: 'Custom', n: 2 }, { label: 'Straddle', n: 1 }]);
 });
 
+// ===== entryTimeStats / holdTimeStats =====
+
+// New York is UTC-5 in January, so 9:45 ET is 14:45 UTC on any machine
+const et = (day, hour, minute) => new Date(Date.UTC(2026, 0, day, hour + 5, minute));
+
+function timed(strategy, entry, exit, profitLoss = 50) {
+  return { Symbol: 'SPX', Strategy: strategy, ProfitLoss: profitLoss, Entry: entry, Exit: exit };
+}
+
+test('entryTimeStats places each trade in its New York window', () => {
+  const trades = [
+    timed('Iron Condor', et(5, 9, 45), et(5, 15, 55), 100),
+    timed('Iron Condor', et(6, 11, 0), et(6, 15, 55), -40),
+    timed('Iron Condor', et(7, 13, 0), et(7, 15, 55)),
+    timed('Iron Condor', et(8, 15, 30), et(8, 15, 55)),
+    timed('Iron Condor', et(9, 17, 0), et(12, 10, 0))
+  ];
+  const result = RA.entryTimeStats(trades);
+
+  assert.deepStrictEqual(result.windows.map(window => window.id),
+    ['open', 'morning', 'midday', 'afternoon', 'outside']);
+  result.windows.forEach(window => assert.strictEqual(result.byWindow[window.id].n, 1, window.id));
+  assert.strictEqual(result.byWindow.open.net, 100);
+  assert.strictEqual(result.byWindow.morning.net, -40);
+  assert.strictEqual(result.excludedNoTime, 0);
+});
+
+test('entryTimeStats splits a window into credit and debit', () => {
+  const trades = [
+    timed('Iron Condor', et(5, 14, 30), et(5, 15, 55), -200),
+    timed('Bull Call Spread', et(5, 14, 45), et(5, 15, 55), 300),
+    timed('Long Put', et(6, 15, 0), et(6, 15, 50), 100),
+    timed('Custom', et(6, 15, 5), et(6, 15, 50), 10)
+  ];
+  const result = RA.entryTimeStats(trades);
+
+  assert.strictEqual(result.byWindow.afternoon.n, 4);
+  assert.strictEqual(result.byWindowAndPremium['afternoon-credit'].net, -200);
+  assert.strictEqual(result.byWindowAndPremium['afternoon-debit'].n, 2);
+  assert.strictEqual(result.byWindowAndPremium['afternoon-debit'].net, 400);
+  assert.strictEqual(result.byWindowAndPremium['open-debit'].n, 0);
+});
+
+test('a trade with a date but no time of day is counted out, not placed', () => {
+  const dateOnly = timed('Iron Condor', new Date(2026, 0, 5), new Date(2026, 0, 5));
+  const result = RA.entryTimeStats([dateOnly, timed('Iron Condor', et(5, 9, 45), et(5, 10, 0))]);
+
+  assert.strictEqual(result.excludedNoTime, 1);
+  assert.strictEqual(result.byWindow.outside.n, 0);
+  assert.strictEqual(result.byWindow.open.n, 1);
+});
+
+test('an ISO date string, which parses to UTC midnight, also counts as no time', () => {
+  const iso = timed('Iron Condor', '2026-01-05', '2026-01-06');
+  assert.strictEqual(RA.entryTimeStats([iso]).excludedNoTime, 1);
+  assert.strictEqual(RA.holdTimeStats([iso]).excludedNoTime, 1);
+});
+
+test('holdTimeStats buckets same-day trades by hours and longer ones by days', () => {
+  const entry = et(5, 9, 45);
+  const trades = [
+    timed('Iron Condor', entry, et(5, 10, 15)),
+    timed('Iron Condor', entry, et(5, 12, 0)),
+    timed('Iron Condor', entry, et(5, 15, 55)),
+    timed('Iron Condor', entry, et(6, 9, 50)),
+    timed('Iron Condor', entry, et(16, 15, 0)),
+    timed('Iron Condor', entry, new Date(2026, 0, 6))
+  ];
+  const result = RA.holdTimeStats(trades);
+
+  assert.deepStrictEqual(result.buckets.map(bucket => [bucket.id, result.byBucket[bucket.id].n]), [
+    ['under-1h', 1], ['1-3h', 1], ['3h-same-day', 1], ['1-7d', 1], ['over-7d', 1]
+  ]);
+  assert.strictEqual(result.excludedNoTime, 1);
+});
+
+test('time statistics are pure', () => {
+  const trades = [timed('Iron Condor', et(5, 9, 45), et(5, 15, 55))];
+  const before = JSON.stringify(trades);
+  assert.deepStrictEqual(RA.entryTimeStats(trades), RA.entryTimeStats(trades));
+  assert.deepStrictEqual(RA.holdTimeStats(trades), RA.holdTimeStats(trades));
+  assert.strictEqual(JSON.stringify(trades), before);
+});
+
 // ===== edgeCheck =====
 
 function steady(count, base, swing, strategy = 'Iron Condor') {

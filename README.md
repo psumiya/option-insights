@@ -103,6 +103,10 @@ the pattern survives a small-sample check.
 - **Direction and credit vs debit** - Bullish, bearish and neutral trades, sold
   against bought premium, and the two crossed for directional trades. Read from
   the strategy name; trades it cannot place are listed rather than guessed
+- **By time opened and time held** - Results by the New York time a trade was
+  opened (open, morning, midday, afternoon, outside hours), split again into credit
+  and debit, and by how long it was held, from under an hour to over a week. Needs
+  times of day, which TastyTrade exports carry and date-only exports do not
 - **By spread width** - Performance and average credit collected per width bucket
   ($5-wide, $10-wide, $20-wide, other)
 - **Uniform-width counterfactual** - What the same trades would have netted at one

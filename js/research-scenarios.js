@@ -47,6 +47,12 @@ const RESEARCH_PRESETS = [
     focus: 'direction-split'
   },
   {
+    id: 'top_0dte_time_of_day',
+    title: '{underlying} 0DTE by time opened',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'zero', structures: null },
+    focus: 'time-of-day'
+  },
+  {
     id: 'account_loss_concentration',
     title: 'Whole account loss concentration',
     filter: { underlying: null, dteCut: 'all', structures: null },
@@ -119,6 +125,7 @@ const RESEARCH_SECTIONS = [
   { id: 'dte-buckets', title: 'By days to expiration', defaultExpanded: false },
   { id: 'structure-split', title: 'Condor vs single-sided', defaultExpanded: false },
   { id: 'direction-split', title: 'Direction and credit vs debit', defaultExpanded: false },
+  { id: 'time-of-day', title: 'By time opened and time held', defaultExpanded: false },
   { id: 'width-breakdown', title: 'By spread width', defaultExpanded: false },
   { id: 'width-counterfactual', title: 'Uniform-width counterfactual', defaultExpanded: false },
   { id: 'edge-check', title: 'Edge check', defaultExpanded: false },

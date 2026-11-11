@@ -103,7 +103,7 @@ const RESEARCH_PRESETS = [
  */
 const RESEARCH_SECTIONS = [
   { id: 'bar', title: 'Trade by trade', defaultExpanded: true },
-  { id: 'calendar', title: 'Calendar', defaultExpanded: true },
+  { id: 'calendar', title: 'Calendar by entry date', defaultExpanded: true },
   { id: 'dte-buckets', title: 'By days to expiration', defaultExpanded: false },
   { id: 'structure-split', title: 'Condor vs single-sided', defaultExpanded: false },
   { id: 'width-breakdown', title: 'By spread width', defaultExpanded: false },

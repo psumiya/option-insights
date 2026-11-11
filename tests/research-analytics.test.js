@@ -476,6 +476,61 @@ test('runsTest reads the sequence chronologically, not in array order', () => {
   assert.deepStrictEqual(RA.runsTest(shuffled), RA.runsTest(fixture()));
 });
 
+// ===== directionSplit =====
+
+test('strategyProfile places each side of the book and declines what the label cannot say', () => {
+  assert.deepStrictEqual(RA.strategyProfile('Bull Put Spread'), { direction: 'bullish', premium: 'credit' });
+  assert.deepStrictEqual(RA.strategyProfile('Bear Put Spread'), { direction: 'bearish', premium: 'debit' });
+  assert.deepStrictEqual(RA.strategyProfile('Iron Condor'), { direction: 'neutral', premium: 'credit' });
+  assert.deepStrictEqual(RA.strategyProfile('Straddle'), { direction: 'neutral', premium: null });
+  assert.deepStrictEqual(RA.strategyProfile('Custom'), { direction: null, premium: null });
+  assert.deepStrictEqual(RA.strategyProfile(null), { direction: null, premium: null });
+});
+
+test('directionSplit over the fixture: all credit, split by view', () => {
+  const split = RA.directionSplit(fixture());
+
+  // bullish: three bull put spreads plus the short put → -300 +80 +90 -700 +30
+  assert.strictEqual(split.byDirection.bullish.n, 5);
+  assert.strictEqual(split.byDirection.bullish.net, -800);
+  assert.strictEqual(split.byDirection.bearish.n, 2);
+  assert.strictEqual(split.byDirection.bearish.net, 100);
+  assert.strictEqual(split.byDirection.neutral.n, 5);
+  assert.strictEqual(split.byDirection.neutral.net, -50);
+
+  assert.strictEqual(split.byPremium.credit.n, 12);
+  assert.strictEqual(split.byPremium.debit.n, 0);
+
+  assert.deepStrictEqual(Object.keys(split.byDirectionAndPremium),
+    ['bullish-credit', 'bullish-debit', 'bearish-credit', 'bearish-debit']);
+  assert.strictEqual(split.byDirectionAndPremium['bullish-credit'].n, 5);
+  assert.strictEqual(split.byDirectionAndPremium['bearish-debit'].n, 0);
+
+  assert.deepStrictEqual(split.unclassifiedDirection, []);
+  assert.deepStrictEqual(split.unclassifiedPremium, []);
+});
+
+test('directionSplit counts debit trades and lists what it could not place', () => {
+  const trades = [
+    trade(5, 'Long Call', 0, null, 120, 0),
+    trade(6, 'Bear Put Spread', 0, 5, -80, 0),
+    trade(7, 'Straddle', 0, null, 40, 0),
+    trade(8, 'Custom', 0, null, -10, 0),
+    trade(9, 'Custom', 0, null, 5, 0)
+  ];
+  const split = RA.directionSplit(trades);
+
+  assert.strictEqual(split.byPremium.debit.n, 2);
+  assert.strictEqual(split.byPremium.debit.net, 40);
+  assert.strictEqual(split.byDirectionAndPremium['bullish-debit'].net, 120);
+  assert.strictEqual(split.byDirectionAndPremium['bearish-debit'].net, -80);
+  assert.strictEqual(split.byDirection.neutral.n, 1);
+
+  assert.deepStrictEqual(split.unclassifiedDirection, [{ label: 'Custom', n: 2 }]);
+  assert.deepStrictEqual(split.unclassifiedPremium,
+    [{ label: 'Custom', n: 2 }, { label: 'Straddle', n: 1 }]);
+});
+
 // ===== edgeCheck =====
 
 function steady(count, base, swing, strategy = 'Iron Condor') {
@@ -662,6 +717,7 @@ test('every statistic returns the same result on a repeated call', () => {
     () => RA.winLossStats(trades),
     () => RA.dteBucketStats(trades),
     () => RA.condorVsSingleSide(trades),
+    () => RA.directionSplit(trades),
     () => RA.widthBreakdown(trades),
     () => RA.widthCounterfactual(trades, [10, 20]),
     () => RA.runsTest(trades),
@@ -681,6 +737,7 @@ test('no statistic mutates or reorders its input', () => {
   RA.winLossStats(trades);
   RA.dteBucketStats(trades);
   RA.condorVsSingleSide(trades);
+  RA.directionSplit(trades);
   RA.widthBreakdown(trades);
   RA.widthCounterfactual(trades, [10, 20]);
   RA.runsTest(trades);

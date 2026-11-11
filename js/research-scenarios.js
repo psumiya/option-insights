@@ -41,6 +41,12 @@ const RESEARCH_PRESETS = [
     focus: 'edge-check'
   },
   {
+    id: 'account_direction_split',
+    title: 'Whole account by direction and credit vs debit',
+    filter: { underlying: null, dteCut: 'all', structures: null },
+    focus: 'direction-split'
+  },
+  {
     id: 'account_loss_concentration',
     title: 'Whole account loss concentration',
     filter: { underlying: null, dteCut: 'all', structures: null },
@@ -112,6 +118,7 @@ const RESEARCH_SECTIONS = [
   { id: 'calendar', title: 'Calendar by entry date', defaultExpanded: true },
   { id: 'dte-buckets', title: 'By days to expiration', defaultExpanded: false },
   { id: 'structure-split', title: 'Condor vs single-sided', defaultExpanded: false },
+  { id: 'direction-split', title: 'Direction and credit vs debit', defaultExpanded: false },
   { id: 'width-breakdown', title: 'By spread width', defaultExpanded: false },
   { id: 'width-counterfactual', title: 'Uniform-width counterfactual', defaultExpanded: false },
   { id: 'edge-check', title: 'Edge check', defaultExpanded: false },

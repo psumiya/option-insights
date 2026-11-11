@@ -258,6 +258,61 @@ const ResearchOutputs = (function () {
       'A structure with no trades is listed with a zero count rather than hidden.');
   }
 
+  const SIDE_LABELS = {
+    bullish: 'Bullish',
+    bearish: 'Bearish',
+    neutral: 'Neutral',
+    credit: 'Credit (sold premium)',
+    debit: 'Debit (bought premium)',
+    'bullish-credit': 'Bullish, credit',
+    'bullish-debit': 'Bullish, debit',
+    'bearish-credit': 'Bearish, credit',
+    'bearish-debit': 'Bearish, debit'
+  };
+
+  function sideRows(groups) {
+    return Object.keys(groups).map(key => ({ label: SIDE_LABELS[key] || key, stats: groups[key] }));
+  }
+
+  function unclassifiedText(entries, what) {
+    if (!entries.length) return null;
+    const total = entries.reduce((count, entry) => count + entry.n, 0);
+    const labels = entries.map(entry => `${entry.label} ${entry.n}`).join(', ');
+    return `${total} trade${total === 1 ? '' : 's'} left out of ${what}, `
+      + `since the strategy alone does not say: ${labels}.`;
+  }
+
+  function appendSubheading(container, text) {
+    const heading = document.createElement('p');
+    heading.className = 'research-output-lead';
+    heading.textContent = text;
+    container.appendChild(heading);
+  }
+
+  function renderDirectionSplit(container, context) {
+    if (!context.trades.length) {
+      appendEmpty(container, 'No closed trades in this cut.');
+      return;
+    }
+
+    const split = ResearchAnalytics.directionSplit(context.trades);
+
+    appendSubheading(container, 'By market view');
+    renderStatTable(container, { rowLabel: 'Direction', rows: sideRows(split.byDirection) });
+
+    appendSubheading(container, 'By premium');
+    renderStatTable(container, { rowLabel: 'Premium', rows: sideRows(split.byPremium) });
+
+    appendSubheading(container, 'Directional trades by premium');
+    renderStatTable(container, { rowLabel: 'Direction and premium', rows: sideRows(split.byDirectionAndPremium) });
+
+    appendNote(container,
+      'Direction and premium come from the strategy name. A group with no trades is listed '
+      + 'with a zero count rather than hidden.');
+    appendNote(container, unclassifiedText(split.unclassifiedDirection, 'the direction table'));
+    appendNote(container, unclassifiedText(split.unclassifiedPremium, 'the premium tables'));
+  }
+
   // A width is a count of the underlying's strike points, so $5 wide on a $40
   // stock and on SPX are different trades and cannot be pooled
   function requireOneUnderlying(container, context) {
@@ -470,6 +525,7 @@ const ResearchOutputs = (function () {
 
     panel.registerRenderer('dte-buckets', renderDteBuckets);
     panel.registerRenderer('structure-split', renderStructureSplit);
+    panel.registerRenderer('direction-split', renderDirectionSplit);
     panel.registerRenderer('width-breakdown', renderWidthBreakdown);
     panel.registerRenderer('width-counterfactual', renderWidthCounterfactual);
     panel.registerRenderer('edge-check', renderEdgeCheck);

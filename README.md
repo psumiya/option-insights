@@ -67,6 +67,10 @@ removable chip in the filter bar. Picking several values in one dimension shows 
 of them; picks in different dimensions narrow together. Each Snapshot headline
 applies its own filter when clicked.
 
+Clicking a chip's name flips it from "only this" to "everything except this", so
+picking NDX and flipping its chip shows the book without NDX. An excluded chip reads
+"Not symbol" with a dashed border; clicking its name flips it back, and × removes it.
+
 The current view, chapter and filters live in the URL, so a link or a reload reopens
 the same view. Symbol and strategy picks are kept only there, never in storage, so a
 new upload never opens already filtered.
@@ -142,7 +146,9 @@ so rather than guessing:
 
 ## Filters
 
-- **Date Range**: Last 7 days, 30 days, 12 months, Year To Date, All time
+- **Date Range**: Last 5 or 10 trading days (today included; weekdays stand in
+  for trading days, so a market holiday stretches the window by a day), last 7
+  days, 30 days, 12 months, Year To Date, All time
 - **Position Status**: Open, Closed, or All positions
 - **Symbol and Strategy**: set by clicking a chart, a table row or a headline
 

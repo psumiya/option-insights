@@ -4,6 +4,25 @@
  */
 class AnalyticsEngine {
   /**
+   * Start of the window covering the last `count` trading days, today included
+   * when it is one. Weekdays stand in for trading days; a market holiday inside
+   * the window stretches it by a day.
+   * @param {Date} today - Any time on the current day
+   * @param {number} count - Trading days to cover
+   * @returns {Date} - Midnight at the start of the earliest day in the window
+   */
+  static tradingDaysBack(today, count) {
+    const day = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let counted = 0;
+    for (;;) {
+      const weekday = day.getDay();
+      if (weekday !== 0 && weekday !== 6) counted++;
+      if (counted === count) return day;
+      day.setDate(day.getDate() - 1);
+    }
+  }
+
+  /**
    * The most a position could have lost at open, before commissions and fees
    * Defined-risk credit spreads risk the width less the credit; anything bought
    * for a net debit risks the debit. Null whenever the export lacks the opening
@@ -166,19 +185,29 @@ class AnalyticsEngine {
   /**
    * Filter trades by date range
    * @param {Array} trades - Array of enriched trade records
-   * @param {string} rangeType - Date range type: 'last7days', 'last30days', 'last12months', 'ytd', 'alltime'
+   * @param {string} rangeType - Date range type: 'last5tradingdays', 'last10tradingdays',
+   *   'last7days', 'last30days', 'last12months', 'ytd', 'alltime'
+   * @param {Date} [now] - The current time, for tests; defaults to the clock
    * @returns {Array} - Filtered trades
    */
-  filterByDateRange(trades, rangeType) {
+  filterByDateRange(trades, rangeType, now = new Date()) {
     if (rangeType === 'alltime') {
       return trades;
     }
 
-    const today = new Date();
+    const today = new Date(now);
     today.setHours(23, 59, 59, 999); // End of today
     let startDate;
 
     switch (rangeType) {
+      case 'last5tradingdays':
+        startDate = AnalyticsEngine.tradingDaysBack(today, 5);
+        break;
+
+      case 'last10tradingdays':
+        startDate = AnalyticsEngine.tradingDaysBack(today, 10);
+        break;
+
       case 'last7days':
         startDate = new Date(today);
         startDate.setDate(today.getDate() - 7);

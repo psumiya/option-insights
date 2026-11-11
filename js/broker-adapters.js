@@ -266,10 +266,10 @@ class RobinhoodAdapter {
     });
     
     // Step 2: Group open trades by Instrument and Activity Date
+    const dateKeyOf = date => date ? date.toISOString().split('T')[0] : 'unknown';
     const openTradeGroups = new Map();
     openTrades.forEach(trade => {
-      const dateKey = trade.activityDate ? trade.activityDate.toISOString().split('T')[0] : 'unknown';
-      const key = `${trade.instrument}_${dateKey}`;
+      const key = `${trade.instrument}_${dateKeyOf(trade.activityDate)}`;
       
       if (!openTradeGroups.has(key)) {
         openTradeGroups.set(key, []);
@@ -278,19 +278,17 @@ class RobinhoodAdapter {
     });
     
     // Step 3: Infer strategy for each group of open trades
-    const strategyMap = new Map(); // Maps description -> strategy
-    
-    openTradeGroups.forEach((legs, groupKey) => {
+    const strategyMap = new Map();
+    const openingKey = (description, date) => `${description}_${dateKeyOf(date)}`;
+
+    openTradeGroups.forEach(legs => {
       const strategy = this._inferStrategy(legs);
-      
-      // Assign this strategy to all legs in the group
       legs.forEach(leg => {
-        strategyMap.set(leg.Description, strategy);
+        strategyMap.set(openingKey(leg.Description, leg.activityDate), strategy);
       });
     });
-    
-    // Step 4: Build trades from individual legs
-    // Group by Description to aggregate all transactions for each option
+
+    // Step 4: Split each option's rows into open-to-flat cycles, one trade per cycle
     const byDescription = new Map();
     tradingRows.forEach(row => {
       const desc = row['Description'];
@@ -299,9 +297,35 @@ class RobinhoodAdapter {
       }
       byDescription.get(desc).push(row);
     });
-    
-    // Process each unique option
-    byDescription.forEach((transRows, description) => {
+
+    const cycles = [];
+    byDescription.forEach((descRows, description) => {
+      const ordered = descRows
+        .map((row, index) => ({ row, index, date: this._parseDate(row['Activity Date']) }))
+        .sort((a, b) =>
+          (a.date - b.date) ||
+          (this._isOpenTrade(b.row['Trans Code']) - this._isOpenTrade(a.row['Trans Code'])) ||
+          (a.index - b.index));
+      let current = [];
+      let openQty = 0;
+      ordered.forEach(({ row }) => {
+        const qty = Math.abs(parseInt(row['Quantity']) || 1);
+        current.push(row);
+        if (this._isOpenTrade(row['Trans Code'])) {
+          openQty += qty;
+        } else if (this._isCloseTrade(row['Trans Code'])) {
+          openQty -= qty;
+          if (openQty <= 0) {
+            cycles.push({ description, transRows: current });
+            current = [];
+            openQty = 0;
+          }
+        }
+      });
+      if (current.length) cycles.push({ description, transRows: current });
+    });
+
+    cycles.forEach(({ description, transRows }) => {
       const details = this.parseDescription(description);
       if (!details) {
         console.warn('Could not parse option details from:', description);
@@ -352,8 +376,9 @@ class RobinhoodAdapter {
         debit = Math.abs(totalAmount);
       }
       
-      // Get strategy from strategyMap (inferred from open trades)
-      let strategy = strategyMap.get(description) || 'Custom';
+      const firstOpen = transRows.find(row => this._isOpenTrade(row['Trans Code']));
+      const strategy = (firstOpen &&
+        strategyMap.get(openingKey(description, this._parseDate(firstOpen['Activity Date'])))) || 'Custom';
       
       // Get average quantity
       const totalQty = transRows.reduce((sum, row) => {

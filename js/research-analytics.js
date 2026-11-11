@@ -54,14 +54,10 @@ const ResearchAnalytics = (function () {
     { id: '>7DTE', test: dte => dte > 7 }
   ];
 
-  // The three widths worth comparing, with everything else pooled. Ordered, and
-  // the catch-all must stay last: a width lands in the first bucket it matches.
-  const WIDTH_BUCKETS = [
-    { id: '$5-wide', test: width => width === 5 },
-    { id: '$10-wide', test: width => width === 10 },
-    { id: '$20-wide', test: width => width === 20 },
-    { id: 'Other', test: () => true }
-  ];
+  // Widths are in the underlying's own strike points, so the buckets only mean
+  // something within one underlying. These are the fallback when none are given.
+  const DEFAULT_WIDTHS = [5, 10, 20];
+  const OTHER_WIDTH = 'Other';
 
   // ===== numeric helpers =====
 
@@ -364,8 +360,27 @@ const ResearchAnalytics = (function () {
    * @param {number} width - Spread width
    * @returns {string} - Bucket identifier
    */
-  function widthBucket(width) {
-    return WIDTH_BUCKETS.find(bucket => bucket.test(width)).id;
+  function widthBucket(width, widths = DEFAULT_WIDTHS) {
+    return widths.indexOf(width) === -1 ? OTHER_WIDTH : `$${width}-wide`;
+  }
+
+  /**
+   * The widths traded most often, smallest first
+   * @param {Array} trades - Closed trades
+   * @param {number} limit - How many widths to return
+   * @returns {Array<number>}
+   */
+  function commonWidths(trades, limit) {
+    const counts = new Map();
+    withWidth(trades).forEach(trade => {
+      const width = Number(trade.Width);
+      counts.set(width, (counts.get(width) || 0) + 1);
+    });
+    return [...counts.entries()]
+      .sort((a, b) => (b[1] - a[1]) || (a[0] - b[0]))
+      .slice(0, limit)
+      .map(([width]) => width)
+      .sort((a, b) => a - b);
   }
 
   /**
@@ -375,18 +390,19 @@ const ResearchAnalytics = (function () {
    * @param {Array} trades - Closed trades
    * @returns {Object} - { byBucket, excludedNoWidth }
    */
-  function widthBreakdown(trades) {
+  function widthBreakdown(trades, widths = DEFAULT_WIDTHS) {
     const usable = withWidth(trades);
     const byBucket = {};
+    const bucketIds = widths.map(width => `$${width}-wide`).concat([OTHER_WIDTH]);
 
-    WIDTH_BUCKETS.forEach(bucket => {
-      const group = usable.filter(trade => widthBucket(Number(trade.Width)) === bucket.id);
+    bucketIds.forEach(bucketId => {
+      const group = usable.filter(trade => widthBucket(Number(trade.Width), widths) === bucketId);
       const stats = winLossStats(group);
       stats.avgCreditCollected = round(
         mean(group.map(trade => Number(trade.OpenCredit) || 0)),
         2
       );
-      byBucket[bucket.id] = stats;
+      byBucket[bucketId] = stats;
     });
 
     return {
@@ -589,6 +605,7 @@ const ResearchAnalytics = (function () {
     dteBucketStats,
     condorVsSingleSide,
     widthBreakdown,
+    commonWidths,
     widthCounterfactual,
     runsTest,
     lossConcentration,

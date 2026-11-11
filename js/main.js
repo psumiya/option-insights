@@ -232,6 +232,7 @@ async function handleFileUpload(file) {
   
   // Pass to dashboard controller
   await dashboardController.handleFileUpload(file);
+  tabManager.reset();
   
   // Enable compact header after data loads
   enableCompactHeader();

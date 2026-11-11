@@ -102,13 +102,14 @@ Three requirements below have since been superseded by the shipped tab:
 
 1. THE Dashboard SHALL add a Research tab to the existing tab navigation, after the Strategies tab
 2. THE Research Tab SHALL display a filter bar containing an underlying selector, a DTE cut selector, and a multi-select structure selector
-3. THE Research Tab SHALL populate the underlying selector from the underlyings present in the loaded dataset
-4. WHEN the Research Tab first loads, THE Research Tab SHALL default to the underlying with the most closed trades, a DTE cut of all, and all structures selected
+3. THE Research Tab SHALL populate the underlying selector with an "All underlyings" choice followed by the underlyings present in the loaded dataset
+4. WHEN the Research Tab first loads, or a new file is uploaded, THE Research Tab SHALL default to all underlyings, a DTE cut of all, and all strategies
 5. WHEN a user changes any filter, THE Research Tab SHALL recompute and re-render every visible analysis against the new filtered set
 6. THE Research Tab SHALL restrict all analyses to closed trades only, and SHALL state that open positions are excluded
 7. WHEN the filtered set contains no closed trades, THE Research Tab SHALL display an empty state naming the active filters rather than rendering blank charts
 8. THE Research Tab SHALL persist the active filter selection across page reloads
 9. WHEN no trade data is loaded, THE Research Tab SHALL display the same prompt-to-upload state as the other tabs
+10. THE Research Tab SHALL analyze the whole loaded dataset and SHALL ignore the Report's date, status, symbol and strategy filters
 
 ### Requirement 6: Scenario Presets
 
@@ -121,7 +122,8 @@ Three requirements below have since been superseded by the shipped tab:
 3. WHEN a user clicks a preset chip, THE Research Tab SHALL apply that preset's filters and scroll the matching analysis into view
 4. WHEN a user manually changes a filter after applying a preset, THE Research Tab SHALL clear the preset's active styling
 5. WHEN a preset references an underlying absent from the loaded dataset, THE Research Tab SHALL disable that chip and SHALL indicate why on hover
-6. THE Research Tab SHALL seed the preset list with the following cuts: 0DTE all structures, 0DTE iron condors only, iron condors excluding 0DTE, DTE buckets, condor versus single-sided across all DTE, put credit spread width breakdown, put credit spread width counterfactual, streak check, loss concentration, and width-threshold significance
+6. THE Research Tab SHALL define each preset either across the whole account or against the underlying with the most closed trades, resolved from the loaded dataset and named in the chip label, and SHALL NOT hardcode a symbol
+7. THE Research Tab SHALL seed the preset list with whole-account DTE buckets and loss concentration, plus the following cuts on the top underlying: 0DTE all structures, 0DTE iron condors only, iron condors excluding 0DTE, DTE buckets, condor versus single-sided across all DTE, put credit spread width breakdown, put credit spread width counterfactual, streak check, loss concentration, and width-threshold significance
 
 ### Requirement 7: Filter Provenance on Every Output
 
@@ -186,6 +188,8 @@ Three requirements below have since been superseded by the shipped tab:
 6. THE Research Tab SHALL display the actual net P/L alongside the counterfactual figures for direct comparison
 7. THE Research Tab SHALL label the counterfactual as a linear approximation, stating that it assumes loss magnitude scales proportionally with width
 8. THE Broker Adapter SHALL expose the credit taken in at open as a field distinct from total credit, and THE Research Analytics module SHALL use it for average credit collected, so that sell-to-close proceeds do not inflate the figure
+9. WHEN no single underlying is selected, THE Research Tab SHALL show the width breakdown and counterfactual as unavailable and SHALL explain that widths only compare within one underlying
+10. THE Research Tab SHALL take the width buckets (up to three) and counterfactual target widths (up to four) from the widths most often traded in the filtered set, unless a preset supplies them
 
 ### Requirement 12: Streak and Concentration Checks
 

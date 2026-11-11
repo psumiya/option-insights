@@ -17,15 +17,28 @@ const load = (path, expression) => new Function(
 )();
 
 const RA = load('js/research-analytics.js', 'ResearchAnalytics');
-const { RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS } = load(
+const { RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS, RESEARCH_TOP_UNDERLYING } = load(
   'js/research-scenarios.js',
-  '{ RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS }'
+  '{ RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS, RESEARCH_TOP_UNDERLYING }'
 );
 
 // ===== Preset configuration (Requirements 6.2, 6.6) =====
 
-test('the seeded preset list covers all nine cuts', () => {
-  assert.strictEqual(RESEARCH_PRESETS.length, 9);
+test('the seeded preset list covers all eleven cuts', () => {
+  assert.strictEqual(RESEARCH_PRESETS.length, 11);
+});
+
+test('no preset hardcodes a symbol', () => {
+  RESEARCH_PRESETS.forEach(preset => {
+    const underlying = preset.filter.underlying;
+    assert.ok(underlying === null || underlying === RESEARCH_TOP_UNDERLYING, preset.id);
+  });
+});
+
+test('a top-underlying preset names its symbol through the title placeholder', () => {
+  RESEARCH_PRESETS
+    .filter(preset => preset.filter.underlying === RESEARCH_TOP_UNDERLYING)
+    .forEach(preset => assert.ok(preset.title.includes('{underlying}'), preset.id));
 });
 
 test('preset ids are unique', () => {
@@ -80,7 +93,8 @@ test('every preset names only canonical structures', () => {
 test('the cuts needing every strategy in scope use a null structure filter', () => {
   // DTE buckets, streak check and loss concentration are asked of the whole
   // book, not just the three structures the tab otherwise focuses on
-  ['spx_dte_buckets', 'spx_runs_test', 'spx_loss_concentration'].forEach(id => {
+  ['account_dte_buckets', 'account_loss_concentration', 'top_dte_buckets',
+    'top_runs_test', 'top_loss_concentration'].forEach(id => {
     const preset = RESEARCH_PRESETS.find(entry => entry.id === id);
     assert.strictEqual(preset.filter.structures, null, id);
   });

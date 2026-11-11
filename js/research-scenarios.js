@@ -3,9 +3,10 @@
  * The fixed cuts worth reviewing every time, as data. Adding one is an edit to
  * this array; nothing in the rendering path needs to change.
  *
- * These are inherited verbatim from the external build spec and are SPX-
- * specific. A preset naming an underlying the loaded dataset does not contain
- * renders disabled rather than silently showing an empty result.
+ * Presets either span the whole account (underlying null) or target the
+ * underlying with the most closed trades (RESEARCH_TOP_UNDERLYING), which the
+ * panel resolves against the loaded dataset. "{underlying}" in a title is
+ * replaced with that symbol.
  *
  * Each entry carries:
  *   id        stable identifier, also the localStorage value for the active chip
@@ -15,75 +16,83 @@
  *   params    optional per-output parameters, merged over the panel defaults
  */
 
+const RESEARCH_TOP_UNDERLYING = '*top';
+
+// A null width list means: use the widths actually traded in the cut
 const RESEARCH_SCENARIO_DEFAULTS = {
-  counterfactualWidths: [10, 15, 20, 25],
+  widthBuckets: null,
+  counterfactualWidths: null,
   concentrationTopN: [3, 5]
 };
 
+const RESEARCH_CREDIT_STRUCTURES = ['iron_condor', 'put_credit_spread', 'call_credit_spread'];
+
 const RESEARCH_PRESETS = [
   {
-    id: 'spx_0dte_all_structures',
-    title: 'SPX 0DTE — condors vs single-sided',
-    filter: {
-      underlying: 'SPX',
-      dteCut: 'zero',
-      structures: ['iron_condor', 'put_credit_spread', 'call_credit_spread']
-    },
-    focus: 'calendar'
-  },
-  {
-    id: 'spx_0dte_condor_only',
-    title: 'SPX 0DTE iron condors only',
-    filter: { underlying: 'SPX', dteCut: 'zero', structures: ['iron_condor'] },
-    focus: 'bar'
-  },
-  {
-    id: 'spx_condor_nonzero_dte',
-    title: 'SPX iron condors, excluding 0DTE',
-    filter: { underlying: 'SPX', dteCut: 'nonzero', structures: ['iron_condor'] },
-    focus: 'bar'
-  },
-  {
-    id: 'spx_dte_buckets',
-    title: 'SPX by days to expiration',
-    filter: { underlying: 'SPX', dteCut: 'all', structures: null },
+    id: 'account_dte_buckets',
+    title: 'Whole account by days to expiration',
+    filter: { underlying: null, dteCut: 'all', structures: null },
     focus: 'dte-buckets'
   },
   {
-    id: 'spx_condor_vs_single_side',
-    title: 'SPX condor vs single-sided, all DTE',
-    filter: {
-      underlying: 'SPX',
-      dteCut: 'all',
-      structures: ['iron_condor', 'put_credit_spread', 'call_credit_spread']
-    },
+    id: 'account_loss_concentration',
+    title: 'Whole account loss concentration',
+    filter: { underlying: null, dteCut: 'all', structures: null },
+    focus: 'loss-concentration'
+  },
+  {
+    id: 'top_0dte_all_structures',
+    title: '{underlying} 0DTE — condors vs single-sided',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'zero', structures: RESEARCH_CREDIT_STRUCTURES },
+    focus: 'calendar'
+  },
+  {
+    id: 'top_0dte_condor_only',
+    title: '{underlying} 0DTE iron condors only',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'zero', structures: ['iron_condor'] },
+    focus: 'bar'
+  },
+  {
+    id: 'top_condor_nonzero_dte',
+    title: '{underlying} iron condors, excluding 0DTE',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'nonzero', structures: ['iron_condor'] },
+    focus: 'bar'
+  },
+  {
+    id: 'top_dte_buckets',
+    title: '{underlying} by days to expiration',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: null },
+    focus: 'dte-buckets'
+  },
+  {
+    id: 'top_condor_vs_single_side',
+    title: '{underlying} condor vs single-sided, all DTE',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: RESEARCH_CREDIT_STRUCTURES },
     focus: 'structure-split'
   },
   {
-    id: 'spx_put_spread_width_breakdown',
-    title: 'SPX put credit spread by width bucket',
-    filter: { underlying: 'SPX', dteCut: 'all', structures: ['put_credit_spread'] },
+    id: 'top_put_spread_width_breakdown',
+    title: '{underlying} put credit spread by width',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: ['put_credit_spread'] },
     focus: 'width-breakdown'
   },
   {
-    id: 'spx_put_spread_width_counterfactual',
-    title: 'SPX put credit spread — uniform width',
-    filter: { underlying: 'SPX', dteCut: 'all', structures: ['put_credit_spread'] },
-    focus: 'width-counterfactual',
-    params: { counterfactualWidths: [10, 15, 20, 25] }
+    id: 'top_put_spread_width_counterfactual',
+    title: '{underlying} put credit spread — uniform width',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: ['put_credit_spread'] },
+    focus: 'width-counterfactual'
   },
   {
-    id: 'spx_runs_test',
-    title: 'SPX streak check',
-    filter: { underlying: 'SPX', dteCut: 'all', structures: null },
+    id: 'top_runs_test',
+    title: '{underlying} streak check',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: null },
     focus: 'runs-test'
   },
   {
-    id: 'spx_loss_concentration',
-    title: 'SPX loss concentration',
-    filter: { underlying: 'SPX', dteCut: 'all', structures: null },
-    focus: 'loss-concentration',
-    params: { concentrationTopN: [3, 5] }
+    id: 'top_loss_concentration',
+    title: '{underlying} loss concentration',
+    filter: { underlying: RESEARCH_TOP_UNDERLYING, dteCut: 'all', structures: null },
+    focus: 'loss-concentration'
   }
 ];
 
@@ -107,8 +116,14 @@ if (typeof window !== 'undefined') {
   window.RESEARCH_PRESETS = RESEARCH_PRESETS;
   window.RESEARCH_SECTIONS = RESEARCH_SECTIONS;
   window.RESEARCH_SCENARIO_DEFAULTS = RESEARCH_SCENARIO_DEFAULTS;
+  window.RESEARCH_TOP_UNDERLYING = RESEARCH_TOP_UNDERLYING;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { RESEARCH_PRESETS, RESEARCH_SECTIONS, RESEARCH_SCENARIO_DEFAULTS };
+  module.exports = {
+    RESEARCH_PRESETS,
+    RESEARCH_SECTIONS,
+    RESEARCH_SCENARIO_DEFAULTS,
+    RESEARCH_TOP_UNDERLYING
+  };
 }

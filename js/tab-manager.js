@@ -48,6 +48,7 @@ const HashState = {
 class TabManager {
     constructor() {
         this.currentTab = 'report';
+        this.scrollPositions = {};
         this.init();
     }
 
@@ -68,6 +69,9 @@ class TabManager {
 
     switchTab(tabId, { updateHash = true } = {}) {
         if (!VIEWS.includes(tabId)) tabId = 'report';
+        const previousTab = this.currentTab;
+        const changed = previousTab !== tabId;
+        if (changed) this.scrollPositions[previousTab] = window.scrollY;
         this.currentTab = tabId;
 
         document.querySelectorAll('.tab-btn').forEach(button => {
@@ -76,11 +80,24 @@ class TabManager {
             button.setAttribute('aria-selected', String(active));
         });
 
+        const toolbar = document.getElementById('dashboard-toolbar');
+        if (toolbar) toolbar.dataset.view = tabId;
+
         document.querySelectorAll('.tab-panel').forEach(panel => {
             panel.classList.toggle('hidden', panel.id !== `tab-panel-${tabId}`);
         });
 
+        if (changed) this._scrollTo(this.scrollPositions[tabId] || 0);
         if (updateHash) HashState.update({ view: tabId, chapter: null });
+    }
+
+    reset() {
+        this.scrollPositions = {};
+        this._scrollTo(0);
+    }
+
+    _scrollTo(top) {
+        window.scrollTo({ top, behavior: 'instant' });
     }
 }
 

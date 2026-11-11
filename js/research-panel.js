@@ -23,24 +23,25 @@ class ResearchPanel {
     this.renderers = {};
     this.sections = {};
     this.renderedSections = {};
-    this.activePresetId = null;
+    this.setDefaultFilters();
+  }
 
-    // Whether the underlying was chosen deliberately (by the user, a preset, or
-    // restored state) rather than defaulted. An underlying that was never chosen
-    // must keep tracking the busiest symbol as more data arrives.
-    this.underlyingExplicit = false;
-
-    this.filter = {
-      underlying: null,
-      dteCut: 'all',
-      structures: [
-        ResearchAnalytics.STRUCTURES.IRON_CONDOR,
-        ResearchAnalytics.STRUCTURES.PUT_CREDIT_SPREAD,
-        ResearchAnalytics.STRUCTURES.CALL_CREDIT_SPREAD
-      ]
-    };
-
+  setDefaultFilters() {
+    this.filter = { underlying: null, dteCut: 'all', structures: null };
     this.params = { ...RESEARCH_SCENARIO_DEFAULTS };
+    this.activePresetId = null;
+  }
+
+  /**
+   * Forget the saved filters, so a newly uploaded dataset starts on the whole account
+   */
+  resetFilters() {
+    this.setDefaultFilters();
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.warn('Could not clear research filter state:', error);
+    }
   }
 
   /**
@@ -146,13 +147,12 @@ class ResearchPanel {
     if (!preset) return;
 
     this.filter = {
-      underlying: preset.filter.underlying,
+      underlying: this.resolveUnderlying(preset.filter.underlying),
       dteCut: preset.filter.dteCut || 'all',
       structures: preset.filter.structures ? preset.filter.structures.slice() : null
     };
     this.params = { ...RESEARCH_SCENARIO_DEFAULTS, ...(preset.params || {}) };
     this.activePresetId = presetId;
-    this.underlyingExplicit = true;
 
     this.saveFilterState();
     this.syncControls();
@@ -198,10 +198,24 @@ class ResearchPanel {
       [...this.elements.structureGroup.querySelectorAll('[data-research-structure]')];
   }
 
+  /**
+   * @param {string|null} underlying - A preset's underlying, possibly the top-underlying marker
+   * @returns {string|null} - The symbol it stands for in the loaded dataset
+   */
+  resolveUnderlying(underlying) {
+    if (underlying !== RESEARCH_TOP_UNDERLYING) return underlying;
+    return this.underlyings.length ? this.underlyings[0].symbol : null;
+  }
+
+  presetTitle(preset) {
+    const symbol = this.resolveUnderlying(RESEARCH_TOP_UNDERLYING) || 'Top underlying';
+    return preset.title.replace('{underlying}', symbol);
+  }
+
   buildPresetChips() {
     this.elements.presets.innerHTML = RESEARCH_PRESETS.map(preset => `
       <button class="research-chip" data-research-preset="${preset.id}">
-        ${preset.title}
+        ${this.presetTitle(preset)}
       </button>
     `).join('');
 
@@ -253,7 +267,6 @@ class ResearchPanel {
   bindFilterEvents() {
     this.elements.select.addEventListener('change', () => {
       this.filter.underlying = this.elements.select.value || null;
-      this.underlyingExplicit = true;
       this.onManualFilterChange();
     });
 
@@ -307,14 +320,8 @@ class ResearchPanel {
       .sort((a, b) => (b[1] - a[1]) || (a[0] < b[0] ? -1 : 1))
       .map(([symbol, count]) => ({ symbol, count }));
 
-    // Default to the underlying with the most closed trades. A defaulted
-    // selection is recomputed on every update, because the first update can
-    // arrive on a partial set where a different symbol happens to lead; only a
-    // deliberate choice pins the selection.
     const known = this.underlyings.some(entry => entry.symbol === this.filter.underlying);
-    if (!known || !this.underlyingExplicit) {
-      this.filter.underlying = this.underlyings.length ? this.underlyings[0].symbol : null;
-    }
+    if (!known) this.filter.underlying = null;
   }
 
   loadFilterState() {
@@ -325,7 +332,6 @@ class ResearchPanel {
       const parsed = JSON.parse(stored);
       if (parsed.underlying !== undefined && parsed.underlying !== null) {
         this.filter.underlying = parsed.underlying;
-        this.underlyingExplicit = true;
       }
       if (parsed.dteCut) this.filter.dteCut = parsed.dteCut;
       if (parsed.structures !== undefined) {
@@ -356,8 +362,10 @@ class ResearchPanel {
   syncControls() {
     const selected = this.filter.underlying;
 
+    const total = this.underlyings.reduce((sum, entry) => sum + entry.count, 0);
     this.elements.select.innerHTML = this.underlyings.length
-      ? this.underlyings.map(entry => `
+      ? `<option value="" ${selected ? '' : 'selected'}>All underlyings (${total})</option>` +
+        this.underlyings.map(entry => `
           <option value="${entry.symbol}" ${entry.symbol === selected ? 'selected' : ''}>
             ${entry.symbol} (${entry.count})
           </option>
@@ -383,14 +391,16 @@ class ResearchPanel {
     const available = new Set(this.underlyings.map(entry => entry.symbol));
     this.elements.presets.querySelectorAll('[data-research-preset]').forEach(chip => {
       const preset = RESEARCH_PRESETS.find(entry => entry.id === chip.dataset.researchPreset);
-      const reachable = !preset.filter.underlying || available.has(preset.filter.underlying);
+      const underlying = this.resolveUnderlying(preset.filter.underlying);
+      const reachable = preset.filter.underlying === null || available.has(underlying);
 
+      chip.textContent = this.presetTitle(preset);
       chip.disabled = !reachable;
       chip.classList.toggle('disabled', !reachable);
       chip.classList.toggle('active', reachable && preset.id === this.activePresetId);
       chip.title = reachable
-        ? `Apply: ${ResearchAnalytics.describeFilter(preset.filter)}`
-        : `${preset.filter.underlying} has no closed trades in this dataset`;
+        ? `Apply: ${ResearchAnalytics.describeFilter({ ...preset.filter, underlying })}`
+        : 'No closed trades in this dataset';
     });
   }
 

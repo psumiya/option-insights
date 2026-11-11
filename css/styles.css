@@ -1673,7 +1673,9 @@ body,
     padding: 0 0 10px;
 }
 
-.filter-chips.hidden {
+.filter-chips.hidden,
+.dashboard-toolbar[data-view="research"] .toolbar-filters,
+.dashboard-toolbar[data-view="research"] .filter-chips {
     display: none;
 }
 

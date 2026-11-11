@@ -257,8 +257,20 @@ const ResearchOutputs = (function () {
       'A structure with no trades is listed with a zero count rather than hidden.');
   }
 
+  // A width is a count of the underlying's strike points, so $5 wide on a $40
+  // stock and on SPX are different trades and cannot be pooled
+  function requireOneUnderlying(container, context) {
+    if (context.filter.underlying) return true;
+    appendEmpty(container, 'Spread width is measured in each underlying’s own strike points, '
+      + 'so widths only compare within one underlying. Pick an underlying above.');
+    return false;
+  }
+
   function renderWidthBreakdown(container, context) {
-    const result = ResearchAnalytics.widthBreakdown(context.trades);
+    if (!requireOneUnderlying(container, context)) return;
+    const widths = context.params.widthBuckets
+      || ResearchAnalytics.commonWidths(context.trades, 3);
+    const result = ResearchAnalytics.widthBreakdown(context.trades, widths);
     const buckets = Object.keys(result.byBucket);
 
     if (!buckets.some(bucket => result.byBucket[bucket].n)) {
@@ -276,7 +288,7 @@ const ResearchOutputs = (function () {
 
     appendNote(container,
       'A bucket with no trades is listed with a zero count rather than hidden. '
-      + 'Any width other than 5, 10 or 20 falls into Other.');
+      + `Any width other than ${widths.join(', ')} falls into Other.`);
 
     if (result.excludedNoWidth) {
       appendNote(container,
@@ -285,7 +297,9 @@ const ResearchOutputs = (function () {
   }
 
   function renderWidthCounterfactual(container, context) {
-    const widths = context.params.counterfactualWidths;
+    if (!requireOneUnderlying(container, context)) return;
+    const widths = context.params.counterfactualWidths
+      || ResearchAnalytics.commonWidths(context.trades, 4);
     const result = ResearchAnalytics.widthCounterfactual(context.trades, widths);
 
     if (!result.actualN) {

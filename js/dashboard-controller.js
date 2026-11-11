@@ -136,6 +136,8 @@ class DashboardController {
         );
       }
 
+      if (this.researchPanel) this.researchPanel.resetFilters();
+
       // Hide loading and show dashboard
       this.hideLoading();
       this.showDashboard();
@@ -269,10 +271,11 @@ class DashboardController {
     if (this.tradesTable) this.tradesTable.update(trades);
     this.renderHeadlines(trades);
 
-    // Update research tab with the same filtered set (Requirement 5.5)
-    if (this.researchPanel) {
+    // Research works on the whole account, so the Report's filters don't reach it
+    if (this.researchPanel && this.researchTrades !== this.enrichedTrades) {
+      this.researchTrades = this.enrichedTrades;
       try {
-        this.researchPanel.update(trades);
+        this.researchPanel.update(this.enrichedTrades);
       } catch (e) {
         console.error('Research Panel error:', e);
       }

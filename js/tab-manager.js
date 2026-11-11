@@ -92,6 +92,7 @@ class TabManager {
     }
 
     reset() {
+        this.switchTab('report');
         this.scrollPositions = {};
         this._scrollTo(0);
     }

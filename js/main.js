@@ -108,6 +108,7 @@ function setupEventListeners() {
       e.stopPropagation();
       if (confirm('Clear all imported trades from this browser? This cannot be undone.')) {
         dashboardController.clearData();
+        tabManager.reset();
         dashboardController.showToast('Trade data cleared', 'success');
         syncHeaderActions();
       }

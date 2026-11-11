@@ -4,6 +4,39 @@
  */
 class AnalyticsEngine {
   /**
+   * The most a position could have lost at open, before commissions and fees
+   * Defined-risk credit spreads risk the width less the credit; anything bought
+   * for a net debit risks the debit. Null whenever the export lacks the opening
+   * premium, the risk is undefined (naked short legs, a straddle or strangle
+   * sold for credit), or the contract multiplier is not 100 (futures options).
+   * @param {Object} trade - Trade record with OpenPremium, OpenContracts, Width
+   * @returns {number|null} - Dollars at risk, or null when it cannot be known
+   */
+  static maxLoss(trade) {
+    const premium = Number(trade.OpenPremium);
+    if (trade.OpenPremium === null || trade.OpenPremium === undefined || !Number.isFinite(premium)) {
+      return null;
+    }
+    if (String(trade.Symbol || '').startsWith('/')) return null;
+
+    const strategy = String(trade.Strategy || '').trim();
+    const round = value => Math.round(value * 100) / 100;
+
+    if (AnalyticsEngine.CREDIT_SPREADS.includes(strategy)) {
+      const width = Number(trade.Width);
+      const contracts = Number(trade.OpenContracts);
+      if (!(width > 0) || !(contracts > 0)) return null;
+      return round(Math.max(0, width * 100 * contracts - premium));
+    }
+
+    if (AnalyticsEngine.DEBIT_BOUNDED.includes(strategy) && premium < 0) {
+      return round(-premium);
+    }
+
+    return null;
+  }
+
+  /**
    * Calculate computed fields for a trade record
    * @param {Object} trade - Raw trade record from CSV
    * @returns {Object} - Trade with computed fields added
@@ -24,6 +57,8 @@ class AnalyticsEngine {
     } else {
       enriched.DaysToExpireAtEntry = null;
     }
+
+    enriched.MaxLoss = AnalyticsEngine.maxLoss(trade);
 
     // Calculate P/L (Requirement 2.2)
     // Net of commissions and fees; both are stored as positive cost magnitudes
@@ -825,6 +860,16 @@ class AnalyticsEngine {
     }
   }
 }
+
+AnalyticsEngine.CREDIT_SPREADS = [
+  'Bull Put Spread', 'Put Credit Spread', 'Bear Call Spread', 'Call Credit Spread', 'Iron Condor'
+];
+
+// Bought for a net debit, these cannot lose more than was paid
+AnalyticsEngine.DEBIT_BOUNDED = [
+  'Long Call', 'Long Put', 'Bull Call Spread', 'Bear Put Spread',
+  'Butterfly', 'Butterfly Spread', 'Straddle', 'Strangle'
+];
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

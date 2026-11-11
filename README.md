@@ -78,6 +78,13 @@ as the report: symbol, strategy, entry and exit dates, days held, credit, debit,
 and realized P/L. Columns sort, a search box matches symbol or strategy, and the
 summary line totals realized P/L the same way the Snapshot figure does.
 
+**Max loss** is what a trade could have lost at open, before fees: width less credit
+for a credit spread or iron condor, the debit paid for anything bought. **P/L on risk**
+is realized P/L as a share of it, so sorting that column ranks trades by return for
+the risk taken. Both need the opening premium, which only TastyTrade exports carry,
+and stay blank for naked short options, strangles or straddles sold for credit, and
+futures options.
+
 ### Research
 Structural analysis of closed trades: which choices drove the result, and whether
 the pattern survives a small-sample check.

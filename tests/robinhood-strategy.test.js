@@ -82,7 +82,7 @@ test('sample export labels bought puts as Long Put and verticals by strike order
   trades.forEach(t => { counts[t.Strategy] = (counts[t.Strategy] || 0) + 1; });
   assert.strictEqual(counts['Long Put'], 1);
   assert.strictEqual(counts['Short Put'], 21);
-  assert.strictEqual(counts['Put Credit Spread'], 46);
-  assert.strictEqual(counts['Call Credit Spread'], 10);
-  assert.strictEqual(counts['Straddle'], 6);
+  assert.strictEqual(counts['Put Credit Spread'], 23);
+  assert.strictEqual(counts['Call Credit Spread'], 5);
+  assert.strictEqual(counts['Straddle'], 3);
 });

@@ -220,11 +220,20 @@ class RobinhoodAdapter {
       'Interest Payment',
       'Gold Deposit Boost Payment',
       'Gold Plan Credit',
-      'Gold Subscription Fee',
-      'Option Expiration' // OEXP transactions
+      'Gold Subscription Fee'
     ];
-    
-    const tradingRows = rows.filter(row => {
+
+    // An expiration row names its contract as "Option Expiration for <contract>",
+    // so it has to be renamed to close the position it retires
+    const expirationPrefix = 'Option Expiration for ';
+    const normalizedRows = rows.map(row => {
+      const desc = row['Description'] || '';
+      return row['Trans Code'] === 'OEXP' && desc.startsWith(expirationPrefix)
+        ? { ...row, Description: desc.slice(expirationPrefix.length) }
+        : row;
+    });
+
+    const tradingRows = normalizedRows.filter(row => {
       const desc = row['Description'] || '';
       // Exclude non-trading transactions
       if (excludedDescriptions.some(excluded => desc.includes(excluded))) {
@@ -277,18 +286,13 @@ class RobinhoodAdapter {
       openTradeGroups.get(key).push(trade);
     });
     
-    // Step 3: Infer strategy for each group of open trades
-    const strategyMap = new Map();
-    const openingKey = (description, date) => `${description}_${dateKeyOf(date)}`;
-
-    openTradeGroups.forEach(legs => {
-      const strategy = this._inferStrategy(legs);
-      legs.forEach(leg => {
-        strategyMap.set(openingKey(leg.Description, leg.activityDate), strategy);
-      });
+    // Step 3: Infer one strategy per opening group
+    const groupStrategy = new Map();
+    openTradeGroups.forEach((legs, key) => {
+      groupStrategy.set(key, this._inferStrategy(legs));
     });
 
-    // Step 4: Split each option's rows into open-to-flat cycles, one trade per cycle
+    // Step 4: Split each option's rows into open-to-flat cycles
     const byDescription = new Map();
     tradingRows.forEach(row => {
       const desc = row['Description'];
@@ -316,92 +320,91 @@ class RobinhoodAdapter {
         } else if (this._isCloseTrade(row['Trans Code'])) {
           openQty -= qty;
           if (openQty <= 0) {
-            cycles.push({ description, transRows: current });
+            cycles.push({ description, transRows: current, flat: true });
             current = [];
             openQty = 0;
           }
         }
       });
-      if (current.length) cycles.push({ description, transRows: current });
+      if (current.length) cycles.push({ description, transRows: current, flat: false });
     });
 
-    cycles.forEach(({ description, transRows }) => {
-      const details = this.parseDescription(description);
+    // Step 5: Attach each cycle to the opening group its first open belongs to,
+    // so a strategy whose legs close separately is still one trade
+    const strategyGroups = new Map();
+    cycles.forEach((cycle, index) => {
+      const details = this.parseDescription(cycle.description);
       if (!details) {
-        console.warn('Could not parse option details from:', description);
+        console.warn('Could not parse option details from:', cycle.description);
         return;
       }
-      
-      // Sum all amounts for this option
+      const firstOpen = cycle.transRows.find(row => this._isOpenTrade(row['Trans Code']));
+      // An expiration of a contract opened before this export carries no money
+      if (!firstOpen && cycle.transRows.every(row => row['Trans Code'] === 'OEXP')) return;
+      const key = firstOpen
+        ? `${firstOpen['Instrument']}_${dateKeyOf(this._parseDate(firstOpen['Activity Date']))}`
+        : `unopened_${index}`;
+      if (!strategyGroups.has(key)) {
+        strategyGroups.set(key, { strategy: groupStrategy.get(key) || 'Custom', legs: [] });
+      }
+      strategyGroups.get(key).legs.push({ ...cycle, details, hasOpen: !!firstOpen });
+    });
+
+    const round = value => Math.round(value * 100) / 100;
+
+    strategyGroups.forEach(({ strategy, legs }) => {
       let totalAmount = 0;
+      let realized = 0;
       let earliestDate = null;
       let latestDate = null;
-      let hasOpen = false;
-      let hasClose = false;
-      
-      transRows.forEach(row => {
-        const transCode = row['Trans Code'];
-        const amount = this._parseAmount(row['Amount']);
-        const activityDate = this._parseDate(row['Activity Date']);
-        
-        totalAmount += amount;
-        
-        // Track dates
-        if (!earliestDate || activityDate < earliestDate) {
-          earliestDate = activityDate;
-        }
-        if (!latestDate || activityDate > latestDate) {
-          latestDate = activityDate;
-        }
-        
-        // Track if we have opens and closes
-        if (this._isOpenTrade(transCode)) {
-          hasOpen = true;
-        }
-        if (this._isCloseTrade(transCode)) {
-          hasClose = true;
-        }
+      let openQty = 0;
+      let openedLegs = 0;
+      const types = new Set();
+      const strikes = [];
+      const expiries = [];
+
+      legs.forEach(({ details, transRows, flat, hasOpen }) => {
+        types.add(details.type);
+        strikes.push(details.strike);
+        if (details.expiry) expiries.push(details.expiry.getTime());
+        if (hasOpen) openedLegs++;
+
+        let legAmount = 0;
+        transRows.forEach(row => {
+          const activityDate = this._parseDate(row['Activity Date']);
+          legAmount += this._parseAmount(row['Amount']);
+          if (!earliestDate || activityDate < earliestDate) earliestDate = activityDate;
+          if (!latestDate || activityDate > latestDate) latestDate = activityDate;
+          if (this._isOpenTrade(row['Trans Code'])) {
+            openQty += Math.abs(parseInt(row['Quantity']) || 1);
+          }
+        });
+
+        totalAmount += legAmount;
+        // Robinhood realizes each leg as it goes flat, even while the rest of
+        // the strategy stays open
+        if (flat && hasOpen) realized += legAmount;
       });
-      
-      // Determine if position is closed or open
-      const isClosed = hasOpen && hasClose;
-      
-      // Determine credit and debit based on the sign of totalAmount
-      let credit = 0;
-      let debit = 0;
-      
-      if (totalAmount > 0) {
-        credit = totalAmount;
-      } else {
-        debit = Math.abs(totalAmount);
-      }
-      
-      const firstOpen = transRows.find(row => this._isOpenTrade(row['Trans Code']));
-      const strategy = (firstOpen &&
-        strategyMap.get(openingKey(description, this._parseDate(firstOpen['Activity Date'])))) || 'Custom';
-      
-      // Get average quantity
-      const totalQty = transRows.reduce((sum, row) => {
-        return sum + Math.abs(parseInt(row['Quantity']) || 1);
-      }, 0);
-      const avgQty = Math.floor(totalQty / transRows.length);
-      
-      const trade = {
-        Symbol: details.symbol,
-        Type: details.type,
+
+      const isClosed = legs.every(leg => leg.flat && leg.hasOpen);
+      strikes.sort((a, b) => a - b);
+
+      trades.push({
+        Symbol: legs[0].details.symbol,
+        Type: types.size === 1 ? legs[0].details.type : 'Mixed',
         Strategy: strategy,
-        Strike: details.strike,
-        Expiry: details.expiry,
-        Volume: avgQty,
+        Strike: strikes[Math.floor(strikes.length / 2)],
+        Expiry: expiries.length ? new Date(Math.min(...expiries)) : legs[0].details.expiry,
+        Volume: openedLegs ? Math.floor(openQty / openedLegs) : 1,
         Entry: earliestDate,
         Delta: 0, // Not provided by Robinhood
         Exit: isClosed ? latestDate : null,
-        Debit: debit,
-        Credit: credit,
+        Debit: totalAmount < 0 ? round(-totalAmount) : 0,
+        Credit: totalAmount > 0 ? round(totalAmount) : 0,
+        RealizedPL: round(realized),
+        RealizedGrossPL: round(realized),
         Account: 'Robinhood'
-      };
-      
-      trades.push(trade);
+      });
     });
     
     return trades;

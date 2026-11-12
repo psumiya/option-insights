@@ -6,6 +6,8 @@ Your trades. Your browser. Your insights. No Tracking or Cookies.
 
 Try it here: https://sumiya.page/insights/index.html
 
+Documentation: https://psumiya.github.io/option-insights/
+
 Or build locally as described below.
 
 ## Quick Start

@@ -7,7 +7,7 @@ permalink: /getting-started/
 
 # Getting started
 
-Option Insights needs nothing installed. Open the [hosted app](https://sumiya.page/insights/index.html), or [run it locally]({{ '/developers/local-development/' | relative_url }}), and you land on the welcome screen.
+Option Insights needs nothing installed. Open the [hosted app](https://psumiya.github.io/option-insights/app/), or [run it locally]({{ '/developers/local-development/' | relative_url }}), and you land on the welcome screen.
 
 ![The welcome screen before any data is loaded]({{ '/assets/images/screenshots/welcome.png' | relative_url }})
 

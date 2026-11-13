@@ -6,6 +6,7 @@ plugins:
 
 url: https://psumiya.github.io
 baseurl: /option-insights
+permalink: pretty
 
 color_scheme: light
 search_enabled: true

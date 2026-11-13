@@ -15,7 +15,7 @@ back_to_top: true
 back_to_top_text: "Back to top"
 
 aux_links:
-  "Open the app": "https://sumiya.page/insights/index.html"
+  "Open the app": "https://psumiya.github.io/option-insights/app/"
   "GitHub": "https://github.com/psumiya/option-insights"
 aux_links_new_tab: true
 

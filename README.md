@@ -4,7 +4,7 @@ A personal options trading insights dashboard that helps you visualize and analy
 
 Your trades. Your browser. Your insights. No Tracking or Cookies.
 
-Try it here: https://sumiya.page/insights/index.html
+Try it here: https://psumiya.github.io/option-insights/app/
 
 Documentation: https://psumiya.github.io/option-insights/
 

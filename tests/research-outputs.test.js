@@ -74,7 +74,7 @@ test('structureCode abbreviates the three structures and the mixed case', () => 
 
 test('structureCode falls back to an abbreviation for other strategies', () => {
   assert.strictEqual(ResearchOutputs.structureCode('Short Put'), 'SHO');
-  assert.strictEqual(ResearchOutputs.structureCode('Butterfly Spread'), 'BUT');
+  assert.strictEqual(ResearchOutputs.structureCode('Butterfly'), 'BUT');
 });
 
 test('structureCode returns null for no strategy', () => {

@@ -62,7 +62,6 @@ const ResearchAnalytics = (function () {
     'Short Future': { direction: 'bearish', premium: null },
     'Iron Condor': { direction: 'neutral', premium: 'credit' },
     'Butterfly': { direction: 'neutral', premium: null },
-    'Butterfly Spread': { direction: 'neutral', premium: null },
     'Straddle': { direction: 'neutral', premium: null },
     'Strangle': { direction: 'neutral', premium: null }
   };

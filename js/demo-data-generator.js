@@ -27,7 +27,7 @@ class DemoDataGenerator {
       { name: 'Bull Call Spread', winRate: 0.55, avgReturn: 0.20 },
       { name: 'Bear Put Spread', winRate: 0.50, avgReturn: 0.18 },
       { name: 'Iron Condor', winRate: 0.60, avgReturn: 0.10 },
-      { name: 'Butterfly Spread', winRate: 0.35, avgReturn: 0.40 }
+      { name: 'Butterfly', winRate: 0.35, avgReturn: 0.40 }
     ];
 
     this.accounts = ['Main', 'IRA', 'Roth IRA'];

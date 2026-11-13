@@ -897,7 +897,7 @@ AnalyticsEngine.CREDIT_SPREADS = [
 // Bought for a net debit, these cannot lose more than was paid
 AnalyticsEngine.DEBIT_BOUNDED = [
   'Long Call', 'Long Put', 'Bull Call Spread', 'Bear Put Spread',
-  'Butterfly', 'Butterfly Spread', 'Straddle', 'Strangle'
+  'Butterfly', 'Straddle', 'Strangle'
 ];
 
 // Export for use in other modules

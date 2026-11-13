@@ -26,13 +26,12 @@ jobs:
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./docs
-          destination: ./_site
+          destination: ./_site/docs
 
-      - name: Add app under /app
+      - name: Add app at the site root
         run: |
-          sudo mkdir -p _site/app
-          sudo cp index.html _site/app/
-          sudo cp -r js css lib _site/app/
+          sudo cp index.html _site/
+          sudo cp -r js css lib _site/
 
       - uses: actions/upload-pages-artifact@v3
 

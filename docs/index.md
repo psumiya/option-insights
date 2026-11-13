@@ -12,7 +12,7 @@ permalink: /
 Turn a broker CSV export into a clear report on your options trading. Everything runs in your browser: no account, no server, no tracking.
 {: .fs-6 .fw-300 }
 
-[Open the app](https://psumiya.github.io/option-insights/app/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 target="_blank" rel="noopener" }
+[Open the app](https://psumiya.github.io/option-insights/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 target="_blank" rel="noopener" }
 [Get started]({{ '/getting-started/' | relative_url }}){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---

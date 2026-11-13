@@ -5,7 +5,7 @@ plugins:
   - jekyll-remote-theme
 
 url: https://psumiya.github.io
-baseurl: /option-insights
+baseurl: /option-insights/docs
 permalink: pretty
 
 color_scheme: light
@@ -15,7 +15,7 @@ back_to_top: true
 back_to_top_text: "Back to top"
 
 aux_links:
-  "Open the app": "https://psumiya.github.io/option-insights/app/"
+  "Open the app": "https://psumiya.github.io/option-insights/"
   "GitHub": "https://github.com/psumiya/option-insights"
 aux_links_new_tab: true
 

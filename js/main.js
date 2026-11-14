@@ -442,8 +442,8 @@ async function handleDemoDataLoad() {
     console.warn('Failed to save demo data to localStorage:', storageError);
   }
   
-  dataStore.saveSpxRows(spxRows);
-  if (dashboardController.zeroDtePanel) dashboardController.zeroDtePanel.update(spxRows);
+  dataStore.saveSpxRows(spxRows, { demo: true });
+  if (dashboardController.zeroDtePanel) dashboardController.zeroDtePanel.update(spxRows, { demo: true });
 
   // Update dashboard controller
   dashboardController.enrichedTrades = enrichedTrades;

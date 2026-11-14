@@ -72,7 +72,7 @@ class DashboardController {
 
     this.zeroDtePanel = new ZeroDtePanel('zero-dte-panel');
     this.zeroDtePanel.initialize();
-    this.zeroDtePanel.update(this.dataStore.loadSpxRows());
+    this.zeroDtePanel.update(this.dataStore.loadSpxRows(), { demo: this.dataStore.isSpxDemo() });
 
     this.initializePLMeasureToggle();
 

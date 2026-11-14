@@ -3,6 +3,7 @@ class ZeroDtePanel {
         this.containerId = containerId;
         this.container = null;
         this.rows = [];
+        this.demo = false;
         this.positions = [];
         this.spx = null;
         this.spxError = null;
@@ -83,8 +84,9 @@ class ZeroDtePanel {
         if (menu) menu.open = false;
     }
 
-    update(rows) {
-        if (rows === this.rows) return;
+    update(rows, { demo = false } = {}) {
+        if (rows === this.rows && demo === this.demo) return;
+        this.demo = demo;
         this.rows = rows || [];
         this.positions = ZeroDteAnalytics.buildPositions(this.rows);
         this.state = ZeroDtePanel.defaultState();
@@ -192,7 +194,7 @@ class ZeroDtePanel {
             <section class="report-card zd-card" aria-labelledby="zd-title">
                 <div class="card-head">
                     <h2 id="zd-title" class="card-title">SPX 0DTE vs. day move</h2>
-                    <p class="card-sub">Each 0DTE position from your export, lined up against how far SPX moved that day and how far its short strikes sat from the open.</p>
+                    <p class="card-sub">Each 0DTE position ${this.demo ? 'in the demo data' : 'from your export'}, lined up against how far SPX moved that day and how far its short strikes sat from the open.</p>
                 </div>
                 <div class="zd-tiles">
                     ${tile('Trades', t.trades)}
@@ -577,7 +579,7 @@ class ZeroDtePanel {
         const missing = this.measured.missingDays;
         return `
             <footer class="zd-footer">
-                <p><strong>Sources.</strong> SPX daily open, high, low and close from Yahoo Finance (^GSPC), and VIX open and close (^VIX), cached with this site and refreshed each weekday after the close. Trades come from your tastytrade export and never leave this browser.</p>
+                <p><strong>Sources.</strong> SPX daily open, high, low and close from Yahoo Finance (^GSPC), and VIX open and close (^VIX), cached with this site and refreshed each weekday after the close. ${this.demo ? 'Demo trades are generated in this browser against those SPX bars, with prices from a simple model.' : 'Trades come from your tastytrade export and never leave this browser.'}</p>
                 <p><strong>0DTE.</strong> An SPX option position opened on its expiration day, in Eastern time. Positions opened on an earlier day, including the evening before in the overnight session, are left out. Closes are matched to opening lots first in, first out, and P&amp;L includes fees.</p>
                 ${missing.length ? `<p><strong>Days left out.</strong> No published SPX bar for ${missing.map(ZeroDtePanel.longDate).join(', ')}.</p>` : ''}
                 <p><strong>Caveat.</strong> Strike distances use the day's open because the export doesn't record SPX at the moment of entry. For afternoon entries the open can be far from where SPX actually was.</p>

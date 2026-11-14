@@ -11,6 +11,7 @@ class DataStore {
   constructor() {
     this.TRADES_KEY = 'options_trading_journal_trades';
     this.FILTERS_KEY = 'options_trading_journal_filters';
+    this.SPX_ROWS_KEY = 'options_trading_journal_spx_rows';
     this.listeners = new Map();
     
     // Default filter state
@@ -73,9 +74,29 @@ class DataStore {
   /**
    * Clear all stored trade data
    */
+  loadSpxRows() {
+    try {
+      const data = localStorage.getItem(this.SPX_ROWS_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.warn('Could not load SPX option rows:', error);
+      return [];
+    }
+  }
+
+  saveSpxRows(rows) {
+    try {
+      if (rows && rows.length) localStorage.setItem(this.SPX_ROWS_KEY, JSON.stringify(rows));
+      else localStorage.removeItem(this.SPX_ROWS_KEY);
+    } catch (error) {
+      console.warn('Could not save SPX option rows:', error);
+    }
+  }
+
   clearTrades() {
     try {
       localStorage.removeItem(this.TRADES_KEY);
+      localStorage.removeItem(this.SPX_ROWS_KEY);
       this.emit('tradesCleared');
     } catch (error) {
       console.error('Error clearing trades from localStorage:', error);

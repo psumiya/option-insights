@@ -4,7 +4,7 @@
  * active view in the URL hash so it survives reloads and can be linked.
  */
 
-const VIEWS = ['report', 'research', 'trades', 'ask'];
+const VIEWS = ['report', 'research', 'spx0dte', 'trades', 'ask'];
 
 // Older links used #data for what is now the Trades view
 const VIEW_ALIASES = { data: 'trades' };

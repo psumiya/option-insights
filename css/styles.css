@@ -1823,7 +1823,9 @@ body,
 
 .filter-chips.hidden,
 .dashboard-toolbar[data-view="research"] .toolbar-filters,
-.dashboard-toolbar[data-view="research"] .filter-chips {
+.dashboard-toolbar[data-view="research"] .filter-chips,
+.dashboard-toolbar[data-view="spx0dte"] .toolbar-filters,
+.dashboard-toolbar[data-view="spx0dte"] .filter-chips {
     display: none;
 }
 
@@ -2299,4 +2301,374 @@ body,
 .trades-open-tag {
     margin-right: 8px;
     font-size: 12px;
+}
+
+/* ============================================
+   SPX 0DTE view
+   ============================================ */
+#zero-dte-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.zd-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.zd-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+
+.zd-banner-warn {
+    color: var(--color-text-primary);
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: var(--color-warning);
+}
+
+.zd-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.zd-dot-ok { background: var(--color-profit); }
+.zd-dot-warn { background: var(--color-warning); }
+
+.zd-empty,
+.zd-empty-inline {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.zd-empty {
+    padding: 32px 24px;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+}
+
+.zd-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.zd-tile {
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+}
+
+.zd-tile-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.zd-tile-value {
+    margin-top: 2px;
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.zd-summary {
+    margin-top: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    max-width: 80ch;
+}
+
+.zd-pos { color: var(--color-profit); }
+.zd-neg { color: var(--color-loss); }
+
+.zd-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.zd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.zd-chip span {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    line-height: 1;
+}
+
+.zd-chip:hover span { color: var(--color-text-primary); }
+
+.zd-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.zd-select-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.zd-table-wrap {
+    overflow-x: auto;
+}
+
+.zd-table td,
+.zd-table th {
+    white-space: nowrap;
+    padding: 10px 12px;
+}
+
+.zd-table {
+    font-size: 13px;
+}
+
+.zd-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.zd-row {
+    cursor: pointer;
+}
+
+.zd-row:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.data-table tbody tr.zd-row-active {
+    background-color: rgba(59, 130, 246, 0.15);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.zd-row-empty td {
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+}
+
+.zd-row-split td {
+    border-top: 1px solid var(--color-text-secondary);
+}
+
+.zd-bar-cell {
+    width: 34%;
+    min-width: 120px;
+}
+
+.zd-bar {
+    position: relative;
+    height: 14px;
+}
+
+.zd-bar-zero {
+    position: absolute;
+    left: 50%;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    background: var(--color-text-secondary);
+    opacity: 0.6;
+}
+
+.zd-bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+}
+
+.zd-bar-fill.zd-pos { background: var(--color-profit); }
+.zd-bar-fill.zd-neg { background: var(--color-loss); }
+
+.zd-explorer {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 16px;
+}
+
+.zd-days {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 560px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.zd-day {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "date pl" "move pl";
+    align-items: center;
+    padding: 6px 10px;
+    text-align: left;
+    color: var(--color-text-primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+}
+
+.zd-day:hover { border-color: var(--color-border); }
+
+.zd-day.active {
+    border-color: var(--color-accent);
+    background-color: rgba(59, 130, 246, 0.12);
+}
+
+.zd-day-date { grid-area: date; font-size: 13px; }
+.zd-day-move { grid-area: move; font-size: 12px; color: var(--color-text-secondary); }
+.zd-day-pl { grid-area: pl; font-size: 13px; font-weight: 500; }
+
+.zd-day-detail {
+    min-width: 0;
+}
+
+.zd-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.zd-day-title {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.zd-pager {
+    display: flex;
+    gap: 6px;
+}
+
+.zd-pager .filter-btn {
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+.zd-pager .filter-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.zd-ladder {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.zd-ladder svg {
+    display: block;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.zd-range { fill: var(--color-accent); opacity: 0.1; }
+.zd-grid { stroke: var(--color-border); stroke-width: 1; }
+.zd-tick,
+.zd-ref-label,
+.zd-row-label { fill: var(--color-text-secondary); }
+.zd-ref-label { font-size: 11px; }
+.zd-prev { stroke: var(--color-text-secondary); stroke-width: 1; stroke-dasharray: 1 3; }
+.zd-openline { stroke: var(--color-text-primary); stroke-width: 1.5; }
+.zd-closeline { stroke: var(--color-text-primary); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.zd-hit { fill: transparent; }
+.zd-ladder-row:hover .zd-hit { fill: var(--color-text-secondary); opacity: 0.08; }
+.zd-span { stroke-width: 2; }
+.zd-leg { stroke-width: 2; }
+.zd-leg.long { fill: var(--color-surface); }
+.zd-win .zd-span, .zd-win .zd-leg { stroke: var(--color-profit); }
+.zd-win .zd-leg.short { fill: var(--color-profit); }
+.zd-loss .zd-span, .zd-loss .zd-leg { stroke: var(--color-loss); }
+.zd-loss .zd-leg.short { fill: var(--color-loss); }
+.zd-open .zd-span, .zd-open .zd-leg { stroke: var(--color-text-secondary); }
+.zd-open .zd-leg.short { fill: var(--color-text-secondary); }
+
+.zd-legs {
+    font-variant-numeric: tabular-nums;
+}
+
+.zd-day-detail .zd-table td {
+    white-space: normal;
+}
+
+.zd-day-detail .zd-table td.zd-legs,
+.zd-day-detail .zd-table td.zd-num {
+    white-space: nowrap;
+}
+
+.zd-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 4px 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+    max-width: 90ch;
+}
+
+.zd-footer strong { color: var(--color-text-primary); font-weight: 600; }
+
+@media (max-width: 767px) {
+    .zd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .zd-tile-value { font-size: 18px; }
+    .zd-explorer { grid-template-columns: minmax(0, 1fr); }
+    .zd-days {
+        flex-direction: row;
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 0 6px;
+    }
+    .zd-day {
+        flex: none;
+        min-width: 132px;
+        border-color: var(--color-border);
+    }
+    .zd-bar-col { display: none; }
+    .zd-bar-cell { min-width: 0; width: 18%; }
+    .report-card.zd-card { padding: 16px 12px; }
+    .zd-table { font-size: 12px; }
+    .zd-table td,
+    .zd-table th { padding: 8px 4px; white-space: normal; }
+    .zd-table td.zd-num { white-space: nowrap; }
+    .zd-day-detail .zd-table td.zd-legs { white-space: normal; }
+    .tab-btn { padding: 12px 8px; }
+    .zd-table th { letter-spacing: 0; font-size: 11px; }
 }

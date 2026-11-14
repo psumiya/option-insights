@@ -130,6 +130,7 @@
                 <nav class="view-nav" role="tablist" aria-label="Dashboard views">
                     <button id="tab-report" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-panel-report">Report</button>
                     <button id="tab-research" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-research">Research</button>
+                    <button id="tab-spx0dte" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-spx0dte" aria-label="SPX 0DTE"><span class="tab-label-long">SPX 0DTE</span><span class="tab-label-short" aria-hidden="true">0DTE</span></button>
                     <button id="tab-trades" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-trades">Trades</button>
                     <button id="tab-ask" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-ask" aria-label="Ask Claude"><span class="tab-label-long">Ask Claude</span><span class="tab-label-short" aria-hidden="true">Ask</span></button>
                 </nav>
@@ -342,6 +343,11 @@
                 <div id="research-panel"></div>
             </div>
 
+            <!-- View: SPX 0DTE -->
+            <div id="tab-panel-spx0dte" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-spx0dte">
+                <div id="zero-dte-panel"></div>
+            </div>
+
             <!-- View: Trades -->
             <div id="tab-panel-trades" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-trades">
                 <section class="report-card" aria-labelledby="trades-title">
@@ -391,6 +397,12 @@
     <script src="js/research-outputs.js"></script>
     <script src="js/ai-context.js"></script>
     <script src="js/ai-panel.js"></script>
+
+    <!-- SPX 0DTE Tab -->
+    <script src="js/market-calendar.js"></script>
+    <script src="js/spx-data.js"></script>
+    <script src="js/zero-dte-analytics.js"></script>
+    <script src="js/zero-dte-panel.js"></script>
     
     <!-- Visualization Components -->
     <script src="js/visualizations/summary-metrics-panel.js"></script>

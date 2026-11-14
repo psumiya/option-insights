@@ -3,7 +3,14 @@ name: Deploy docs and app to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '15 22 * * 1-5'
   workflow_dispatch:
+    inputs:
+      backfill:
+        description: 'Refetch all SPX bars from 2025-01-02 instead of appending new days'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,10 +22,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  refresh-data:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch SPX daily bars
+        env:
+          BACKFILL: ${{ inputs.backfill }}
+        run: |
+          if [ "$BACKFILL" = "true" ]; then
+            node scripts/fetch-spx.mjs --backfill
+          else
+            node scripts/fetch-spx.mjs
+          fi
+
+      - name: Commit new bars
+        id: commit
+        run: |
+          if git diff --quiet -- data/spx-daily.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/spx-daily.json
+          git commit -m "Refresh SPX daily bars"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: refresh-data
+    if: >-
+      !failure() && !cancelled() &&
+      (github.event_name != 'schedule' || needs.refresh-data.outputs.changed == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || github.ref }}
 
       - uses: actions/configure-pages@v6
 
@@ -31,7 +78,7 @@ jobs:
       - name: Add app at the site root
         run: |
           sudo cp index.html _site/
-          sudo cp -r js css lib _site/
+          sudo cp -r js css lib data _site/
 
       - uses: actions/upload-pages-artifact@v5
 

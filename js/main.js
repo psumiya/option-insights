@@ -430,6 +430,9 @@ function handleDemoDataLoad() {
     console.warn('Failed to save demo data to localStorage:', storageError);
   }
   
+  dataStore.saveSpxRows([]);
+  if (dashboardController.zeroDtePanel) dashboardController.zeroDtePanel.update([]);
+
   // Update dashboard controller
   dashboardController.enrichedTrades = enrichedTrades;
   dashboardController.showDashboard();

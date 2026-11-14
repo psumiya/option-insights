@@ -69,6 +69,7 @@ class CSVParser {
    * @throws {ParseError} - If CSV format is invalid
    */
   parseCSVString(csvText) {
+    this.lastRaw = null;
     const lines = csvText.trim().split('\n');
     
     if (lines.length === 0) {
@@ -115,6 +116,8 @@ class CSVParser {
         rawRows.push(record);
       }
       
+      this.lastRaw = { broker: brokerType, rows: rawRows };
+
       // Convert using broker adapter
       const convertedTrades = adapter.convert(rawRows);
       console.log(`Converted ${convertedTrades.length} trades from ${brokerType} format`);

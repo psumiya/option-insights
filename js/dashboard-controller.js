@@ -70,6 +70,10 @@ class DashboardController {
     this.researchPanel.initialize();
     ResearchOutputs.register(this.researchPanel);
 
+    this.zeroDtePanel = new ZeroDtePanel('zero-dte-panel');
+    this.zeroDtePanel.initialize();
+    this.zeroDtePanel.update(this.dataStore.loadSpxRows());
+
     this.initializePLMeasureToggle();
 
     // Initialize collapsible section for table (Requirements: 1.1, 1.2, 1.3)
@@ -113,6 +117,10 @@ class DashboardController {
 
       // Parse CSV file (Requirement 1.1)
       const rawTrades = await this.csvParser.parse(file);
+      const raw = this.csvParser.lastRaw;
+      const spxRows = raw && raw.broker === 'tasty' ? ZeroDteAnalytics.pickRows(raw.rows) : [];
+      this.dataStore.saveSpxRows(spxRows);
+      if (this.zeroDtePanel) this.zeroDtePanel.update(spxRows);
 
       // Enrich trades with computed fields
       this.enrichedTrades = rawTrades.map(trade => {
@@ -887,6 +895,7 @@ class DashboardController {
     this.dataStore.clearTrades();
     if (this.tradesTable) this.tradesTable.update([]);
     if (this.askPanel) this.askPanel.update([], '');
+    if (this.zeroDtePanel) this.zeroDtePanel.update([]);
     this.showEmptyState();
   }
 

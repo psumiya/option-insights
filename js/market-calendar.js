@@ -77,6 +77,6 @@ const MarketCalendar = (() => {
     return {
         FIRST_YEAR, LAST_YEAR,
         addDays, isTradingDay, previousTradingDay, tradingDaysBetween,
-        etDate, lastCompletedTradingDay
+        etDate, toEt, lastCompletedTradingDay
     };
 })();

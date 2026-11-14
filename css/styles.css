@@ -2445,6 +2445,25 @@ body,
     overflow-x: auto;
 }
 
+.zd-wi-input {
+    width: 130px;
+}
+
+.zd-wi-table td:first-child {
+    color: var(--color-text-secondary);
+}
+
+.zd-wi-notes {
+    margin-top: 12px;
+}
+
+.zd-wi-sub {
+    margin: 20px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
 .zd-multi {
     position: relative;
 }

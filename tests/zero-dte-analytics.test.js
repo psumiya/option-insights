@@ -145,6 +145,60 @@ test('measure uses the day bar for moves, distance, hit and ITM at close', () =>
     assert.deepStrictEqual([band.trades, band.hitPct, band.itmPct], [1, 100, 100]);
 });
 
+const wiFixture = [
+    raw('2026-11-05T07:00:00-0800', 'Sell to Open', 7490, 'PUT', '11/05/26', 1, '600.00', 'P'),
+    raw('2026-11-05T07:00:00-0800', 'Buy to Open', 7480, 'PUT', '11/05/26', 1, '-200.00', 'P'),
+    raw('2026-11-05T13:00:00-0800', 'Cash Settled Assignment', 7490, 'PUT', '11/05/26', 1, '-2,000.00'),
+    raw('2026-11-05T13:00:00-0800', 'Cash Settled Exercise', 7480, 'PUT', '11/05/26', 1, '1,000.00'),
+    raw('2026-11-05T07:30:00-0800', 'Sell to Open', 7520, 'CALL', '11/05/26', 1, '300.00', 'Q'),
+    raw('2026-11-05T07:30:00-0800', 'Buy to Open', 7525, 'CALL', '11/05/26', 1, '-100.00', 'Q'),
+    raw('2026-11-05T10:00:00-0800', 'Buy to Close', 7520, 'CALL', '11/05/26', 1, '-150.00', 'R'),
+    raw('2026-11-05T10:00:00-0800', 'Sell to Close', 7525, 'CALL', '11/05/26', 1, '20.00', 'R')
+].reverse();
+const wiSpx = { prevClose: 7400, bars: [{ d: '2026-11-05', o: 7495, h: 7500, l: 7460, c: 7470 }, ...spx.bars.slice(1), { d: '2026-11-09', o: 7500, h: 7560, l: 7490, c: 7520 }] };
+const wiMeasured = Z.measure([...Z.buildPositions(Z.pickRows(wiFixture)), ...positions], wiSpx).positions;
+const wiRow = (result, id) => result.rows.find(r => r.pos.id === id);
+
+test('what-if width re-settles a spread exactly and bounds the new long premium', () => {
+    const wide = Z.whatIf(wiMeasured, { width: 25 });
+    const p = wiRow(wide, 'P');
+    assert.strictEqual(p.pos.pl, -600);
+    assert.strictEqual(p.status, 'modeled');
+    assert.deepStrictEqual([p.low, p.high], [-1600, -1400]);
+    assert.deepStrictEqual(p.legs.map(l => l.strike), [7465, 7490]);
+    assert.deepStrictEqual([p.risk.actual, p.risk.worst, p.risk.best], [600, 2100, 1900]);
+
+    const narrow = wiRow(Z.whatIf(wiMeasured, { width: 5 }), 'P');
+    assert.deepStrictEqual([narrow.low, narrow.high], [-500, -100]);
+});
+
+test('what-if width widens both sides of an iron condor and leaves other trades alone', () => {
+    const r = Z.whatIf(wiMeasured, { width: 10 });
+    const c = wiRow(r, 'C');
+    assert.deepStrictEqual(c.legs.map(l => l.strike), [7390, 7400, 7500, 7510]);
+    assert.deepStrictEqual([c.low, c.high], [-150, 400]);
+
+    const q = wiRow(r, 'Q');
+    assert.strictEqual(q.pos.outcome, 'Closed early');
+    assert.strictEqual(q.status, 'kept');
+    assert.deepStrictEqual([q.low, q.high], [70, 70]);
+    assert.strictEqual(wiRow(r, 'P').status, 'same');
+    assert.deepStrictEqual(r.counts, { skipped: 0, modeled: 2, kept: 1, noWidth: 0 });
+});
+
+test('what-if contracts scale results and skip rules drop days', () => {
+    const vix = new Map([['2026-11-05', { o: 22 }], ['2026-11-06', { o: 15 }]]);
+    const r = Z.whatIf(wiMeasured, { contracts: 2, vixMax: 20, vix });
+    assert.strictEqual(wiRow(r, 'P').skipped, true);
+    assert.strictEqual(wiRow(r, 'C').low, -300);
+    assert.strictEqual(r.actual.trades, 4);
+    assert.strictEqual(r.low.trades, 2);
+    assert.strictEqual(r.counts.skipped, 2);
+
+    const gap = Z.whatIf(wiMeasured, { gapMax: 1 });
+    assert.deepStrictEqual(gap.rows.filter(row => row.skipped).map(row => row.pos.id).sort(), ['P', 'Q']);
+});
+
 test('VIX bars are indexed by date with the prior close attached', () => {
     const vix = SpxData.indexVix({ prevClose: 17.35, bars: [{ d: '2026-11-05', o: 18, h: 19, l: 17, c: 18.5 }, { d: '2026-11-06', o: 18.4, h: 18.9, l: 16.8, c: 17.1 }] });
     assert.strictEqual(vix.get('2026-11-05').prev, 17.35);

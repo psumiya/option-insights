@@ -91,6 +91,27 @@ A list of every trading day in view, with its move and VIX close. Pick a day to 
 
 The **Structure** and **Outcome** menus above the list take several values at once. Each selection appears as a chip with the others at the top of the page; remove a chip to drop that filter.
 
+## What if
+
+Replays the trades in view with inputs you control, leaving the market as it was. Every filter on the page narrows the trades it replays. **Reset** puts every input back to actual.
+
+- **Spread width**: moves the long leg of each credit spread so it sits that many points from the short strike, on both sides of an iron condor or iron butterfly. **Actual** keeps the widths you traded.
+- **Contracts per trade**: scales every position to that many contracts. P/L scales with it, fees included.
+- **Skip if VIX opens above** and **Skip if SPX gaps over**: drops any trade on a day whose VIX open or open-to-prior-close gap was past the threshold. Both are known at the open. A day without VIX data is never skipped by the VIX rule.
+
+A table compares trades taken, net P/L, win rate, worst day and average max loss at entry, actual against what if. Below it, the trades whose results move the most are listed with their what-if legs.
+
+### What is exact and what is a range
+
+SPX 0DTE options settle on the close, so for a trade that expired or settled in the money, the value of a different long strike at settlement comes straight from the SPX close. That part is exact.
+
+What the export can't say is what the new long strike would have cost at entry. That cost has hard limits. A wider long is further out of the money, so it costs between nothing and what you paid for the original long. A narrower long costs at least what you paid, and no more than that plus the points it moved closer, or the premium of the short itself. Each what-if result is shown as the range those limits allow.
+
+Trades closed early or still open keep their actual P/L at a new width, since nothing in the export says what a different long would have closed at. They still count toward average max loss, which is set at entry. Structures without a credit spread on each side (naked shorts, debit spreads, butterflies, strangles) are left unchanged. A note under the table counts each group.
+
+{: .note }
+Settlement uses the SPX daily close from the cached data, which can differ by a few cents from the official settlement print.
+
 ## Market data
 
 SPX daily bars (open, high, low, close) and VIX open and close come from Yahoo Finance and are cached with the site as JSON in `data/`. The browser loads only those files, so your trades never leave the page.

@@ -34,3 +34,13 @@ bundle exec jekyll serve
 ```
 
 Screenshots are under `docs/assets/images/screenshots/`.
+
+## Market data
+
+The [SPX 0DTE]({{ '/views/spx-0dte/' | relative_url }}) view reads daily SPX and VIX bars from `data/spx-daily.json` and `data/vix-daily.json`. The Pages workflow refreshes them each weekday after the close. To refresh them by hand:
+
+```bash
+node scripts/fetch-bars.mjs
+```
+
+The script fetches every day after the last cached one, checks the result against the NYSE calendar in `js/market-calendar.js`, and writes only when there are new bars. Add `--backfill` to refetch everything from 2025-01-02.

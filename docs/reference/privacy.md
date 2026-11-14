@@ -30,7 +30,7 @@ Symbol and strategy filters are kept only in the URL. **Clear** in the header re
 
 - No cookies
 - No analytics or tracking of any kind
-- No network requests carrying your data
+- No network requests carrying your data. The only files the app fetches are its own cached SPX and VIX bars, for the [SPX 0DTE]({{ '/views/spx-0dte/' | relative_url }}) view.
 
 ## Ask Claude
 

@@ -1,7 +1,7 @@
 ---
 title: Ask Claude
 parent: Views
-nav_order: 4
+nav_order: 5
 ---
 
 # Ask Claude

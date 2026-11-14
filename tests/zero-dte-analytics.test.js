@@ -145,6 +145,14 @@ test('measure uses the day bar for moves, distance, hit and ITM at close', () =>
     assert.deepStrictEqual([band.trades, band.hitPct, band.itmPct], [1, 100, 100]);
 });
 
+test('VIX bars are indexed by date with the prior close attached', () => {
+    const vix = SpxData.indexVix({ prevClose: 17.35, bars: [{ d: '2026-11-05', o: 18, h: 19, l: 17, c: 18.5 }, { d: '2026-11-06', o: 18.4, h: 18.9, l: 16.8, c: 17.1 }] });
+    assert.strictEqual(vix.get('2026-11-05').prev, 17.35);
+    assert.strictEqual(vix.get('2026-11-06').prev, 18.5);
+    assert.strictEqual(vix.has('2026-11-09'), false);
+    assert.strictEqual(SpxData.indexVix(null).size, 0);
+});
+
 test('SPX status counts trading days the cache is behind', () => {
     const st = SpxData.status(spx, new Date('2026-11-13T22:00:00Z'));
     assert.strictEqual(st.lastDate, '2026-11-06');

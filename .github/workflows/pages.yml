@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       backfill:
-        description: 'Refetch all SPX bars from 2025-01-02 instead of appending new days'
+        description: 'Refetch all SPX and VIX bars from 2025-01-02 instead of appending new days'
         type: boolean
         default: false
 
@@ -32,27 +32,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Fetch SPX daily bars
+      - name: Fetch SPX and VIX daily bars
         env:
           BACKFILL: ${{ inputs.backfill }}
         run: |
           if [ "$BACKFILL" = "true" ]; then
-            node scripts/fetch-spx.mjs --backfill
+            node scripts/fetch-bars.mjs --backfill
           else
-            node scripts/fetch-spx.mjs
+            node scripts/fetch-bars.mjs
           fi
 
       - name: Commit new bars
         id: commit
         run: |
-          if git diff --quiet -- data/spx-daily.json; then
+          git add data/spx-daily.json data/vix-daily.json
+          if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/spx-daily.json
-          git commit -m "Refresh SPX daily bars"
+          git commit -m "Refresh SPX and VIX daily bars"
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 

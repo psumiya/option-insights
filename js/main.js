@@ -409,10 +409,22 @@ function formatCurrency(value) {
  * Handle demo data load
  * Generates and loads sample trading data
  */
-function handleDemoDataLoad() {
+async function handleDemoDataLoad() {
   // Generate demo trades (100 trades over the past year)
   const demoTrades = demoDataGenerator.generate(100, 365);
-  
+
+  // SPX 0DTE trades are generated as raw tastytrade rows against the real SPX
+  // bars, then go through the same parsing as an uploaded export
+  let spxRows = [];
+  try {
+    const spx = await SpxData.load();
+    const rawRows = demoDataGenerator.generateSpx0dte(spx);
+    spxRows = ZeroDteAnalytics.pickRows(rawRows);
+    demoTrades.push(...TastyStrategyMapper.convertTastyWithStrategyInference(rawRows));
+  } catch (spxError) {
+    console.warn('SPX data unavailable, demo has no 0DTE trades:', spxError);
+  }
+
   // Enrich trades with computed fields
   const enrichedTrades = demoTrades.map(trade => {
     // Apply strategy detection (already set, but ensure consistency)
@@ -430,8 +442,8 @@ function handleDemoDataLoad() {
     console.warn('Failed to save demo data to localStorage:', storageError);
   }
   
-  dataStore.saveSpxRows([]);
-  if (dashboardController.zeroDtePanel) dashboardController.zeroDtePanel.update([]);
+  dataStore.saveSpxRows(spxRows);
+  if (dashboardController.zeroDtePanel) dashboardController.zeroDtePanel.update(spxRows);
 
   // Update dashboard controller
   dashboardController.enrichedTrades = enrichedTrades;

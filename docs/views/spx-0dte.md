@@ -15,6 +15,8 @@ Same-day SPX trades lined up against how far SPX moved that day and how far the 
 
 ---
 
+![The SPX 0DTE view: data banner, headline numbers and results by day type]({{ '/assets/images/screenshots/spx-0dte-top.png' | relative_url }})
+
 This view needs a tastytrade transactions export, because it relies on the time of each fill and the strike and expiration of every leg. Other formats leave it empty.
 
 ## Which trades count
@@ -76,6 +78,8 @@ Tap a row to filter the page to that band.
 Distances use the day's open, because the export doesn't record SPX at the moment of entry. For afternoon entries the open can be far from where SPX actually was.
 
 ## Day explorer
+
+![The day explorer on one day: the day list, SPX and VIX for the day, the price ladder and its trades]({{ '/assets/images/screenshots/spx-0dte-explorer.png' | relative_url }})
 
 A list of every trading day in view, with its move and VIX close. Pick a day to see:
 

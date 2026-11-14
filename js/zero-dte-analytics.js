@@ -84,7 +84,10 @@ const ZeroDteAnalytics = (() => {
         legs.forEach(leg => {
             const key = `${leg.symbol}|${leg.side}`;
             const existing = merged.get(key);
-            if (existing) existing.qty += leg.qty;
+            if (existing) {
+                existing.qty += leg.qty;
+                existing.open += leg.open;
+            }
             else merged.set(key, { ...leg });
         });
         return [...merged.values()].sort((a, b) => a.strike - b.strike || a.type.localeCompare(b.type));
@@ -151,7 +154,7 @@ const ZeroDteAnalytics = (() => {
                         };
                         positions.set(id, pos);
                     }
-                    pos.rawLegs.push({ symbol: row.y, strike: row.k, type: row.p, side, qty: row.q });
+                    pos.rawLegs.push({ symbol: row.y, strike: row.k, type: row.p, side, qty: row.q, open: row.v });
                     pos.openingTotal += row.v;
                     pos.openQty += row.q;
                 }
@@ -318,9 +321,138 @@ const ZeroDteAnalytics = (() => {
         return [...new Set(positions.map(p => p.structure))].sort();
     }
 
+    const WIDTH_STRUCTURES = new Set(['Put credit spread', 'Call credit spread', 'Iron condor', 'Iron butterfly']);
+    const intrinsic = (type, strike, s) => Math.max(0, type === 'P' ? strike - s : s - strike);
+
+    function verticals(pos) {
+        if (!WIDTH_STRUCTURES.has(pos.structure)) return null;
+        const sides = [];
+        for (const type of ['P', 'C']) {
+            const group = pos.legs.filter(l => l.type === type);
+            if (!group.length) continue;
+            const short = group.find(l => l.side === 'short');
+            const long = group.find(l => l.side === 'long');
+            if (group.length !== 2 || !short || !long || short.qty !== long.qty) return null;
+            const width = type === 'P' ? short.strike - long.strike : long.strike - short.strike;
+            if (width <= 0) return null;
+            sides.push({ type, short, long, width, qty: short.qty });
+        }
+        return sides.length ? sides : null;
+    }
+
+    function resize(sides, target, settle) {
+        let settleDelta = 0;
+        let creditLow = 0;
+        let creditHigh = 0;
+        const resized = sides.map(side => {
+            if (!target || target === side.width) return { ...side, newLong: side.long.strike, newWidth: side.width };
+            const newLong = side.short.strike + (side.type === 'P' ? -target : target);
+            const mult = side.qty * 100;
+            settleDelta += mult * (intrinsic(side.type, newLong, settle) - intrinsic(side.type, side.long.strike, settle));
+            const longCost = -side.long.open;
+            if (target > side.width) creditHigh += Math.max(0, longCost);
+            else creditLow += Math.min(0, Math.max(longCost - side.short.open, -(side.width - target) * mult));
+            return { ...side, newLong, newWidth: target };
+        });
+        return { sides: resized, settleDelta, creditLow, creditHigh };
+    }
+
+    const maxLoss = (sides, key, credit) => Math.max(...sides.map(s => s[key] * s.qty * 100)) - credit;
+
+    function scenarioTotals(list) {
+        const closed = list.filter(r => r.closed);
+        const days = new Map();
+        list.forEach(r => days.set(r.date, (days.get(r.date) || 0) + r.pl));
+        const risks = list.filter(r => r.risk !== null).map(r => r.risk);
+        return {
+            trades: list.length,
+            net: round2(list.reduce((s, r) => s + r.pl, 0)),
+            winRate: pct(closed.filter(r => r.pl > 0).length, closed.length),
+            worstDay: days.size ? round2(Math.min(...days.values())) : null,
+            avgRisk: risks.length ? round2(risks.reduce((s, v) => s + v, 0) / risks.length) : null
+        };
+    }
+
+    /**
+     * Replays measured positions under trader-chosen inputs: spread width,
+     * contracts per trade and skip rules known at the open. Settlement at a new
+     * width is exact from the SPX close; the new long leg's premium is unknown,
+     * so each result is a low-high range bounded by the premiums actually paid.
+     */
+    function whatIf(positions, { width = null, contracts = null, vixMax = null, gapMax = null, vix = new Map() } = {}) {
+        const rows = positions.map(pos => {
+            const v = vix.get(pos.date);
+            const gap = Math.abs(pos.bar.o - pos.bar.prev) / pos.bar.prev * 100;
+            const skipped = Boolean((vixMax !== null && v && v.o > vixMax) || (gapMax !== null && gap > gapMax));
+            const units = Math.min(...pos.legs.map(l => l.qty));
+            const factor = contracts ? contracts / units : 1;
+            const sides = verticals(pos);
+            let low = pos.pl;
+            let high = pos.pl;
+            let status = width ? 'no-width' : 'same';
+            let risk = null;
+            let legs = pos.legs;
+
+            if (sides) {
+                const r = resize(sides, width, pos.bar.c);
+                const changed = r.sides.some(s => s.newWidth !== s.width);
+                risk = {
+                    actual: maxLoss(sides, 'width', pos.openingTotal),
+                    worst: maxLoss(r.sides, 'newWidth', pos.openingTotal + r.creditLow),
+                    best: maxLoss(r.sides, 'newWidth', pos.openingTotal + r.creditHigh)
+                };
+                status = 'same';
+                if (changed) {
+                    legs = pos.legs.map(leg => {
+                        const side = r.sides.find(s => s.long === leg);
+                        return side ? { ...leg, strike: side.newLong } : leg;
+                    });
+                    if (pos.outcome === 'Expired' || pos.outcome === 'Settled ITM') {
+                        low = pos.pl + r.settleDelta + r.creditLow;
+                        high = pos.pl + r.settleDelta + r.creditHigh;
+                        status = 'modeled';
+                    } else {
+                        status = 'kept';
+                    }
+                }
+            }
+
+            return {
+                pos,
+                skipped,
+                status,
+                factor,
+                legs: legs.map(l => ({ ...l, qty: l.qty * factor })),
+                low: skipped ? 0 : round2(low * factor),
+                high: skipped ? 0 : round2(high * factor),
+                risk: risk && {
+                    actual: round2(risk.actual),
+                    worst: round2(risk.worst * factor),
+                    best: round2(risk.best * factor)
+                }
+            };
+        });
+
+        const base = r => ({ date: r.pos.date, closed: isClosed(r.pos) });
+        const taken = rows.filter(r => !r.skipped);
+        const count = status => taken.filter(r => r.status === status).length;
+        return {
+            rows,
+            actual: scenarioTotals(rows.map(r => ({ ...base(r), pl: r.pos.pl, risk: r.risk ? r.risk.actual : null }))),
+            low: scenarioTotals(taken.map(r => ({ ...base(r), pl: r.low, risk: r.risk ? r.risk.worst : null }))),
+            high: scenarioTotals(taken.map(r => ({ ...base(r), pl: r.high, risk: r.risk ? r.risk.best : null }))),
+            counts: {
+                skipped: rows.length - taken.length,
+                modeled: count('modeled'),
+                kept: count('kept'),
+                noWidth: count('no-width')
+            }
+        };
+    }
+
     return {
         MOVE_BUCKETS, DISTANCE_BANDS, OUTCOMES: ['Expired', 'Settled ITM', 'Closed early', 'Open'],
         pickRows, buildPositions, nameStructure, bucketMove, bandDistance,
-        measure, totals, byMoveBucket, byDistance, byDay, highlights, structures
+        measure, totals, byMoveBucket, byDistance, byDay, highlights, structures, whatIf
     };
 })();

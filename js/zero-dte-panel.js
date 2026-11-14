@@ -13,7 +13,7 @@ class ZeroDtePanel {
     }
 
     static defaultState() {
-        return { measure: 'oc', entry: 'all', side: 'put', bucket: null, distance: null, structure: [], outcome: [], day: null };
+        return { measure: 'oc', entry: 'all', side: 'put', bucket: null, distance: null, structure: [], outcome: [], day: null, wi: { width: null, contracts: null, vixMax: null, gapMax: null } };
     }
 
     initialize() {
@@ -30,6 +30,13 @@ class ZeroDtePanel {
             }
         });
         this.container.addEventListener('change', e => {
+            const wi = e.target.dataset.wi;
+            if (wi) {
+                const n = parseFloat(e.target.value);
+                this.state.wi[wi] = Number.isFinite(n) && n > 0 ? n : null;
+                this.render();
+                return;
+            }
             const key = e.target.dataset.multi;
             if (!key) return;
             const value = e.target.value;
@@ -104,6 +111,10 @@ class ZeroDtePanel {
             s[value] = [];
         } else if (action === 'day') {
             s.day = value;
+        } else if (action === 'wi-width') {
+            s.wi.width = value ? Number(value) : null;
+        } else if (action === 'wi-reset') {
+            s.wi = ZeroDtePanel.defaultState().wi;
         } else {
             return;
         }
@@ -149,6 +160,7 @@ class ZeroDtePanel {
             ${this.dayTypeHtml(this.filtered('bucket'))}
             ${this.distanceHtml(this.filtered('distance'))}
             ${this.explorerHtml(all)}
+            ${this.whatIfHtml(all)}
             ${this.footerHtml()}`;
 
         const ladder = this.container.querySelector('.zd-ladder');
@@ -360,6 +372,99 @@ class ZeroDtePanel {
                         <div class="zd-table-wrap">${this.dayTradesHtml(day)}</div>
                     </div>
                 </div>` : `<p class="zd-empty-inline">No trades match these filters.</p>`}
+            </section>`;
+    }
+
+    whatIfHtml(positions) {
+        const wi = this.state.wi;
+        const r = ZeroDteAnalytics.whatIf(positions, { ...wi, vix: this.vix });
+        const M = ZeroDtePanel;
+        const range = (lo, hi, fmt) => {
+            if (lo === null || hi === null) return '–';
+            const [a, b] = lo <= hi ? [lo, hi] : [hi, lo];
+            return Math.abs(b - a) < 0.5 ? fmt(a) : `${fmt(a)} to ${fmt(b)}`;
+        };
+        const money = v => M.money(v);
+        const risk = v => `$${Math.round(v).toLocaleString('en-US')}`;
+        const metric = (label, key, fmt, cls) => `
+            <tr>
+                <td>${label}</td>
+                <td class="zd-num ${cls ? M.plClass(r.actual[key]) : ''}">${r.actual[key] === null ? '–' : fmt(r.actual[key])}</td>
+                <td class="zd-num ${cls ? M.plClass(r.low[key]) : ''}">${range(r.low[key], r.high[key], fmt)}</td>
+            </tr>`;
+        const widthBtns = [['', 'Actual'], ...[5, 10, 15, 20, 25, 50].map(w => [String(w), `$${w}`])];
+        const input = (key, label, placeholder, step) => `
+            <label class="zd-select-label">${label}
+                <input class="research-select zd-wi-input" type="number" min="0" step="${step}" inputmode="decimal" data-wi="${key}" value="${wi[key] ?? ''}" placeholder="${placeholder}">
+            </label>`;
+
+        const c = r.counts;
+        const notes = [];
+        if (wi.width) {
+            notes.push(c.modeled
+                ? `${c.modeled} trade${c.modeled === 1 ? '' : 's'} re-run at $${wi.width} wide.`
+                : `No trades in view could be re-run at $${wi.width} wide.`);
+            if (c.kept) notes.push(`${c.kept} closed early or still open keep their actual result, since the export can't say what the new long would have closed at.`);
+            if (c.noWidth) notes.push(`${c.noWidth} without a credit spread on each side (naked shorts, debit spreads, butterflies and others) are unchanged.`);
+        }
+        if (c.skipped) notes.push(`${c.skipped} skipped by your rules.`);
+        if (wi.vixMax !== null && positions.some(p => !this.vix.get(p.date))) notes.push('Days without VIX data are never skipped by the VIX rule.');
+
+        const changed = r.rows
+            .map(row => ({ ...row, delta: Math.max(Math.abs(row.low - row.pos.pl), Math.abs(row.high - row.pos.pl)) }))
+            .filter(row => row.delta >= 0.5)
+            .sort((a, b) => b.delta - a.delta)
+            .slice(0, 8);
+        const changedHtml = changed.length ? `
+            <h4 class="zd-wi-sub">Trades that change most</h4>
+            <div class="zd-table-wrap">
+                <table class="data-table zd-table">
+                    <thead><tr><th>Day</th><th>Structure</th><th>What-if legs</th><th class="zd-num">Actual</th><th class="zd-num">What if</th></tr></thead>
+                    <tbody>${changed.map(row => `
+                        <tr>
+                            <td>${M.shortDate(row.pos.date)} ${M.etTime(row.pos.entryMinutes)}</td>
+                            <td>${M.esc(row.pos.structure)}</td>
+                            <td class="zd-legs">${row.skipped ? 'Skipped' : M.legsText(row.legs)}</td>
+                            <td class="zd-num ${M.plClass(row.pos.pl)}">${M.money(row.pos.pl, 2)}</td>
+                            <td class="zd-num ${M.plClass(row.low)}">${row.skipped ? '–' : range(row.low, row.high, v => M.money(v, 2))}</td>
+                        </tr>`).join('')}</tbody>
+                </table>
+            </div>` : '';
+
+        return `
+            <section class="report-card zd-card" aria-labelledby="zd-whatif-title">
+                <div class="card-head card-head-row">
+                    <div>
+                        <h3 id="zd-whatif-title" class="card-title">What if</h3>
+                        <p class="card-sub">Change inputs you control and replay the trades in view. Settlement at a new width is exact from the SPX close. The new long leg's premium isn't in the export, so results show the full range it could have cost, bounded by what you actually paid.</p>
+                    </div>
+                    <button class="filter-btn" data-action="wi-reset">Reset</button>
+                </div>
+                <div class="zd-controls">
+                    <div class="zd-select-label">Spread width
+                        <div class="filter-button-group" role="radiogroup" aria-label="Spread width">${widthBtns.map(([value, text]) => {
+                            const on = String(wi.width ?? '') === value;
+                            return `<button class="filter-btn${on ? ' active' : ''}" data-action="wi-width" data-value="${value}" role="radio" aria-checked="${on}">${text}</button>`;
+                        }).join('')}</div>
+                    </div>
+                    ${input('contracts', 'Contracts per trade', 'Actual', 1)}
+                    ${input('vixMax', 'Skip if VIX opens above', 'Off', 0.5)}
+                    ${input('gapMax', 'Skip if SPX gaps over (%)', 'Off', 0.1)}
+                </div>
+                <div class="zd-table-wrap">
+                    <table class="data-table zd-table zd-wi-table">
+                        <thead><tr><th></th><th class="zd-num">Actual</th><th class="zd-num">What if</th></tr></thead>
+                        <tbody>
+                            ${metric('Trades taken', 'trades', v => String(v))}
+                            ${metric('Net P&amp;L', 'net', money, true)}
+                            ${metric('Win rate', 'winRate', M.pctText)}
+                            ${metric('Worst day', 'worstDay', money, true)}
+                            ${metric('Avg max loss at entry', 'avgRisk', risk)}
+                        </tbody>
+                    </table>
+                </div>
+                ${notes.length ? `<p class="card-sub zd-wi-notes">${notes.join(' ')}</p>` : ''}
+                ${changedHtml}
             </section>`;
     }
 

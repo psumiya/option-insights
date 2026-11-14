@@ -6,11 +6,14 @@ class ZeroDtePanel {
         this.positions = [];
         this.spx = null;
         this.spxError = null;
+        this.vixData = null;
+        this.vix = new Map();
+        this.openMenu = null;
         this.state = ZeroDtePanel.defaultState();
     }
 
     static defaultState() {
-        return { measure: 'oc', entry: 'all', side: 'put', bucket: null, distance: null, structure: '', outcome: '', day: null };
+        return { measure: 'oc', entry: 'all', side: 'put', bucket: null, distance: null, structure: [], outcome: [], day: null };
     }
 
     initialize() {
@@ -27,10 +30,25 @@ class ZeroDtePanel {
             }
         });
         this.container.addEventListener('change', e => {
-            const key = e.target.dataset.select;
+            const key = e.target.dataset.multi;
             if (!key) return;
-            this.state[key] = e.target.value;
+            const value = e.target.value;
+            const list = this.state[key].filter(v => v !== value);
+            if (e.target.checked) list.push(value);
+            this.state[key] = list;
             this.render();
+        });
+        this.container.addEventListener('toggle', e => {
+            if (!e.target.matches('details[data-menu]')) return;
+            if (e.target.open) this.openMenu = e.target.dataset.menu;
+            else if (this.openMenu === e.target.dataset.menu) this.openMenu = null;
+        }, true);
+        document.addEventListener('click', e => {
+            if (!this.openMenu || e.target.closest(`details[data-menu="${this.openMenu}"]`)) return;
+            this.closeMenu();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && this.openMenu) this.closeMenu();
         });
         if (typeof ResizeObserver !== 'undefined') {
             this.resizeObserver = new ResizeObserver(entries => {
@@ -43,6 +61,19 @@ class ZeroDtePanel {
             .then(data => { this.spx = data; })
             .catch(err => { this.spxError = err; })
             .finally(() => this.render());
+        SpxData.loadVix()
+            .then(data => {
+                this.vixData = data;
+                this.vix = SpxData.indexVix(data);
+                this.render();
+            })
+            .catch(err => console.warn('VIX data could not be loaded:', err));
+    }
+
+    closeMenu() {
+        const menu = this.container.querySelector(`details[data-menu="${this.openMenu}"]`);
+        this.openMenu = null;
+        if (menu) menu.open = false;
     }
 
     update(rows) {
@@ -67,7 +98,10 @@ class ZeroDtePanel {
         } else if (action === 'distance') {
             s.distance = s.distance === value ? null : value;
         } else if (action === 'clear') {
-            s[value] = ZeroDtePanel.defaultState()[value];
+            if (el.dataset.item !== undefined) s[value] = s[value].filter(v => v !== el.dataset.item);
+            else s[value] = ZeroDtePanel.defaultState()[value];
+        } else if (action === 'multi-all') {
+            s[value] = [];
         } else if (action === 'day') {
             s.day = value;
         } else {
@@ -82,8 +116,8 @@ class ZeroDtePanel {
             (except === 'entry' || s.entry === 'all' || p.entry === s.entry)
             && (except === 'bucket' || !s.bucket || p.bucket[s.measure] === s.bucket)
             && (except === 'distance' || !s.distance || (p[s.side] && p[s.side].band === s.distance))
-            && (!s.structure || p.structure === s.structure)
-            && (!s.outcome || p.outcome === s.outcome));
+            && (!s.structure.length || s.structure.includes(p.structure))
+            && (!s.outcome.length || s.outcome.includes(p.outcome)));
     }
 
     render() {
@@ -129,9 +163,10 @@ class ZeroDtePanel {
         const st = SpxData.status(this.spx);
         const pending = this.measured.pending.length;
         const through = `SPX data through ${ZeroDtePanel.longDate(st.lastDate)}`;
-        const left = pending
+        const vixLast = this.vixData?.bars?.at(-1)?.d;
+        const left = (pending
             ? ` ${pending} trade${pending === 1 ? '' : 's'} after that date ${pending === 1 ? 'is' : 'are'} left out until the data catches up.`
-            : '';
+            : '') + (vixLast && vixLast !== st.lastDate ? ` VIX data through ${ZeroDtePanel.longDate(vixLast)}.` : '');
         if (st.current) {
             return `<div class="zd-banner" role="status"><span class="zd-dot zd-dot-ok" aria-hidden="true"></span>${through} · current.${left}</div>`;
         }
@@ -191,11 +226,11 @@ class ZeroDtePanel {
         if (s.entry !== 'all') chips.push(['entry', s.entry === 'am' ? 'Entered before 11:00 ET' : 'Entered 11:00 ET or later']);
         if (bucket) chips.push(['bucket', `${bucket.label} ${s.measure === 'oc' ? 'open→close' : 'prior close→close'}`]);
         if (band) chips.push(['distance', `Short ${s.side} ${band.label}`]);
-        if (s.structure) chips.push(['structure', s.structure]);
-        if (s.outcome) chips.push(['outcome', s.outcome]);
+        s.structure.forEach(v => chips.push(['structure', v, v]));
+        s.outcome.forEach(v => chips.push(['outcome', v, v]));
         if (!chips.length) return '';
-        return `<div class="zd-chips" aria-label="Applied filters">${chips.map(([key, label]) =>
-            `<button class="zd-chip" data-action="clear" data-value="${key}" aria-label="Remove filter ${ZeroDtePanel.esc(label)}">${ZeroDtePanel.esc(label)}<span aria-hidden="true">×</span></button>`).join('')}</div>`;
+        return `<div class="zd-chips" aria-label="Applied filters">${chips.map(([key, label, item]) =>
+            `<button class="zd-chip" data-action="clear" data-value="${key}"${item !== undefined ? ` data-item="${ZeroDtePanel.esc(item)}"` : ''} aria-label="Remove filter ${ZeroDtePanel.esc(label)}">${ZeroDtePanel.esc(label)}<span aria-hidden="true">×</span></button>`).join('')}</div>`;
     }
 
     toggleHtml(action, options, current, label) {
@@ -285,14 +320,16 @@ class ZeroDtePanel {
         const index = days.findIndex(d => d.date === s.day);
         const day = days[index];
 
-        const option = (value, current) => `<option value="${ZeroDtePanel.esc(value)}"${value === current ? ' selected' : ''}>${ZeroDtePanel.esc(value)}</option>`;
         const structures = ZeroDteAnalytics.structures(this.measured.positions);
-        const list = [...days].reverse().map(d => `
+        const list = [...days].reverse().map(d => {
+            const vix = this.vix.get(d.date);
+            return `
             <button class="zd-day${d.date === s.day ? ' active' : ''}" data-action="day" data-value="${d.date}" aria-pressed="${d.date === s.day}">
                 <span class="zd-day-date">${ZeroDtePanel.shortDate(d.date)}</span>
-                <span class="zd-day-move">${ZeroDtePanel.signedPct(d.move)}</span>
+                <span class="zd-day-move">${ZeroDtePanel.signedPct(d.move)}${vix ? ` · VIX ${vix.c.toFixed(2)}` : ''}</span>
                 <span class="zd-day-pl ${ZeroDtePanel.plClass(d.pl)}">${ZeroDtePanel.money(d.pl)}</span>
-            </button>`).join('');
+            </button>`;
+        }).join('');
 
         return `
             <section class="report-card zd-card" aria-labelledby="zd-explorer-title">
@@ -301,16 +338,8 @@ class ZeroDtePanel {
                     <p class="card-sub">Pick a day to see its range against your strikes. Filled dots are short strikes, hollow dots are long.</p>
                 </div>
                 <div class="zd-controls">
-                    <label class="zd-select-label">Structure
-                        <select class="research-select" data-select="structure">
-                            <option value="">All structures</option>${structures.map(v => option(v, s.structure)).join('')}
-                        </select>
-                    </label>
-                    <label class="zd-select-label">Outcome
-                        <select class="research-select" data-select="outcome">
-                            <option value="">All outcomes</option>${ZeroDteAnalytics.OUTCOMES.map(v => option(v, s.outcome)).join('')}
-                        </select>
-                    </label>
+                    ${this.multiSelectHtml('structure', 'Structure', 'structures', structures)}
+                    ${this.multiSelectHtml('outcome', 'Outcome', 'outcomes', ZeroDteAnalytics.OUTCOMES)}
                 </div>
                 ${days.length ? `
                 <div class="zd-explorer">
@@ -320,6 +349,7 @@ class ZeroDtePanel {
                             <div>
                                 <div class="zd-day-title">${ZeroDtePanel.longDate(day.date)}</div>
                                 <div class="card-sub">Open ${ZeroDtePanel.price(day.bar.o)} · close ${ZeroDtePanel.price(day.bar.c)} · ${ZeroDtePanel.signedPct(day.move)} ${s.measure === 'oc' ? 'open→close' : 'prior close→close'} · range ${ZeroDtePanel.price(day.bar.l)}–${ZeroDtePanel.price(day.bar.h)}</div>
+                                <div class="card-sub">${this.vixLine(day.date)}</div>
                             </div>
                             <div class="zd-pager">
                                 <button class="filter-btn" data-action="day" data-value="${days[index - 1]?.date ?? ''}" ${index > 0 ? '' : 'disabled'}>‹ Prev</button>
@@ -331,6 +361,32 @@ class ZeroDtePanel {
                     </div>
                 </div>` : `<p class="zd-empty-inline">No trades match these filters.</p>`}
             </section>`;
+    }
+
+    multiSelectHtml(key, label, plural, options) {
+        const selected = this.state[key];
+        const summary = !selected.length ? `All ${plural}` : (selected.length === 1 ? selected[0] : `${selected.length} ${plural}`);
+        return `
+            <div class="zd-select-label">${label}
+                <details class="zd-multi" data-menu="${key}"${this.openMenu === key ? ' open' : ''}>
+                    <summary class="research-select">${ZeroDtePanel.esc(summary)}</summary>
+                    <div class="zd-multi-panel">
+                        <button class="zd-multi-all${selected.length ? '' : ' active'}" data-action="multi-all" data-value="${key}">All ${plural}</button>
+                        ${options.map(v => `
+                        <label class="zd-multi-option">
+                            <input type="checkbox" data-multi="${key}" value="${ZeroDtePanel.esc(v)}"${selected.includes(v) ? ' checked' : ''}>
+                            <span>${ZeroDtePanel.esc(v)}</span>
+                        </label>`).join('')}
+                    </div>
+                </details>
+            </div>`;
+    }
+
+    vixLine(date) {
+        const vix = this.vix.get(date);
+        if (!vix) return 'VIX n/a';
+        const change = vix.c - vix.o;
+        return `VIX open ${vix.o.toFixed(2)} · close ${vix.c.toFixed(2)} <span class="${ZeroDtePanel.plClass(-change)}">(${change >= 0 ? '+' : '−'}${Math.abs(change).toFixed(2)})</span>`;
     }
 
     dayTradesHtml(day) {
@@ -416,7 +472,7 @@ class ZeroDtePanel {
         const missing = this.measured.missingDays;
         return `
             <footer class="zd-footer">
-                <p><strong>Sources.</strong> SPX daily open, high, low and close from Yahoo Finance (^GSPC), cached with this site and refreshed each weekday after the close. Trades come from your tastytrade export and never leave this browser.</p>
+                <p><strong>Sources.</strong> SPX daily open, high, low and close from Yahoo Finance (^GSPC), and VIX open and close (^VIX), cached with this site and refreshed each weekday after the close. Trades come from your tastytrade export and never leave this browser.</p>
                 <p><strong>0DTE.</strong> An SPX option position opened on its expiration day, in Eastern time. Positions opened on an earlier day, including the evening before in the overnight session, are left out. Closes are matched to opening lots first in, first out, and P&amp;L includes fees.</p>
                 ${missing.length ? `<p><strong>Days left out.</strong> No published SPX bar for ${missing.map(ZeroDtePanel.longDate).join(', ')}.</p>` : ''}
                 <p><strong>Caveat.</strong> Strike distances use the day's open because the export doesn't record SPX at the moment of entry. For afternoon entries the open can be far from where SPX actually was.</p>

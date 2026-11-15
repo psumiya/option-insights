@@ -40,5 +40,4 @@ callouts:
     color: yellow
 
 exclude:
-  - AI_RESEARCH.md
   - BROKER_SUPPORT.md

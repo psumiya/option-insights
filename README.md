@@ -43,7 +43,7 @@ Then open http://localhost:8000. Tests run on Node 18 or later with no install:
 node --test tests/*.test.js
 ```
 
-See [TESTING.md](docs/TESTING.md) for the older browser test pages. To refresh the market
+To refresh the market
 data by hand, run `node scripts/fetch-bars.mjs`, or add `--backfill` to refetch everything
 from 2025-01-02. The Pages workflow runs the same script each weekday after the close.
 

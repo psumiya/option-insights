@@ -125,10 +125,7 @@ Computed during aggregation, not read from the CSV:
 
 ## Testing
 
-Test the broker adapters:
-1. Open `tests/test-broker-adapters.html` in your browser
-2. Click the test buttons for each broker
-3. View the parsed results
+Broker adapter tests live in `tests/*.test.js` (for example `tastyAdapter.test.js` and `robinhood-strategy.test.js`). Run them with `node --test tests/*.test.js`.
 
 ## Adding New Brokers
 

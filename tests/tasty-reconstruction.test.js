@@ -400,3 +400,40 @@ test('a T-bill held to maturity realizes the discount', () => {
   assert.strictEqual(bills.length, 1);
   assert.strictEqual(bills[0].RealizedGrossPL, 4.9);
 });
+
+test('shares sold beyond the in-window lots are flagged as opened before the export', () => {
+  const stockRow = overrides => ({
+    Type: 'Trade', 'Instrument Type': 'Equity', Symbol: 'SOFI',
+    Commissions: '0.00', Fees: '0.00', ...overrides
+  });
+  const equity = mapper.processEquityTrades([
+    stockRow({
+      Date: '2026-02-17T14:00:00-0800', Type: 'Receive Deliver', 'Sub Type': 'Buy to Open',
+      Action: 'BUY_TO_OPEN', Value: '-2400.00', Quantity: '100', 'Order #': ''
+    }),
+    stockRow({
+      Date: '2026-09-21T09:21:47-0700', 'Sub Type': 'Sell to Close', Action: 'SELL_TO_CLOSE',
+      Value: '3059.10', Quantity: '180', 'Order #': '508041573'
+    }),
+    stockRow({
+      Date: '2026-09-21T09:21:47-0700', 'Sub Type': 'Sell to Close', Action: 'SELL_TO_CLOSE',
+      Value: '169.95', Quantity: '10', 'Order #': '508041573'
+    }),
+    stockRow({
+      Date: '2026-09-21T09:21:47-0700', 'Sub Type': 'Sell to Close', Action: 'SELL_TO_CLOSE',
+      Value: '169.95', Quantity: '10', 'Order #': '508041573'
+    })
+  ]);
+
+  assert.strictEqual(equity.length, 2);
+  const [assigned, carried] = equity;
+  assert.strictEqual(assigned.Strategy, 'Long Stock');
+  assert.strictEqual(assigned.RealizedGrossPL, -700.5);
+  assert.strictEqual(assigned._metadata.incompleteBasis, false);
+
+  assert.strictEqual(carried.Strategy, 'Opened before this export');
+  assert.strictEqual(carried.Volume, 100);
+  assert.strictEqual(carried.Credit, 1699.5);
+  assert.strictEqual(carried._metadata.incompleteBasis, true);
+  assert.notStrictEqual(carried._metadata.strategyGroupId, assigned._metadata.strategyGroupId);
+});

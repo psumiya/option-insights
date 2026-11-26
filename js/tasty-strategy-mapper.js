@@ -548,6 +548,7 @@ function processEquityTrades(trades) {
   };
 
   const lastFinished = new Map();
+  const carryover = new Map();
 
   chronological.forEach(trade => {
     const symbol = trade.Symbol;
@@ -591,12 +592,20 @@ function processEquityTrades(trades) {
 
       // Shares acquired before this export window began
       if (unmatched > 0) {
-        const lot = newLot(trade, unmatched, false);
-        lot.entry = null;
-        lot.exit = parseDate(trade.Date);
-        lot.remaining = 0;
+        const key = `${symbol}|${trade['Order #'] || trade.Date}`;
+        let lot = carryover.get(key);
+        if (!lot) {
+          lot = newLot(trade, 0, trade.Action === 'SELL_TO_CLOSE');
+          lot.entry = null;
+          lot.exit = parseDate(trade.Date);
+          lot.remaining = 0;
+          lot.incompleteBasis = true;
+          lot.carryoverKey = trade['Order #'] || trade.Date;
+          carryover.set(key, lot);
+          finished.push(lot);
+        }
+        lot.quantity += unmatched;
         applyMoney(lot, trade, unmatched, quantity);
-        finished.push(lot);
       }
     }
   });
@@ -607,7 +616,9 @@ function processEquityTrades(trades) {
   return finished.concat(stillOpen).map(lot => ({
     Symbol: lot.symbol,
     Type: 'Stock',
-    Strategy: lot.isLong ? 'Long Stock' : 'Short Stock',
+    Strategy: lot.incompleteBasis
+      ? 'Opened before this export'
+      : (lot.isLong ? 'Long Stock' : 'Short Stock'),
     Strike: 0,
     Expiry: null,
     Volume: lot.quantity,
@@ -629,12 +640,15 @@ function processEquityTrades(trades) {
     Account: 'TastyTrade',
     _metadata: {
       totalLegs: 1,
-      strategyGroupId: `stock:${lot.symbol}:${lot.entry ? lot.entry.toISOString().slice(0, 10) : 'preexisting'}`,
+      strategyGroupId: lot.incompleteBasis
+        ? `stock:${lot.symbol}:preexisting:${lot.carryoverKey}`
+        : `stock:${lot.symbol}:${lot.entry ? lot.entry.toISOString().slice(0, 10) : 'preexisting'}`,
       strikes: [],
       legCount: 1,
       feesAvailable: true,
       multipleExpirations: false,
-      instrument: lot.instrument
+      instrument: lot.instrument,
+      incompleteBasis: lot.incompleteBasis === true
     }
   }));
 }
